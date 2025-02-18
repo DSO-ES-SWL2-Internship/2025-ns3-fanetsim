@@ -62,8 +62,8 @@ namespace ns3
         mobility.Install(clusterMembers);
     }
 
-    // Apply mobility to all nodes in the FANET topology
-    void FANETMobilityHelper::ApplyMobility(FANETTopologyHelper& fanet) {
+    // Apply mobility to all nodes in the FANET topology, cluster heads are set to be not mobile in this model as P2P is used
+    void FANETMobilityHelper::ApplyMobilityP2P(FANETTopologyHelper& fanet) {
         NodeContainer singleCH;
         SetGDTMobility(fanet.GDTNode);
 
@@ -82,4 +82,22 @@ namespace ns3
 
         SetClusterHeadMobility(fanet.clusterHeadNodes, 0.0, 0.0, fanet.nClusterHeads, radius);
     }
+
+    void FANETMobilityHelper::ApplyMobilityWireless(FANETTopologyHelper& fanet) {
+        NodeContainer singleCH;
+        SetGDTMobility(fanet.GDTNode);
+
+        double radius = 10.0;  // Distance of cluster heads from GDT
+        double angleStep = 360.0 / fanet.nClusterHeads;  // Evenly space CHs in a circular pattern
+
+        for (uint32_t i = 0; i < fanet.nClusterHeads; i++) {
+            double angleRad = (angleStep * i) * (M_PI / 180.0);
+            double xCH = radius * cos(angleRad);
+            double yCH = radius * sin(angleRad);
+            
+            // Set mobility for members of this cluster to be around the area of their assignment
+            SetClusterMemberMobility(fanet.clusters[i], xCH, yCH);
+        }
+    }
+
 }

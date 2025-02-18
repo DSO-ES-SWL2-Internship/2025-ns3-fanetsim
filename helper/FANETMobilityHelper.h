@@ -17,7 +17,8 @@ namespace ns3
             void SetGDTMobility(NodeContainer& gdtNode);                                                                                //done
             void SetClusterHeadMobility(NodeContainer& clusterHeads, double x, double y, uint32_t nClusterHeads, double radius);        //done
             void SetClusterMemberMobility(NodeContainer& clusterMembers, double xCenter, double yCenter);                               //done
-            void ApplyMobility(FANETTopologyHelper& fanet);                                                                             //done
+            void ApplyMobilityP2P(FANETTopologyHelper& fanet);                                                                             //done
+            void ApplyMobilityWireless(FANETTopologyHelper& fanet);
 
         private:
             MobilityHelper mobility;
