@@ -31,10 +31,6 @@ namespace ns3
         public:
             PointToPointHelper p2p;
             WifiHelper wifi;
-            YansWifiChannelHelper wifiChannel;
-            YansWifiPhyHelper wifiPhyGDT;
-            YansWifiPhyHelper wifiPhyCluster;
-            WifiMacHelper wifiMac;
             std::vector<NetDeviceContainer> clustersDevices;
             std::vector<NetDeviceContainer> GDTtoCHLinksDevices;
 

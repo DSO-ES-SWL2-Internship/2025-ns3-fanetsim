@@ -141,23 +141,23 @@ namespace ns3
         // Ensure the WiFi standard is set
         wifi.SetStandard(clusterWifiStandard);
 
-        // Create a separate WiFi channel for CH-GDT links
-        YansWifiChannelHelper wifiChannelGDT;
-        if (!clusterWifiChannelPropagationDelay.empty()) {
-            wifiChannelGDT.SetPropagationDelay(clusterWifiChannelPropagationDelay);
-        }
-        if (!clusterPropagationLossModel.empty()) {
-            wifiChannelGDT.AddPropagationLoss(clusterPropagationLossModel);
-        }
-
-        // Setup the PHY layer for CH-GDT links
-        wifiPhyGDT.SetChannel(wifiChannelGDT.Create());
-
         // Clear any existing devices
         // GDTtoCHLinksDevices.clear();
 
         // Iterate over each CH-GDT pair and create a separate WiFi network for each
         for (size_t i = 0; i < GDTtoCHLinkNodes.size(); i++) {
+                    // Create a separate WiFi channel for CH-GDT links
+            YansWifiChannelHelper wifiChannelLink;
+            if (!clusterWifiChannelPropagationDelay.empty()) {
+                wifiChannelLink.SetPropagationDelay(clusterWifiChannelPropagationDelay);
+            }
+            if (!clusterPropagationLossModel.empty()) {
+                wifiChannelLink.AddPropagationLoss(clusterPropagationLossModel);
+            }
+
+            // Setup the PHY layer for CH-GDT links
+            YansWifiPhyHelper wifiPhyLink;
+            wifiPhyLink.SetChannel(wifiChannelLink.Create());
             // Create a unique SSID for each CH-GDT pair
             std::ostringstream ssidStream;
             ssidStream << "CH_GDT_Link_" << i;
@@ -168,10 +168,10 @@ namespace ns3
             wifiMacAdHoc.SetType("ns3::AdhocWifiMac", "Ssid", SsidValue(Ssid(ssid)));
 
             // Install the WiFi device on the GDT node (AdHoc mode)
-            NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyGDT, wifiMacAdHoc, GDTtoCHLinkNodes[i].Get(0));
+            NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyLink, wifiMacAdHoc, GDTtoCHLinkNodes[i].Get(0));
 
             // Install the WiFi device on the CH node (AdHoc mode)
-            NetDeviceContainer adhocDeviceCH = wifi.Install(wifiPhyGDT, wifiMacAdHoc, GDTtoCHLinkNodes[i].Get(1));
+            NetDeviceContainer adhocDeviceCH = wifi.Install(wifiPhyLink, wifiMacAdHoc, GDTtoCHLinkNodes[i].Get(1));
 
             // Combine the devices into a single container for this link
             NetDeviceContainer linkDevices;
