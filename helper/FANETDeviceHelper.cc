@@ -3,7 +3,7 @@
 
 namespace ns3
 {
-        // Constructor
+    // Constructor
     FANETDeviceHelper::FANETDeviceHelper() {
         // Constructor initialization logic (if any)
     }
@@ -25,10 +25,20 @@ namespace ns3
         clusterMacType = "ns3::AdhocWifiMac";
     }
 
-    // TODO
     // Default settings for WiFi connections
     void FANETDeviceHelper::DefaultWifi() {
         // Configure default settings for WiFi
+        clusterWifiStandard = WIFI_STANDARD_80211b;
+        clusterWifiChannelPropagationDelay = "ns3::ConstantSpeedPropagationDelayModel";
+        clusterPropagationLossModel = "ns3::FriisPropagationLossModel";
+        clusterMacType = "ns3::AdhocWifiMac";
+    }
+
+    void FANETDeviceHelper::TdmaWifi(){
+        clusterWifiStandard = WIFI_STANDARD_80211b;
+        clusterWifiChannelPropagationDelay = "ns3::ConstantSpeedPropagationDelayModel";
+        clusterPropagationLossModel = "ns3::FriisPropagationLossModel";
+        clusterMacType = "ns3::TdmaWifiMac";
     }
 
     void FANETDeviceHelper::SetupClustersWifi(std::vector<NodeContainer> clusters) {
@@ -44,6 +54,7 @@ namespace ns3
             // Create a unique Wi-Fi channel for this cluster
             YansWifiChannelHelper wifiChannelCM;
             
+            // Edit the .h file if custom propagation delay and model is required
             // Configure the channel properties (if specified)
             if (!clusterWifiChannelPropagationDelay.empty()) {
                 wifiChannelCM.SetPropagationDelay(clusterWifiChannelPropagationDelay);
@@ -63,15 +74,13 @@ namespace ns3
 
             // Configure the MAC layer for AdHoc (for both GDT and CH)
             WifiMacHelper wifiMacCM;
-            wifiMacCM.SetType("ns3::AdhocWifiMac", "Ssid", SsidValue(Ssid(ssid)));
+            wifiMacCM.SetType(clusterMacType, "Ssid", SsidValue(Ssid(ssid)));
 
             // Install WiFi devices on nodes in the current cluster
             NetDeviceContainer clusterDevices = wifi.Install(wifiPhyCluster, wifiMacCM, clusters[i]);
             clustersDevices.push_back(clusterDevices);
         }
     }
-
-
 
     // Setup P2P links
     void FANETDeviceHelper::SetupLinksP2P(std::vector<NodeContainer> GDTtoCHLinkNodes) {
@@ -86,56 +95,6 @@ namespace ns3
             //NS_LOG_UNCOND("Link size: " << GDTtoCHLinksDevices[i].GetN());
         }
     }
-
-    // TODO
-    // void FANETDeviceHelper::SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes) {
-    //     // Ensure the WiFi standard is set
-    //     wifi.SetStandard(clusterWifiStandard);
-
-    //     // Create a separate WiFi channel for CH-GDT links
-    //     YansWifiChannelHelper wifiChannelGDT;
-    //     if (!clusterWifiChannelPropagationDelay.empty()) {
-    //         wifiChannelGDT.SetPropagationDelay(clusterWifiChannelPropagationDelay);
-    //     }
-    //     if (!clusterPropagationLossModel.empty()) {
-    //         wifiChannelGDT.AddPropagationLoss(clusterPropagationLossModel);
-    //     }
-
-    //     // Setup the PHY layer for CH-GDT links
-    //     wifiPhyGDT.SetChannel(wifiChannelGDT.Create());
-
-    //     // Clear any existing devices
-    //     //GDTtoCHLinksDevices.clear();
-
-    //     // Iterate over each CH-GDT pair and create a separate WiFi network for each
-    //     for (size_t i = 0; i < GDTtoCHLinkNodes.size(); i++) {
-    //         // Create a unique SSID for each CH-GDT pair
-    //         std::ostringstream ssidStream;
-    //         ssidStream << "CH_GDT_Link_" << i;
-    //         std::string ssid = ssidStream.str();
-
-    //         // Configure the MAC layer for the GDT (Access Point)
-    //         WifiMacHelper wifiMacGDT;
-    //         wifiMacGDT.SetType("ns3::ApWifiMac", "Ssid", SsidValue(Ssid(ssid)));
-
-    //         // Install the WiFi device on the GDT node
-    //         NetDeviceContainer apDevice = wifi.Install(wifiPhyGDT, wifiMacGDT, GDTtoCHLinkNodes[i].Get(0));
-
-    //         // Configure the MAC layer for the CH (Station)
-    //         wifiMacGDT.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid(ssid)), "ActiveProbing", BooleanValue(false));
-
-    //         // Install the WiFi device on the CH node
-    //         NetDeviceContainer staDevice = wifi.Install(wifiPhyGDT, wifiMacGDT, GDTtoCHLinkNodes[i].Get(1));
-
-    //         // Combine the devices into a single container for this link
-    //         NetDeviceContainer linkDevices;
-    //         linkDevices.Add(apDevice);
-    //         linkDevices.Add(staDevice);
-
-    //         // Add the link devices to the global container
-    //         GDTtoCHLinksDevices.push_back(linkDevices);
-    //     }
-    // }
 
     void FANETDeviceHelper::SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes) {
         // Ensure the WiFi standard is set
@@ -165,7 +124,7 @@ namespace ns3
 
             // Configure the MAC layer for AdHoc (for both GDT and CH)
             WifiMacHelper wifiMacAdHoc;
-            wifiMacAdHoc.SetType("ns3::AdhocWifiMac", "Ssid", SsidValue(Ssid(ssid)));
+            wifiMacAdHoc.SetType(clusterMacType, "Ssid", SsidValue(Ssid(ssid)));
 
             // Install the WiFi device on the GDT node (AdHoc mode)
             NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyLink, wifiMacAdHoc, GDTtoCHLinkNodes[i].Get(0));
@@ -183,5 +142,38 @@ namespace ns3
         }
     }
 
+    void FANETDeviceHelper::AssignTdmaSlots(NodeContainer nodes, Time cycleDuration){
+        uint32_t slotCounter = 0; // Track the TDMA slot across all devices
 
+        for (uint32_t i = 0; i < nodes.GetN(); ++i)
+        {
+            Ptr<Node> node = nodes.Get(i);
+            
+            // Iterate through all devices of this node
+            for (uint32_t j = 0; j < node->GetNDevices(); ++j)
+            {
+                Ptr<WifiNetDevice> wifiDevice = DynamicCast<WifiNetDevice>(node->GetDevice(j));
+                
+                // Check if it's a valid WifiNetDevice
+                if (wifiDevice)
+                {
+                    Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDevice->GetMac());
+                    
+                    // Ensure that the device has a valid TDMA MAC
+                    if (tdmaMac)
+                    {
+                        // Assign the TDMA slot for this device
+                        tdmaMac->SetTdmaParameters(nodes.GetN(), cycleDuration, slotCounter);
+                        
+                        // Start TDMA for this device
+                        tdmaMac->StartTdma();
+                        
+                        // Increment the slot counter for the next device
+                        slotCounter++;
+                    }
+                }
+            }
+        }
+
+    }
 }

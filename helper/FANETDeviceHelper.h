@@ -38,10 +38,12 @@ namespace ns3
             ~FANETDeviceHelper();                                               //done
 
             void DefaultP2P();                                                  //done
-            void DefaultWifi();                                                                         
+            void DefaultWifi();                                                 //done
+            void TdmaWifi();                    
             void SetupClustersWifi(std::vector<NodeContainer> clusters);        //done
             void SetupLinksP2P(std::vector<NodeContainer> GDTtoCHLinkNodes);    //done
-            void SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes);
+            void SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes);   //done
+            void AssignTdmaSlots(NodeContainer nodes, Time cycleDuration);
     }; 
 }
 
