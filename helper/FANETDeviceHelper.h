@@ -1,0 +1,53 @@
+#ifndef FANET_DEVICE_HELPER_H
+#define FANET_DEVICE_HELPER_H
+
+#include "ns3/wifi-module.h"
+#include "ns3/point-to-point-module.h"
+
+
+#include <cstdint>
+#include <vector>
+#include <string>
+
+namespace ns3 
+{
+    class FANETDeviceHelper {
+        private:
+            std::string P2PDeviceDataRate = "";
+            std::string P2PChannelDelay = "";
+
+            WifiStandard clusterWifiStandard = WIFI_STANDARD_80211b;
+            std::string clusterWifiChannelPropagationDelay = "";
+            std::string clusterPropagationLossModel = "";
+            std::string clusterMacType = "";
+
+            WifiStandard linkWifiStandard = WIFI_STANDARD_80211b;
+            std::string linkWifiChannelPropagationDelay = "";
+            std::string linkPropagationLossModel = "";
+            std::string linkMacType = "";
+
+
+
+        public:
+            PointToPointHelper p2p;
+            WifiHelper wifi;
+            YansWifiChannelHelper wifiChannel;
+            YansWifiPhyHelper wifiPhyGDT;
+            YansWifiPhyHelper wifiPhyCluster;
+            WifiMacHelper wifiMac;
+            std::vector<NetDeviceContainer> clustersDevices;
+            std::vector<NetDeviceContainer> GDTtoCHLinksDevices;
+
+            FANETDeviceHelper();                                                //done
+            ~FANETDeviceHelper();                                               //done
+
+            void DefaultP2P();                                                  //done
+            void DefaultWifi();                                                                         
+            void SetupClustersWifi(std::vector<NodeContainer> clusters);        //done
+            void SetupLinksP2P(std::vector<NodeContainer> GDTtoCHLinkNodes);    //done
+            void SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes);
+    }; 
+}
+
+
+#endif
