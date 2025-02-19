@@ -23,24 +23,24 @@ namespace ns3
         mobility.Install(gdtNode);
     }
 
-        // Set fixed positions for cluster heads in a circular layout around GDT
-        void FANETMobilityHelper::SetClusterHeadMobility(NodeContainer& clusterHeads, double x, double y, uint32_t nClusterHeads, double radius) {
-            Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
+    // Set fixed positions for cluster heads in a circular layout around GDT
+    void FANETMobilityHelper::SetClusterHeadMobility(NodeContainer& clusterHeads, double x, double y, uint32_t nClusterHeads, double radius) {
+        Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
 
-            // Calculate positions for each cluster head in a circular layout
-            for (uint32_t i = 0; i < nClusterHeads; ++i) {
-                double angle = 2 * M_PI * i / nClusterHeads; // Evenly distribute cluster heads
-                double clusterX = x + radius * cos(angle);   // X position based on angle
-                double clusterY = y + radius * sin(angle);   // Y position based on angle
+        // Calculate positions for each cluster head in a circular layout
+        for (uint32_t i = 0; i < nClusterHeads; ++i) {
+            double angle = 2 * M_PI * i / nClusterHeads; // Evenly distribute cluster heads
+            double clusterX = x + radius * cos(angle);   // X position based on angle
+            double clusterY = y + radius * sin(angle);   // Y position based on angle
 
-                positionAlloc->Add(Vector(clusterX, clusterY, 0.0)); // Set position
-            }
-
-            // Assign the position allocator to the mobility model
-            mobility.SetPositionAllocator(positionAlloc);
-            mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel"); // Fixed position
-            mobility.Install(clusterHeads);
+            positionAlloc->Add(Vector(clusterX, clusterY, 0.0)); // Set position
         }
+
+        // Assign the position allocator to the mobility model
+        mobility.SetPositionAllocator(positionAlloc);
+        mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel"); // Fixed position
+        mobility.Install(clusterHeads);
+    }
 
 
     // Set random mobility for cluster members within a sector around their CH
@@ -63,40 +63,40 @@ namespace ns3
     }
 
     // Apply mobility to all nodes in the FANET topology, cluster heads are set to be not mobile in this model as P2P is used
-    void FANETMobilityHelper::ApplyMobilityP2P(FANETTopologyHelper& fanet) {
+    void FANETMobilityHelper::ApplyMobilityP2P(FANETTopologyHelper* fanet) {
         NodeContainer singleCH;
-        SetGDTMobility(fanet.GDTNode);
+        SetGDTMobility(fanet->GDTNode);
 
         double radius = 10.0;  // Distance of cluster heads from GDT
-        double angleStep = 360.0 / fanet.nClusterHeads;  // Evenly space CHs in a circular pattern
+        double angleStep = 360.0 / fanet->nClusterHeads;  // Evenly space CHs in a circular pattern
 
-        for (uint32_t i = 0; i < fanet.nClusterHeads; i++) {
+        for (uint32_t i = 0; i < fanet->nClusterHeads; i++) {
             double angleRad = (angleStep * i) * (M_PI / 180.0);
             double xCH = radius * cos(angleRad);
             double yCH = radius * sin(angleRad);
             
             // Set mobility for members of this cluster around their CH
-            SetClusterMemberMobility(fanet.clustersCMNodes[i], xCH, yCH);
-            //SetClusterMemberMobility(fanet.clusters[i], xCH, yCH);
+            SetClusterMemberMobility(fanet->clustersCMNodes[i], xCH, yCH);
+            //SetClusterMemberMobility(fanet->clusters[i], xCH, yCH);
         }
 
-        SetClusterHeadMobility(fanet.clusterHeadNodes, 0.0, 0.0, fanet.nClusterHeads, radius);
+        SetClusterHeadMobility(fanet->clusterHeadNodes, 0.0, 0.0, fanet->nClusterHeads, radius);
     }
 
-    void FANETMobilityHelper::ApplyMobilityWireless(FANETTopologyHelper& fanet) {
+    void FANETMobilityHelper::ApplyMobilityWireless(FANETTopologyHelper* fanet) {
         NodeContainer singleCH;
-        SetGDTMobility(fanet.GDTNode);
+        SetGDTMobility(fanet->GDTNode);
 
         double radius = 10.0;  // Distance of cluster heads from GDT
-        double angleStep = 360.0 / fanet.nClusterHeads;  // Evenly space CHs in a circular pattern
+        double angleStep = 360.0 / fanet->nClusterHeads;  // Evenly space CHs in a circular pattern
 
-        for (uint32_t i = 0; i < fanet.nClusterHeads; i++) {
+        for (uint32_t i = 0; i < fanet->nClusterHeads; i++) {
             double angleRad = (angleStep * i) * (M_PI / 180.0);
             double xCH = radius * cos(angleRad);
             double yCH = radius * sin(angleRad);
             
             // Set mobility for members of this cluster to be around the area of their assignment
-            SetClusterMemberMobility(fanet.clusters[i], xCH, yCH);
+            SetClusterMemberMobility(fanet->clusters[i], xCH, yCH);
         }
     }
 

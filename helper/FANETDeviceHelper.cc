@@ -143,8 +143,6 @@ namespace ns3
     }
 
     void FANETDeviceHelper::AssignTdmaSlots(NodeContainer nodes, Time cycleDuration){
-        uint32_t slotCounter = 0; // Track the TDMA slot across all devices
-
         for (uint32_t i = 0; i < nodes.GetN(); ++i)
         {
             Ptr<Node> node = nodes.Get(i);
@@ -163,13 +161,10 @@ namespace ns3
                     if (tdmaMac)
                     {
                         // Assign the TDMA slot for this device
-                        tdmaMac->SetTdmaParameters(nodes.GetN(), cycleDuration, slotCounter);
+                        tdmaMac->SetTdmaParameters(nodes.GetN(), cycleDuration, node->GetId());
                         
                         // Start TDMA for this device
                         tdmaMac->StartTdma();
-                        
-                        // Increment the slot counter for the next device
-                        slotCounter++;
                     }
                 }
             }
@@ -177,3 +172,4 @@ namespace ns3
 
     }
 }
+

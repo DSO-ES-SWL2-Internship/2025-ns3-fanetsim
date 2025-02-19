@@ -16,7 +16,9 @@ namespace ns3
             void CreateClusters();
             NodeContainer CreateCluster();
             void StoreClusterMembers();
-            void CreateLinks();
+            void CreateP2PLinks();
+            void CreateWirelessLinksv1();
+            void CreateWirelessLinksv2();
 
         public:
             uint32_t nClusterHeads;
@@ -33,7 +35,9 @@ namespace ns3
             ~FANETTopologyHelper();                                                     //done
 
             void SetupFANET(uint32_t nClusterHeads, uint32_t nClusterMembers);          //done
-            void CreateFANET();                                                         //done
+            void CreateFANETP2P();
+            void CreateFANETWirelessv1();                                                         //done
+            void CreateFANETWirelessv2();
     };
 }
 
