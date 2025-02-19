@@ -190,10 +190,19 @@ namespace ns3
             Ipv4Address currentLinkCH_IP = ipv4->GDTtoCHLinksInterfaces[i].GetAddress(1);
             Ipv4Address currentLinkGDT_IP = ipv4->GDTtoCHLinksInterfaces[i].GetAddress(0);
             Ipv4Address baseAddress = FANETAddressHelper::GetBaseAddress(currentLinkGDT_IP);
-
-            ipv4->GDTtoCHLinksInterfaces[i].Get(0)->
             
             // 2) Remove the link between the GDT and the current cluster head
+            GDTtoCHLinksDevices[i].Get(0)->Dispose();
+            GDTtoCHLinksDevices[i].Get(1)->Dispose();
+
+            Ptr<Ipv4> ipv4Ptr = ipv4->GDTtoCHLinksInterfaces[i].Get(0).first;
+            uint32_t interfaceIndex = ipv4->GDTtoCHLinksInterfaces[i].Get(1).second;
+
+            // Disable the interfaces before disposing of the device
+            ipv4Ptr->SetDown(interfaceIndex);
+        
+
+            fanet->GDTtoCHLinkNodes[i].Get(0);
             
             // 3) Adjust the GDTtoCHLinkNodes to point to the new cluster head
             // 4) Create the link between GDT and the new cluster head
