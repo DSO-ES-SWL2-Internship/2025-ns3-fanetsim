@@ -56,4 +56,14 @@ namespace ns3
 
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     }
+
+    Ipv4Address FANETAddressHelper::GetBaseAddress(Ipv4Address ip)
+    {
+        uint32_t ipInt = ip.Get(); // Convert IP to integer
+
+        // Mask out the last octet (set it to 0)
+        uint32_t baseIPInt = ipInt & 0xFFFFFF00; 
+
+        return Ipv4Address(baseIPInt); // Convert back to Ipv4Address
+    }
 }

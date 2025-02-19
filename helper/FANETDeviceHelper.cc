@@ -1,5 +1,6 @@
 #include "FANETDeviceHelper.h"
 #include "ns3/core-module.h"
+#include "ns3/FANETMobilityHelper.h"
 
 namespace ns3
 {
@@ -168,6 +169,37 @@ namespace ns3
                     }
                 }
             }
+        }
+    }
+
+
+    void FANETDeviceHelper::ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4)
+    {
+        for (size_t i; i < fanet->clusters.size(); i++)
+        {
+            // Obtain the closest node of the cluster to the GDT 
+            Ptr<Node> closestNode = FANETMobilityHelper::GetClosestNode(fanet->GDTNode.Get(0), fanet->clusters[i]);
+
+            // Check if the closest node is the same as the cluster head
+            // if it is skip the reassignment of cluster heads for this cluster
+            if (closestNode->GetId() == fanet->GDTtoCHLinkNodes[i].Get(1)->GetId())
+                continue;
+
+            // If the closest node is not the cluster head, reassign this node as the cluster head
+            // 1) Get the IP assigned to that link between the GDT and the current cluster head
+            Ipv4Address currentLinkCH_IP = ipv4->GDTtoCHLinksInterfaces[i].GetAddress(1);
+            Ipv4Address currentLinkGDT_IP = ipv4->GDTtoCHLinksInterfaces[i].GetAddress(0);
+            Ipv4Address baseAddress = FANETAddressHelper::GetBaseAddress(currentLinkGDT_IP);
+
+            ipv4->GDTtoCHLinksInterfaces[i].Get(0)->
+            
+            // 2) Remove the link between the GDT and the current cluster head
+            
+            // 3) Adjust the GDTtoCHLinkNodes to point to the new cluster head
+            // 4) Create the link between GDT and the new cluster head
+            // 5) Assign the IP to that link
+
+
         }
 
     }

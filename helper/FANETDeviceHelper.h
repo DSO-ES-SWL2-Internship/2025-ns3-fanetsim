@@ -3,6 +3,8 @@
 
 #include "ns3/wifi-module.h"
 #include "ns3/point-to-point-module.h"
+#include "ns3/FANETTopologyHelper.h"
+#include "ns3/FANETAddressHelper.h"
 
 
 #include <cstdint>
@@ -44,6 +46,7 @@ namespace ns3
             void SetupLinksP2P(std::vector<NodeContainer> GDTtoCHLinkNodes);    //done
             void SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes);   //done
             void AssignTdmaSlots(NodeContainer nodes, Time cycleDuration);
+            void ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4);
     }; 
 }
 

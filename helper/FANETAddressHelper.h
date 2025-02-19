@@ -28,6 +28,7 @@ namespace ns3
 
             void SetUp(Ipv4Address network, Ipv4Mask mask);                     //done
             void SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<NetDeviceContainer> GDTtoCHLinksDevices);    //done
+            static Ipv4Address GetBaseAddress(Ipv4Address ip);
         };
 }
 
