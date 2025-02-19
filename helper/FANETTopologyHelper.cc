@@ -89,26 +89,7 @@ namespace ns3
 
         for (uint32_t i = 0; i < nClusterHeads; i++)
         {
-            double minDistance = std::numeric_limits<double>::max();
-            Ptr<Node> selectedCH = nullptr;
-
-            // Iterate through all nodes in the cluster to find the closest one
-            for (uint32_t j = 0; j < clusters[i].GetN(); j++)
-            {
-                Ptr<Node> clusterNode = clusters[i].Get(j);
-                Ptr<MobilityModel> nodeMobility = clusterNode->GetObject<MobilityModel>();
-
-                if (nodeMobility && gdtMobility)
-                {
-                    double distance = gdtMobility->GetDistanceFrom(nodeMobility);
-
-                    if (distance < minDistance)
-                    {
-                        minDistance = distance;
-                        selectedCH = clusterNode;
-                    }
-                }
-            }
+            Ptr<Node> selectedCH = FANETMobilityHelper::GetClosestNode(gdt, clusters[i]);
 
             if (selectedCH)
             {

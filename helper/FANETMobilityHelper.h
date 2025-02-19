@@ -20,6 +20,8 @@ namespace ns3
             void ApplyMobilityP2P(FANETTopologyHelper* fanet);                                                                             //done
             void ApplyMobilityWireless(FANETTopologyHelper* fanet);
 
+            static Ptr<Node> GetClosestNode(Ptr<Node> target, NodeContainer nodes);
+
         private:
             MobilityHelper mobility;
     };
