@@ -21,6 +21,7 @@ namespace ns3
         public:
             std::vector<Ipv4InterfaceContainer> clustersInterfaces;
             std::vector<Ipv4InterfaceContainer> GDTtoCHLinksInterfaces;
+            std::vector<std::vector<Ipv4InterfaceContainer>> clustersLinkInterfaces;
 
             FANETAddressHelper();                                               //done
             FANETAddressHelper(Ipv4Address network, Ipv4Mask mask);             //done
@@ -28,6 +29,7 @@ namespace ns3
 
             void SetUp(Ipv4Address network, Ipv4Mask mask);                     //done
             void SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<NetDeviceContainer> GDTtoCHLinksDevices);    //done
+            void SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices);
             static Ipv4Address GetBaseAddress(Ipv4Address ip);
         };
 }
