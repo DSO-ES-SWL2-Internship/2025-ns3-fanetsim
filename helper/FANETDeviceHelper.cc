@@ -143,6 +143,56 @@ namespace ns3
         }
     }
 
+    // Version 2 create the link for nodes to the GDT to prepare for dynamic assignment of CH during the simulation
+    void FANETDeviceHelper::SetUpLinksWifiV2(FANETTopologyHelper* fanet) {
+        // Ensure the WiFi standard is set
+        wifi.SetStandard(clusterWifiStandard);
+
+        // Clear any existing devices
+        // GDTtoCHLinksDevices.clear();
+
+        // Iterate over each cluster, and create the link between each cluster's node and the GDT
+        for (size_t i = 0; i < fanet->clusters.size(); i++) {
+            for (uint32_t j = 0; j < fanet->clusters[i].GetN(); j++)
+            {
+                // Create a separate WiFi channel for CH-GDT links
+                YansWifiChannelHelper wifiChannelLink;
+                if (!clusterWifiChannelPropagationDelay.empty()) {
+                    wifiChannelLink.SetPropagationDelay(clusterWifiChannelPropagationDelay);
+                }
+                if (!clusterPropagationLossModel.empty()) {
+                    wifiChannelLink.AddPropagationLoss(clusterPropagationLossModel);
+                }
+
+                // Setup the PHY layer for CH-GDT links
+                YansWifiPhyHelper wifiPhyLink;
+                wifiPhyLink.SetChannel(wifiChannelLink.Create());
+                // Create a unique SSID for each CH-GDT pair
+                std::ostringstream ssidStream;
+                ssidStream << "Link_" << i << "_" << j;
+                std::string ssid = ssidStream.str();
+
+                // Configure the MAC layer for AdHoc (for both GDT and CH)
+                WifiMacHelper wifiMacAdHoc;
+                wifiMacAdHoc.SetType(clusterMacType, "Ssid", SsidValue(Ssid(ssid)));
+
+                // Install the WiFi device on the GDT node (AdHoc mode)
+                NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyLink, wifiMacAdHoc, fanet->GDTNode.Get(0));
+
+                // Install the WiFi device on the CH node (AdHoc mode)
+                NetDeviceContainer adhocDeviceClusterNode = wifi.Install(wifiPhyLink, wifiMacAdHoc, fanet->clusters[i].Get(j));
+
+                // Combine the devices into a single container for this link
+                NetDeviceContainer linkDevices;
+                linkDevices.Add(adhocDeviceGDT);
+                linkDevices.Add(adhocDeviceClusterNode);
+
+                clustersLinkDevices[i].push_back(linkDevices);
+            }
+        }
+    }
+
+
     void FANETDeviceHelper::AssignTdmaSlots(NodeContainer nodes, Time cycleDuration){
         for (uint32_t i = 0; i < nodes.GetN(); ++i)
         {
@@ -192,14 +242,12 @@ namespace ns3
             Ipv4Address baseAddress = FANETAddressHelper::GetBaseAddress(currentLinkGDT_IP);
             
             // 2) Remove the link between the GDT and the current cluster head
-            GDTtoCHLinksDevices[i].Get(0)->Dispose();
-            GDTtoCHLinksDevices[i].Get(1)->Dispose();
-
             Ptr<Ipv4> ipv4Ptr = ipv4->GDTtoCHLinksInterfaces[i].Get(0).first;
             uint32_t interfaceIndex = ipv4->GDTtoCHLinksInterfaces[i].Get(1).second;
 
             // Disable the interfaces before disposing of the device
             ipv4Ptr->SetDown(interfaceIndex);
+            
         
 
             fanet->GDTtoCHLinkNodes[i].Get(0);
