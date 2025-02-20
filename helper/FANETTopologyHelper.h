@@ -19,6 +19,7 @@ namespace ns3
             void CreateP2PLinks();
             void CreateWirelessLinksv1();
             void CreateWirelessLinksv2();
+            void CreateWirelessLinksv3();
 
         public:
             uint32_t nClusterHeads;
@@ -30,6 +31,9 @@ namespace ns3
             std::vector<NodeContainer> clusters; 
             std::vector<NodeContainer> clustersCMNodes;
 
+            std::vector<Ptr<Node>> CHNodes;
+            std::vector<std::vector<Ptr<Node>>> links;
+
             FANETTopologyHelper();                                                      //done
             FANETTopologyHelper(uint32_t nClusterHeads, uint32_t nClusterMems);         //done
             ~FANETTopologyHelper();                                                     //done
@@ -38,6 +42,7 @@ namespace ns3
             void CreateFANETP2P();
             void CreateFANETWirelessv1();                                                         //done
             void CreateFANETWirelessv2();
+            void CreateFANETWirelessv3();
     };
 }
 

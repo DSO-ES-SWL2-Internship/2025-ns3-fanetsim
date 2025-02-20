@@ -148,13 +148,20 @@ namespace ns3
         // Ensure the WiFi standard is set
         wifi.SetStandard(clusterWifiStandard);
 
+        for (size_t i = 0; i < fanet->clusters.size(); i++){
+            std::vector<NetDeviceContainer> clusterLinks;
+            clustersLinkDevices.push_back(clusterLinks);
+        }
+
         // Clear any existing devices
         // GDTtoCHLinksDevices.clear();
 
         // Iterate over each cluster, and create the link between each cluster's node and the GDT
         for (size_t i = 0; i < fanet->clusters.size(); i++) {
+            //NS_LOG_UNCOND("Entered 1 " << int(fanet->clusters.size()));
             for (uint32_t j = 0; j < fanet->clusters[i].GetN(); j++)
             {
+                //NS_LOG_UNCOND("Entered 2 " << fanet->clusters[i].GetN());
                 // Create a separate WiFi channel for CH-GDT links
                 YansWifiChannelHelper wifiChannelLink;
                 if (!clusterWifiChannelPropagationDelay.empty()) {
@@ -223,42 +230,129 @@ namespace ns3
     }
 
 
-    void FANETDeviceHelper::ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4)
+    void FANETDeviceHelper::AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4)
     {
-        for (size_t i; i < fanet->clusters.size(); i++)
+        for (size_t i = 0; i < fanet->clusters.size(); i++)
         {
             // Obtain the closest node of the cluster to the GDT 
             Ptr<Node> closestNode = FANETMobilityHelper::GetClosestNode(fanet->GDTNode.Get(0), fanet->clusters[i]);
 
-            // Check if the closest node is the same as the cluster head
-            // if it is skip the reassignment of cluster heads for this cluster
-            if (closestNode->GetId() == fanet->GDTtoCHLinkNodes[i].Get(1)->GetId())
-                continue;
+            for (size_t j = 0; j < ipv4->clustersLinkInterfaces[i].size(); j++)
+            {
+                Ptr<Node> clusterNode = ipv4->clustersLinkInterfaces[i][j].Get(1).first->GetObject<Node>();
 
-            // If the closest node is not the cluster head, reassign this node as the cluster head
-            // 1) Get the IP assigned to that link between the GDT and the current cluster head
-            Ipv4Address currentLinkCH_IP = ipv4->GDTtoCHLinksInterfaces[i].GetAddress(1);
-            Ipv4Address currentLinkGDT_IP = ipv4->GDTtoCHLinksInterfaces[i].GetAddress(0);
-            Ipv4Address baseAddress = FANETAddressHelper::GetBaseAddress(currentLinkGDT_IP);
-            
-            // 2) Remove the link between the GDT and the current cluster head
-            Ptr<Ipv4> ipv4Ptr = ipv4->GDTtoCHLinksInterfaces[i].Get(0).first;
-            uint32_t interfaceIndex = ipv4->GDTtoCHLinksInterfaces[i].Get(1).second;
+                if (closestNode->GetId() == clusterNode->GetId())
+                {
+                    Ptr<Ipv4> gdtIpv4Ptr = ipv4->clustersLinkInterfaces[i][j].Get(0).first;
+                    Ptr<Ipv4> clusterNodeIpv4Ptr = ipv4->clustersLinkInterfaces[i][j].Get(1).first;
+                    uint32_t gdtInterfaceIndex = ipv4->clustersLinkInterfaces[i][j].Get(0).second;
+                    uint32_t clusterNodeInterfaceIndex = ipv4->clustersLinkInterfaces[i][j].Get(1).second;
 
-            // Disable the interfaces before disposing of the device
-            ipv4Ptr->SetDown(interfaceIndex);
-            
-        
+                    gdtIpv4Ptr->SetUp(gdtInterfaceIndex);
+                    clusterNodeIpv4Ptr->SetUp(clusterNodeInterfaceIndex);
 
-            fanet->GDTtoCHLinkNodes[i].Get(0);
-            
-            // 3) Adjust the GDTtoCHLinkNodes to point to the new cluster head
-            // 4) Create the link between GDT and the new cluster head
-            // 5) Assign the IP to that link
+                    // fanet->clusterHeadNodes.Add(clusterNode);
+                    // NodeContainer linkNodes;
+                    // linkNodes.Add(fanet->GDTNode.Get(0));
+                    // linkNodes.Add(clusterNode);
+                    // fanet->GDTtoCHLinkNodes.push_back(linkNodes);
 
+                    // GDTtoCHLinksDevices.push_back(clustersLinkDevices[i][j]);
 
+                    // ipv4->GDTtoCHLinksInterfaces.push_back(ipv4->clustersLinkInterfaces[i][j]);
+
+                    fanet->CHNodes.push_back(clusterNode);
+                    std::vector<Ptr<Node>> link;
+                    link.push_back(fanet->GDTNode.Get(0));
+                    link.push_back(clusterNode);
+                    fanet->links.push_back(link);
+
+                    std::vector<Ptr<NetDevice>> linkDevice;
+                    linkDevice.push_back(clustersLinkDevices[i][j].Get(0));
+                    linkDevice.push_back(clustersLinkDevices[i][j].Get(1));
+                    linksDevices.push_back(linkDevice);
+                    
+                    std::vector<std::pair<Ptr<Ipv4>, uint32_t>> linkInterface;
+                    linkInterface.push_back(ipv4->clustersLinkInterfaces[i][j].Get(0));
+                    linkInterface.push_back(ipv4->clustersLinkInterfaces[i][j].Get(1));
+                    ipv4->linksInterfaces.push_back(linkInterface);
+
+                    NS_LOG_UNCOND("At time " << Simulator::Now().GetSeconds() << "s, Node " 
+                          << clusterNode->GetId() << " selected as cluster head");
+
+                    break;
+                }
+            }
         }
 
+        Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4);
+    }
+
+    void FANETDeviceHelper::ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4)
+    {
+        for (size_t i = 0; i < fanet->clusters.size(); i++)
+        {
+            // Obtain the closest node of the cluster to the GDT 
+            Ptr<Node> closestNode = FANETMobilityHelper::GetClosestNode(fanet->GDTNode.Get(0), fanet->clusters[i]);
+            
+            // Obtain the current CH
+            Ptr<Node> clusterHeadNode = fanet->CHNodes[i];
+
+            if (closestNode->GetId() != clusterHeadNode->GetId())
+            {
+                // Disable the previous link
+                Ptr<Ipv4> curGdtIpv4Ptr = ipv4->linksInterfaces[i][0].first;
+                Ptr<Ipv4> curCHIpv4Ptr = ipv4->linksInterfaces[i][1].first;
+                uint32_t gdtInterfaceIndex = ipv4->linksInterfaces[i][0].second;
+                uint32_t clusterNodeInterfaceIndex = ipv4->linksInterfaces[i][1].second;
+
+                curGdtIpv4Ptr->SetDown(gdtInterfaceIndex);
+                curCHIpv4Ptr->SetDown(clusterNodeInterfaceIndex);
+
+                for (size_t j = 0; j < ipv4->clustersLinkInterfaces[i].size(); j++)
+                {
+                    Ptr<Node> clusterNode = ipv4->clustersLinkInterfaces[i][j].Get(1).first->GetObject<Node>();
+                    // Loop through the clustersLinkInterfaces to find the appropriate index for the closest node
+                    if (closestNode->GetId() == clusterNode->GetId())
+                    {
+                        Ptr<Ipv4> gdtIpv4Ptr = ipv4->clustersLinkInterfaces[i][j].Get(0).first;
+                        Ptr<Ipv4> clusterNodeIpv4Ptr = ipv4->clustersLinkInterfaces[i][j].Get(1).first;
+                        uint32_t gdtInterfaceIndex = ipv4->clustersLinkInterfaces[i][j].Get(0).second;
+                        uint32_t clusterNodeInterfaceIndex = ipv4->clustersLinkInterfaces[i][j].Get(1).second;
+
+                        gdtIpv4Ptr->SetUp(gdtInterfaceIndex);
+                        clusterNodeIpv4Ptr->SetUp(clusterNodeInterfaceIndex);   
+
+                        fanet->CHNodes[i] = closestNode;
+
+                        std::vector<Ptr<Node>> link;
+                        link.push_back(fanet->GDTNode.Get(0));
+                        link.push_back(clusterNode);
+                        fanet->links[i].clear();
+                        fanet->links[i] = link;
+
+                        std::vector<Ptr<NetDevice>> linkDevice;
+                        linkDevice.push_back(clustersLinkDevices[i][j].Get(0));
+                        linkDevice.push_back(clustersLinkDevices[i][j].Get(1));
+                        linksDevices[i].clear();
+                        linksDevices[i] = linkDevice;
+                        
+                        std::vector<std::pair<Ptr<Ipv4>, uint32_t>> linkInterface;
+                        linkInterface.push_back(ipv4->clustersLinkInterfaces[i][j].Get(0));
+                        linkInterface.push_back(ipv4->clustersLinkInterfaces[i][j].Get(1));
+                        ipv4->linksInterfaces[i].clear();
+                        ipv4->linksInterfaces[i] = linkInterface;
+
+                        NS_LOG_UNCOND("At time " << Simulator::Now().GetSeconds() << "s, Node " 
+                          << clusterNode->GetId() << " reassigned as cluster head");
+                        break;
+                    }
+                }
+
+            }
+        }  
+
+        Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4);      
     }
 }
 

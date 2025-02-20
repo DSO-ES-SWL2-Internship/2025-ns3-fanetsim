@@ -102,6 +102,27 @@ namespace ns3
         }
     }
 
+    void FANETTopologyHelper::CreateWirelessLinksv3()
+    {
+        FANETMobilityHelper mobilityHelper; 
+        mobilityHelper.ApplyMobilityWireless(this);
+
+        // Ptr<Node> gdt = GDTNode.Get(0);
+        // Ptr<MobilityModel> gdtMobility = gdt->GetObject<MobilityModel>();
+
+        // for (uint32_t i = 0; i < nClusterHeads; i++)
+        // {
+        //     Ptr<Node> selectedCH = FANETMobilityHelper::GetClosestNode(gdt, clusters[i]);
+
+        //     if (selectedCH)
+        //     {
+        //         NodeContainer link;
+        //         link.Add(gdt, selectedCH);
+        //         NS_LOG_UNCOND("Node " << selectedCH->GetId() << " selected as cluster head");
+        //     }
+        // }
+    }
+
     void FANETTopologyHelper::SetupFANET(uint32_t nClusterHeads, uint32_t nClusterMembers)
     {
         this->nClusterHeads = nClusterHeads;
@@ -126,6 +147,12 @@ namespace ns3
     {
         CreateClusters();
         CreateWirelessLinksv2();
+    }
+
+    void FANETTopologyHelper::CreateFANETWirelessv3()
+    {
+        CreateClusters();
+        CreateWirelessLinksv3();
     }
 
 }

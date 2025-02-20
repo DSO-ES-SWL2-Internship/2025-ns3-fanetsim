@@ -24,11 +24,39 @@ namespace ns3
             // e.g. C1Node-3_1 - Node 3 of cluster 1 with node index 1
             anim->UpdateNodeDescription(cluster.Get(i), "C" + std::to_string(clusterIndex) + "Node-" + std::to_string(i) + "_" + std::to_string(cluster.Get(i)->GetId()));
             anim->UpdateNodeColor(cluster.Get(i), r, g, b);
+            clustersColor.push_back({r,g,b});
         }
     }
 
     void FANETAnimationHelper::AssignGDTAnim(NodeContainer GDTNode){
         anim->UpdateNodeColor(GDTNode.Get(0), 255, 0, 0);
+    }
+
+    void FANETAnimationHelper::AssignCHAnim(std::vector<Ptr<Node>> CHNodes)
+    {
+        for (size_t i = 0; i < CHNodes.size(); i++)
+        {
+            anim->UpdateNodeColor(CHNodes[i], 236, 3, 252);
+            curCHNodes.push_back(CHNodes[i]);
+        }
+    }
+
+    void FANETAnimationHelper::UpdateCHAnim(std::vector<Ptr<Node>> CHNodes)
+    {
+        for (size_t i = 0; i < CHNodes.size(); i++)
+        {
+            if (curCHNodes[i]->GetId() != CHNodes[i]->GetId())
+            {
+                // Update new CH to CH color
+                anim->UpdateNodeColor(CHNodes[i], 236, 3, 252);
+                // Update old CH to cluster color
+                anim->UpdateNodeColor(curCHNodes[i], clustersColor[i][0], clustersColor[i][1], clustersColor[i][2]);
+
+                curCHNodes[i] = CHNodes[i];
+            }
+        }
+
+        Simulator::Schedule(Seconds(1.0), &FANETAnimationHelper::UpdateCHAnim, this, CHNodes);
     }
 
     void FANETAnimationHelper::AnimateFANET(FANETTopologyHelper& fanet) {
@@ -50,7 +78,11 @@ namespace ns3
 
         NS_LOG_UNCOND("Assigning GDT");
 
+        AssignCHAnim(fanet.CHNodes);
+
         anim->EnablePacketMetadata(true);
         //anim->EnableIpv4RouteTracking("udp-routing.xml", Seconds(0), Seconds(20), Seconds(0.25));
+
+        Simulator::Schedule(Seconds(1.0), &FANETAnimationHelper::UpdateCHAnim, this, fanet.CHNodes);
     }
 }

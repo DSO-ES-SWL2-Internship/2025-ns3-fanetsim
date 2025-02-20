@@ -14,6 +14,8 @@ namespace ns3
             std::string outputFilename;
             uint64_t maxPkPerFile;
             uint8_t colorIndex;
+            std::vector<std::array<uint8_t, 3>> clustersColor;
+            std::vector<Ptr<Node>> curCHNodes;
         
             
         public:
@@ -25,6 +27,8 @@ namespace ns3
             void SetMaxPktsPerTrFile(uint64_t number);
             void AssignClusterAnim(uint32_t clusterIndex, NodeContainer cluster);
             void AssignGDTAnim(NodeContainer gdtNode);
+            void AssignCHAnim(std::vector<Ptr<Node>> CHNodes);
+            void UpdateCHAnim(std::vector<Ptr<Node>> CHNodes);
             void AnimateFANET(FANETTopologyHelper& fanet);
     };
 }

@@ -63,14 +63,17 @@ namespace ns3
             ipv4.SetBase(network, mask);
             Ipv4InterfaceContainer clusterInterface = ipv4.Assign(clustersDevices[i]);
             clustersInterfaces.push_back(clusterInterface);
+            IncrementNetwork();
 
-            Ipv4Address linkNetwork = network;
-            uint32_t address = linkNetwork.Get();
+            //Ipv4Address linkNetwork = network;
+            //uint32_t address = linkNetwork.Get();
             
-
+            std::vector<Ipv4InterfaceContainer> clusterLinkInterfaces;
             for (size_t j = 0; j < clustersLinkDevices[i].size(); j++)
             {
-                ipv4.SetBase(linkNetwork, Ipv4Mask("255.255.255.252"));
+                //ipv4.SetBase(linkNetwork, Ipv4Mask("255.255.255.252"));
+                ipv4.SetBase(network, mask);
+                IncrementNetwork();
                 Ipv4InterfaceContainer linkInterface = ipv4.Assign(clustersLinkDevices[i][j]);
                 
                 Ptr<Ipv4> gdtIpv4Ptr = linkInterface.Get(0).first;
@@ -81,11 +84,14 @@ namespace ns3
                 gdtIpv4Ptr->SetDown(gdtInterfaceIndex);
                 clusterNodeIpv4Ptr->SetDown(clusterNodeInterfaceIndex);
 
-                address += 4;
-                linkNetwork = Ipv4Address(address);
+                clusterLinkInterfaces.push_back(linkInterface);
+
+                //address += 4;
+                //linkNetwork = Ipv4Address(address);
             }
 
-            IncrementNetwork();
+            clustersLinkInterfaces.push_back(clusterLinkInterfaces);
+            //IncrementNetwork();
         }
 
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();

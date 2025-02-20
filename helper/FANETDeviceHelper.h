@@ -37,6 +37,8 @@ namespace ns3
             std::vector<NetDeviceContainer> GDTtoCHLinksDevices;
             std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices;
 
+            std::vector<std::vector<Ptr<NetDevice>>> linksDevices;
+
             FANETDeviceHelper();                                                //done
             ~FANETDeviceHelper();                                               //done
 
@@ -48,6 +50,7 @@ namespace ns3
             void SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes);   //done
             void SetUpLinksWifiV2(FANETTopologyHelper* fanet);
             void AssignTdmaSlots(NodeContainer nodes, Time cycleDuration);
+            void AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4);
             void ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4);
     }; 
 }
