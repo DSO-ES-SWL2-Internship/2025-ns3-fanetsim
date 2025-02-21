@@ -230,7 +230,7 @@ namespace ns3
     }
 
 
-    void FANETDeviceHelper::AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4)
+    void FANETDeviceHelper::AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim)
     {
         for (size_t i = 0; i < fanet->clusters.size(); i++)
         {
@@ -285,11 +285,12 @@ namespace ns3
             }
         }
 
-        Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4);
+        Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);
     }
 
-    void FANETDeviceHelper::ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4)
+    void FANETDeviceHelper::ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim)
     {
+
         for (size_t i = 0; i < fanet->clusters.size(); i++)
         {
             // Obtain the closest node of the cluster to the GDT 
@@ -352,7 +353,9 @@ namespace ns3
             }
         }  
 
-        Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4);      
+        anim->UpdateCHAnim(fanet->CHNodes);
+
+        Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);      
     }
 }
 
