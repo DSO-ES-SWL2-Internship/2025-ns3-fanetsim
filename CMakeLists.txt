@@ -7,6 +7,7 @@ build_lib(
     helper/FANETMobilityHelper.cc
     helper/FANETRoutingHelper.cc
     helper/FANETTopologyHelper.cc
+    FANETSimulator.cc
   HEADER_FILES
     helper/FANETAddressHelper.h
     helper/FANETAnimationHelper.h
@@ -14,6 +15,7 @@ build_lib(
     helper/FANETMobilityHelper.h
     helper/FANETRoutingHelper.h
     helper/FANETTopologyHelper.h
+    FANETSimulator.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}
                     ${libcore}

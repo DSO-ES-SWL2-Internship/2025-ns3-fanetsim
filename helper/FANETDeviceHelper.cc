@@ -158,11 +158,11 @@ namespace ns3
 
         // Iterate over each cluster, and create the link between each cluster's node and the GDT
         for (size_t i = 0; i < fanet->clusters.size(); i++) {
-            //NS_LOG_UNCOND("Entered 1 " << int(fanet->clusters.size()));
+            // Iterate over each node in the cluster
             for (uint32_t j = 0; j < fanet->clusters[i].GetN(); j++)
             {
-                //NS_LOG_UNCOND("Entered 2 " << fanet->clusters[i].GetN());
-                // Create a separate WiFi channel for CH-GDT links
+
+                // Create a separate WiFi channel for the link between cluster node and GDT
                 YansWifiChannelHelper wifiChannelLink;
                 if (!clusterWifiChannelPropagationDelay.empty()) {
                     wifiChannelLink.SetPropagationDelay(clusterWifiChannelPropagationDelay);
