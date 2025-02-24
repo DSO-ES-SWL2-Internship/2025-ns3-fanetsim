@@ -12,30 +12,40 @@ namespace ns3
 
     FANETSimulator::~FANETSimulator()
     {
-
     }
 
-    void FANETSimulator::RunBasicSimulation(std::string fileName = "animation.xml")
+    void FANETSimulator::GetNClusters()
     {
-        NS_LOG_INFO("Setting XML output file to: " << this->fileName);
-        this->fileName = fileName;
-
         std::cout << "Number of clusters to simulate: ";
         std::string input;
         std::getline(std::cin, input);  // Read input as a string
 
-        uint32_t nClusterHeads = std::stoul(input);  // Convert string to uint32_t
+        this->nClusters = std::stoul(input);  // Convert string to uint32_t
+    }
 
-        std::vector<uint32_t> nClusterNodes;
+    void FANETSimulator::GetNClusterNodes()
+    {
+        std::string input;
+        uint32_t temp;
 
-        for (uint32_t i = 0; i < nClusterHeads; i++)
+        for (uint32_t i = 0; i < this->nClusters; i++)
         {
-            std::cout << "Number of cluster nodes in Cluster " << i <<": ";
-            std::getline(std::cin, input);  // Read input as a string
-            uint32_t tmp = std::stoul(input);
-            nClusterNodes.push_back(tmp);
-        }
+            std::cout << "Number of cluster nodes in Cluster " << i << ": ";
+            std::getline(std::cin, input);
 
+            temp = std::stoul(input);
+            this->nClusterNodes.push_back(temp);
+        }
+    }
+
+    void FANETSimulator::RunBasicSimulation(std::string fileName)
+    {
+        NS_LOG_INFO("Setting XML output file to: " << this->fileName);
+        this->fileName = fileName;
+
+        this->GetNClusters();
+
+        this->GetNClusterNodes();
         
         // Print the vector contents properly
         std::cout << "Cluster Nodes: ";
