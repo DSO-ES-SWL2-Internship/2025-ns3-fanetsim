@@ -40,6 +40,17 @@ namespace ns3
 
             std::vector<std::vector<Ptr<NetDevice>>> linksDevices;
 
+            /// @brief Vector of NetDeviceContainers, where each container holds all network devices installed on the nodes of a cluster.
+            std::vector<NetDeviceContainer> fanetClusterDevices;  
+
+            /// @brief Vector of vectors, where each inner vector contains network devices used for links between nodes in a cluster and the GDT.
+            std::vector<std::vector<NetDeviceContainer>> fanetClusterLinkDevices;  
+
+            /// @brief Vector of vectors, where each inner vector contains pointers to the NetDevice of the GDT and its corresponding cluster head.
+            std::vector<std::vector<Ptr<NetDevice>>> fanetGDT_CHLinkDevices;  
+
+
+
             FANETDeviceHelper();                                                //done
             ~FANETDeviceHelper();                                               //done
 

@@ -1,16 +1,19 @@
 #include "FANETTopologyHelper.h"
-#include "ns3/mobility-module.h"
-#include "ns3/FANETMobilityHelper.h"
+#include "FANETMobilityHelper.h"
 
 namespace ns3
 {
 
     NS_LOG_COMPONENT_DEFINE("FANETTopologyHelper");
 
-    FANETTopologyHelper::FANETTopologyHelper(uint32_t nClusters, uint32_t nClusterMems) 
+    FANETTopologyHelper::FANETTopologyHelper()
     {
-        GDTNode.Create(1);
-        allNodes.Add(GDTNode);
+
+    }
+
+    FANETTopologyHelper::FANETTopologyHelper(uint32_t nClusters, std::vector<uint32_t> nClusterNodes)
+    {
+
     }
 
     FANETTopologyHelper::~FANETTopologyHelper()
@@ -38,18 +41,12 @@ namespace ns3
         for (uint32_t i = 0; i < nClusters; i++)
             clusters.push_back(FANETTopologyHelper::CreateCluster(nClusterNodes[i]));
 
-        //StoreClusterMembers();
-    }
-
-    void FANETTopologyHelper::ApplyMobility()
-    {
-        FANETMobilityHelper mobilityHelper; 
-        mobilityHelper.ApplyMobilityWireless(this);
+        NS_LOG_INFO("Clusters Created");
     }
 
     void FANETTopologyHelper::CreateFANET(uint32_t nClusters, std::vector<uint32_t> nClusterNodes)
     {
+        NS_LOG_INFO("Creating FANET...");
         CreateClusters(nClusters, nClusterNodes);
-        ApplyMobility();
     }
 }

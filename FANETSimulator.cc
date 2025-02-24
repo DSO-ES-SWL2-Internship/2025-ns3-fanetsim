@@ -12,6 +12,7 @@ namespace ns3
 
     FANETSimulator::~FANETSimulator()
     {
+        delete this->mobility;
     }
 
     void FANETSimulator::GetNClusters()
@@ -38,9 +39,23 @@ namespace ns3
         }
     }
 
+    void FANETSimulator::SetConstNClusterNodes(uint32_t nClusters, uint32_t nClusterNodes)
+    {
+        for (uint32_t i = 0; i < nClusters; i++)
+            this->nClusterNodes.push_back(nClusterNodes);
+    }
+
     void FANETSimulator::CreateNetwork()
     {
-        
+        this->fanet = new FANETTopologyHelper(this->nClusters, this->nClusterNodes);
+        //this->mobility = new FANETMobilityHelper();
+        this->fanet->CreateFANET(this->nClusters, this->nClusterNodes);
+    }
+
+    void FANETSimulator::SetMobility()
+    {
+        this->mobility = new FANETMobilityHelper();
+        mobility->ApplyMobilityWireless(this->fanet);
     }
 
     void FANETSimulator::RunBasicSimulation(std::string fileName)
@@ -51,12 +66,10 @@ namespace ns3
         this->GetNClusters();
 
         this->GetNClusterNodes();
-        
-        // Print the vector contents properly
-        std::cout << "Cluster Nodes: ";
-        for (uint32_t nodes : nClusterNodes) {
-            std::cout << nodes << " ";
-        }
-        std::cout << std::endl;
+
+        this->CreateNetwork();
+
+        this->SetMobility();
+
     }
 }

@@ -21,17 +21,7 @@ namespace ns3
             /// @brief File name for NetAnim to run on.
             std::string fileName;
 
-            /// Variables to keep track of all network devices in the FANET  
-
-            /// @brief Vector of NetDeviceContainers, where each container holds all network devices installed on the nodes of a cluster.
-            std::vector<NetDeviceContainer> fanetClusterDevices;  
-
-            /// @brief Vector of vectors, where each inner vector contains network devices used for links between nodes in a cluster and the GDT.
-            std::vector<std::vector<NetDeviceContainer>> fanetClusterLinkDevices;  
-
-            /// @brief Vector of vectors, where each inner vector contains pointers to the NetDevice of the GDT and its corresponding cluster head.
-            std::vector<std::vector<Ptr<NetDevice>>> fanetGDT_CHLinkDevices;  
-
+            
             /// Variables to keep track of all network interfaces in the FANET  
 
             /// @brief Vector storing the IPv4 interfaces of each cluster, enabling intra-cluster communication.
@@ -46,19 +36,19 @@ namespace ns3
             // Helper functions
 
             /// @brief Helper for managing FANET topology.
-            FANETTopologyHelper fanet;
+            FANETTopologyHelper* fanet;
 
             /// @brief Helper for configuring FANET devices.
-            FANETDeviceHelper fanetDevices;
+            FANETDeviceHelper* fanetDevices;
 
             /// @brief Helper for handling FANET node mobility.
-            FANETMobilityHelper mobility;
+            FANETMobilityHelper* mobility;
 
             /// @brief Helper for setting up FANET routing protocols.
-            FANETRoutingHelper router;
+            FANETRoutingHelper* router;
 
             /// @brief Helper for managing FANET IPv4 addressing.
-            FANETAddressHelper ipv4;
+            FANETAddressHelper* ipv4;
 
             /// @brief Pointer to the FANET animation helper for visualization.
             FANETAnimationHelper *anim;
@@ -71,6 +61,15 @@ namespace ns3
             
             /// @brief Obtain from user, the number of nodes in each cluster to simulator
             void GetNClusterNodes();
+
+            /**
+             * @brief Setting all the clusters to have nClusterMem nodes
+             * 
+             * @param nClusters Number of clusters
+             * 
+             * @param nClusterMem Number of nodes per cluster
+             */
+            void SetConstNClusterNodes(uint32_t nClusters, uint32_t nClusterNodes);
 
             void CreateNetwork();
             void InstallDevices();
@@ -92,16 +91,6 @@ namespace ns3
              */
             void RunBasicSimulation(std::string fileName = "animation.xml");
 
-            /**
-             * @brief Run basic simulation of the fanet with need to ask user information
-             * 
-             * @param nClusters The number of clusters to simulate
-             * 
-             * @param nClusterNodes The number of nodes each cluster will have
-             * 
-             * @param fileName Name of output file neccessary for NetAnim
-             */
-            void RunBasicSimulation(uint32_t nClusters, uint32_t nClusterNodes, std::string fileName = "animation.xml");
     };
 }
 

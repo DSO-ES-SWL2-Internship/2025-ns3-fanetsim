@@ -3,12 +3,15 @@
 
 #include "ns3/node-container.h"
 #include "ns3/object-factory.h"
+//#include "ns3/FANETMobilityHelper.h"
+
 
 #include <cstdint>
 #include <vector>
 
 namespace ns3 
 {
+    class FANETMobilityHelper;
     class FANETTopologyHelper
     {
         private:
@@ -26,7 +29,6 @@ namespace ns3
             void StoreClusterMembers();
 
             void CreateClusters(uint32_t nClusters, std::vector<uint32_t> nClusterNodes);
-            void ApplyMobility();
 
         public:
 
@@ -49,14 +51,8 @@ namespace ns3
             NodeContainer clusterHeadNodes;
             std::vector<NodeContainer> GDTtoCHLinkNodes;
 
-            /** 
-             * @brief Create a FANETTopology with nClusters, each cluster having nClusterMems
-             * 
-             * @param nClusters Number of clusters
-             * 
-             * @param nClusterMems Number of cluster nodes per cluster
-             */                                  
-            FANETTopologyHelper(uint32_t nClusters, uint32_t nClusterMems); 
+            /// @brief Default constructor
+            FANETTopologyHelper();
 
             /**
              * @brief Create a FANETTopology with nClusters, each cluster having their specified number of nodes

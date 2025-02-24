@@ -24,6 +24,8 @@ namespace ns3
         
         mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
         mobility.Install(gdtNode);
+
+        NS_LOG_INFO("GDT mobility set");
     }
 
     // Set fixed positions for cluster heads in a circular layout around GDT
@@ -101,6 +103,8 @@ namespace ns3
             // Set mobility for members of this cluster to be around the area of their assignment
             SetClusterMemberMobility(fanet->clusters[i], xCH, yCH);
         }
+
+        NS_LOG_INFO("Cluster Nodes mobility set");
     }
 
     Ptr<Node> FANETMobilityHelper::GetClosestNode(Ptr<Node> target, NodeContainer nodes)
