@@ -16,8 +16,6 @@ namespace ns3
 {
     class FANETDeviceHelper {
         private:
-            std::string P2PDeviceDataRate = "";
-            std::string P2PChannelDelay = "";
 
             WifiStandard clusterWifiStandard = WIFI_STANDARD_80211b;
             std::string clusterWifiChannelPropagationDelay = "";
@@ -28,6 +26,7 @@ namespace ns3
             std::string linkWifiChannelPropagationDelay = "";
             std::string linkPropagationLossModel = "";
             std::string linkMacType = "";
+            
 
 
 
@@ -35,32 +34,16 @@ namespace ns3
             PointToPointHelper p2p;
             WifiHelper wifi;
             std::vector<NetDeviceContainer> clustersDevices;
-            std::vector<NetDeviceContainer> GDTtoCHLinksDevices;
             std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices;
-
             std::vector<std::vector<Ptr<NetDevice>>> linksDevices;
-
-            /// @brief Vector of NetDeviceContainers, where each container holds all network devices installed on the nodes of a cluster.
-            std::vector<NetDeviceContainer> fanetClusterDevices;  
-
-            /// @brief Vector of vectors, where each inner vector contains network devices used for links between nodes in a cluster and the GDT.
-            std::vector<std::vector<NetDeviceContainer>> fanetClusterLinkDevices;  
-
-            /// @brief Vector of vectors, where each inner vector contains pointers to the NetDevice of the GDT and its corresponding cluster head.
-            std::vector<std::vector<Ptr<NetDevice>>> fanetGDT_CHLinkDevices;  
-
-
 
             FANETDeviceHelper();                                                //done
             ~FANETDeviceHelper();                                               //done
 
-            void DefaultP2P();                                                  //done
             void DefaultWifi();                                                 //done
             void TdmaWifi();                    
             void SetupClustersWifi(std::vector<NodeContainer> clusters);        //done
-            void SetupLinksP2P(std::vector<NodeContainer> GDTtoCHLinkNodes);    //done
-            void SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes);   //done
-            void SetUpLinksWifiV2(FANETTopologyHelper* fanet);
+            void SetUpLinksWifi(FANETTopologyHelper* fanet);
             void AssignTdmaSlots(NodeContainer nodes, Time cycleDuration);
             void AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
             void ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);

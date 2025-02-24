@@ -17,18 +17,6 @@ namespace ns3
         // Cleanup logic (if necessary)
     }
 
-    // Default settings for Point-to-Point connections
-    void FANETDeviceHelper::DefaultP2P() {
-        // Configure default settings for P2P links
-        P2PDeviceDataRate = "5Mbps";
-        P2PChannelDelay = "2ms";
-
-        clusterWifiStandard = WIFI_STANDARD_80211b;
-        clusterWifiChannelPropagationDelay = "ns3::ConstantSpeedPropagationDelayModel";
-        clusterPropagationLossModel = "ns3::FriisPropagationLossModel";
-        clusterMacType = "ns3::AdhocWifiMac";
-    }
-
     // Default settings for WiFi connections
     void FANETDeviceHelper::DefaultWifi() {
         // Configure default settings for WiFi
@@ -84,87 +72,27 @@ namespace ns3
             NetDeviceContainer clusterDevices = wifi.Install(wifiPhyCluster, wifiMacCM, clusters[i]);
             clustersDevices.push_back(clusterDevices);
         }
+
+        NS_LOG_INFO("Devices for intra-cluster communication installed on the nodes");
     }
 
-    // Setup P2P links
-    void FANETDeviceHelper::SetupLinksP2P(std::vector<NodeContainer> GDTtoCHLinkNodes) {
-
-        // ==================== Setup Stage ===============================
-        p2p.SetDeviceAttribute("DataRate", StringValue(P2PDeviceDataRate));
-        p2p.SetChannelAttribute("Delay", StringValue(P2PChannelDelay));
-
-        // ==================== Install Stage ===================================
-        for (size_t i = 0; i < GDTtoCHLinkNodes.size(); i++){
-            GDTtoCHLinksDevices.push_back(p2p.Install(GDTtoCHLinkNodes[i]));
-            //NS_LOG_UNCOND("Link size: " << GDTtoCHLinksDevices[i].GetN());
-        }
-    }
-
-    void FANETDeviceHelper::SetupLinksWifi(std::vector<NodeContainer> GDTtoCHLinkNodes) {
-        // Ensure the WiFi standard is set
-        wifi.SetStandard(clusterWifiStandard);
-
-        // Clear any existing devices
-        // GDTtoCHLinksDevices.clear();
-
-        // Iterate over each CH-GDT pair and create a separate WiFi network for each
-        for (size_t i = 0; i < GDTtoCHLinkNodes.size(); i++) {
-                    // Create a separate WiFi channel for CH-GDT links
-            YansWifiChannelHelper wifiChannelLink;
-            if (!clusterWifiChannelPropagationDelay.empty()) {
-                wifiChannelLink.SetPropagationDelay(clusterWifiChannelPropagationDelay);
-            }
-            if (!clusterPropagationLossModel.empty()) {
-                wifiChannelLink.AddPropagationLoss(clusterPropagationLossModel);
-            }
-
-            // Setup the PHY layer for CH-GDT links
-            YansWifiPhyHelper wifiPhyLink;
-            wifiPhyLink.SetChannel(wifiChannelLink.Create());
-            // Create a unique SSID for each CH-GDT pair
-            std::ostringstream ssidStream;
-            ssidStream << "CH_GDT_Link_" << i;
-            std::string ssid = ssidStream.str();
-
-            // Configure the MAC layer for AdHoc (for both GDT and CH)
-            WifiMacHelper wifiMacAdHoc;
-            wifiMacAdHoc.SetType(clusterMacType, "Ssid", SsidValue(Ssid(ssid)));
-
-            // Install the WiFi device on the GDT node (AdHoc mode)
-            NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyLink, wifiMacAdHoc, GDTtoCHLinkNodes[i].Get(0));
-
-            // Install the WiFi device on the CH node (AdHoc mode)
-            NetDeviceContainer adhocDeviceCH = wifi.Install(wifiPhyLink, wifiMacAdHoc, GDTtoCHLinkNodes[i].Get(1));
-
-            // Combine the devices into a single container for this link
-            NetDeviceContainer linkDevices;
-            linkDevices.Add(adhocDeviceGDT);
-            linkDevices.Add(adhocDeviceCH);
-
-            // Add the link devices to the global container
-            GDTtoCHLinksDevices.push_back(linkDevices);
-        }
-    }
-
-    // Version 2 create the link for nodes to the GDT to prepare for dynamic assignment of CH during the simulation
-    void FANETDeviceHelper::SetUpLinksWifiV2(FANETTopologyHelper* fanet) {
+    // Create the link for nodes to the GDT to prepare for dynamic assignment of CH during the simulation
+    void FANETDeviceHelper::SetUpLinksWifi(FANETTopologyHelper* fanet) {
         // Ensure the WiFi standard is set
         wifi.SetStandard(clusterWifiStandard);
 
         for (size_t i = 0; i < fanet->clusters.size(); i++){
             std::vector<NetDeviceContainer> clusterLinks;
-            clustersLinkDevices.push_back(clusterLinks);
+            this->clustersLinkDevices.push_back(clusterLinks);
         }
-
-        // Clear any existing devices
-        // GDTtoCHLinksDevices.clear();
 
         // Iterate over each cluster, and create the link between each cluster's node and the GDT
         for (size_t i = 0; i < fanet->clusters.size(); i++) {
             // Iterate over each node in the cluster
+            
             for (uint32_t j = 0; j < fanet->clusters[i].GetN(); j++)
             {
-
+                
                 // Create a separate WiFi channel for the link between cluster node and GDT
                 YansWifiChannelHelper wifiChannelLink;
                 if (!clusterWifiChannelPropagationDelay.empty()) {
@@ -187,7 +115,7 @@ namespace ns3
                 wifiMacAdHoc.SetType(clusterMacType, "Ssid", SsidValue(Ssid(ssid)));
 
                 // Install the WiFi device on the GDT node (AdHoc mode)
-                NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyLink, wifiMacAdHoc, fanet->GDTNode.Get(0));
+                NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyLink, wifiMacAdHoc, fanet->GDTNode.Get(0));  
 
                 // Install the WiFi device on the CH node (AdHoc mode)
                 NetDeviceContainer adhocDeviceClusterNode = wifi.Install(wifiPhyLink, wifiMacAdHoc, fanet->clusters[i].Get(j));
@@ -197,11 +125,12 @@ namespace ns3
                 linkDevices.Add(adhocDeviceGDT);
                 linkDevices.Add(adhocDeviceClusterNode);
 
-                clustersLinkDevices[i].push_back(linkDevices);
+                this->clustersLinkDevices[i].push_back(linkDevices);
             }
         }
-    }
 
+        NS_LOG_INFO("Devices for GDT-Cluster communication installed on the nodes");
+    }
 
     void FANETDeviceHelper::AssignTdmaSlots(NodeContainer nodes, Time cycleDuration){
         for (uint32_t i = 0; i < nodes.GetN(); ++i)
@@ -230,6 +159,8 @@ namespace ns3
                 }
             }
         }
+
+        NS_LOG_INFO("Slots allocated to each node for TDMA");
     }
 
 
@@ -253,16 +184,6 @@ namespace ns3
 
                     gdtIpv4Ptr->SetUp(gdtInterfaceIndex);
                     clusterNodeIpv4Ptr->SetUp(clusterNodeInterfaceIndex);
-
-                    // fanet->clusterHeadNodes.Add(clusterNode);
-                    // NodeContainer linkNodes;
-                    // linkNodes.Add(fanet->GDTNode.Get(0));
-                    // linkNodes.Add(clusterNode);
-                    // fanet->GDTtoCHLinkNodes.push_back(linkNodes);
-
-                    // GDTtoCHLinksDevices.push_back(clustersLinkDevices[i][j]);
-
-                    // ipv4->GDTtoCHLinksInterfaces.push_back(ipv4->clustersLinkInterfaces[i][j]);
 
                     fanet->CHNodes.push_back(clusterNode);
                     std::vector<Ptr<Node>> link;

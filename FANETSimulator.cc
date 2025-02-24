@@ -45,6 +45,18 @@ namespace ns3
             this->nClusterNodes.push_back(nClusterNodes);
     }
 
+    void FANETSimulator::GetCycleDuration()
+    {
+        std::string input;
+        uint32_t temp;
+
+        std::cout << "Duration of each cycle for TDMA (ms) " << ": ";
+        std::getline(std::cin, input);
+
+        temp = std::stoul(input);
+        this->cycleDuration = temp;
+    }
+
     void FANETSimulator::CreateNetwork()
     {
         this->fanet = new FANETTopologyHelper(this->nClusters, this->nClusterNodes);
@@ -58,6 +70,15 @@ namespace ns3
         mobility->ApplyMobilityWireless(this->fanet);
     }
 
+    void FANETSimulator::InstallDevices()
+    {
+        this->fanetDevices = new FANETDeviceHelper();
+        this->fanetDevices->TdmaWifi();
+        this->fanetDevices->SetupClustersWifi(this->fanet->clusters);
+        this->fanetDevices->SetUpLinksWifi(this->fanet);
+        this->fanetDevices->AssignTdmaSlots(this->fanet->allNodes, MilliSeconds(this->cycleDuration));
+    }
+
     void FANETSimulator::RunBasicSimulation(std::string fileName)
     {
         NS_LOG_INFO("Setting XML output file to: " << this->fileName);
@@ -67,9 +88,13 @@ namespace ns3
 
         this->GetNClusterNodes();
 
+        this->GetCycleDuration();
+
         this->CreateNetwork();
 
         this->SetMobility();
+
+        this->InstallDevices();
 
     }
 }

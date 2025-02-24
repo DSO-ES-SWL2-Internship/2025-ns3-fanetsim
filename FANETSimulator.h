@@ -21,6 +21,9 @@ namespace ns3
             /// @brief File name for NetAnim to run on.
             std::string fileName;
 
+            /// @brief Duration of each cycle in TDMA
+            uint32_t cycleDuration;
+
             
             /// Variables to keep track of all network interfaces in the FANET  
 
@@ -70,6 +73,9 @@ namespace ns3
              * @param nClusterMem Number of nodes per cluster
              */
             void SetConstNClusterNodes(uint32_t nClusters, uint32_t nClusterNodes);
+
+            /// @brief Obtain from user, the duration of each frame in TDMA
+            void GetCycleDuration();
 
             void CreateNetwork();
             void InstallDevices();

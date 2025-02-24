@@ -8,12 +8,14 @@ namespace ns3
 
     FANETTopologyHelper::FANETTopologyHelper()
     {
-
+        GDTNode.Create(1);
+        allNodes.Add(GDTNode);
     }
 
     FANETTopologyHelper::FANETTopologyHelper(uint32_t nClusters, std::vector<uint32_t> nClusterNodes)
     {
-
+        GDTNode.Create(1);
+        allNodes.Add(GDTNode);
     }
 
     FANETTopologyHelper::~FANETTopologyHelper()
