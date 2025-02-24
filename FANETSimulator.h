@@ -9,6 +9,16 @@ namespace ns3
     class FANETSimulator
     {
         private:
+
+            // Variables to store basic information of the network
+
+            // Number of clusters in the FANET
+            uint32_t nClusters;
+            // Number of cluster nodes in each cluster
+            std::vector<uint32_t> nClusterNodes;
+            // File name for NetAnim to run on
+            std::string fileName;
+
             // Variables to keep track of all the nodes in the FANET and their roles
 
             // Container storing all nodes in the FANET
@@ -49,7 +59,7 @@ namespace ns3
             FANETAnimationHelper *anim;
 
             // Methods
-            void CreateTopology();
+            void CreateNetwork();
             void InstallDevices();
             void SetMobility();
             void SetRoutingProtocol();
@@ -60,8 +70,8 @@ namespace ns3
             FANETSimulator();
             ~FANETSimulator();
 
-            void RunBasicSimulation();
-            void RunBasicSimulation(uint32_t nClusters, uint32_t nClusterNodes);
+            void RunBasicSimulation(std::string fileName = "animation.xml");
+            void RunBasicSimulation(uint32_t nClusters, uint32_t nClusterNodes, std::string fileName = "animation.xml");
     };
 }
 

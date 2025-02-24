@@ -2,6 +2,9 @@
 
 namespace ns3 
 {
+
+    NS_LOG_COMPONENT_DEFINE("FANETSimulator");
+
     FANETSimulator::FANETSimulator()
     {
 
@@ -12,8 +15,11 @@ namespace ns3
 
     }
 
-    void FANETSimulator::RunBasicSimulation()
+    void FANETSimulator::RunBasicSimulation(std::string fileName = "animation.xml")
     {
+        NS_LOG_INFO("Setting XML output file to: " << this->fileName);
+        this->fileName = fileName;
+
         std::cout << "Number of clusters to simulate: ";
         std::string input;
         std::getline(std::cin, input);  // Read input as a string
