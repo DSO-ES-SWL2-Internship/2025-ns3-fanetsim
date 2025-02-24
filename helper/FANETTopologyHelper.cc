@@ -4,6 +4,9 @@
 
 namespace ns3
 {
+
+    NS_LOG_COMPONENT_DEFINE("FANETTopologyHelper");
+
     FANETTopologyHelper::FANETTopologyHelper() 
         : nClusterHeads(0), nClusterMems(0)
     {

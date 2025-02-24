@@ -2,6 +2,8 @@
 
 namespace ns3
 {
+    NS_LOG_COMPONENT_DEFINE("FANETAnimationHelper");
+
     FANETAnimationHelper::FANETAnimationHelper(std::string name)
         : AnimationInterface(name)
     {
@@ -53,8 +55,6 @@ namespace ns3
                 curCHNodes[i] = CHNodes[i];
             }
         }
-
-        //Simulator::Schedule(Seconds(1.0), &FANETAnimationHelper::UpdateCHAnim, this, CHNodes);
     }
 
     void FANETAnimationHelper::AnimateFANET(FANETTopologyHelper& fanet) {
@@ -63,18 +63,10 @@ namespace ns3
             AssignClusterAnim(i, fanet.clusters[i]);
         }
 
-        NS_LOG_UNCOND("Assigning Clusters");
-
         AssignGDTAnim(fanet.GDTNode);
-
-        NS_LOG_UNCOND("Assigning GDT");
 
         AssignCHAnim(fanet.CHNodes);
 
         EnablePacketMetadata(true);
-        
-        //anim->EnableIpv4RouteTracking("udp-routing.xml", Seconds(0), Seconds(20), Seconds(0.25));
-
-        //Simulator::Schedule(Seconds(1.0), &FANETAnimationHelper::UpdateCHAnim, this, fanet.CHNodes);
     }
 }

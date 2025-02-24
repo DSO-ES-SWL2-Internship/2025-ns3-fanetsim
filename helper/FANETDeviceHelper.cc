@@ -4,6 +4,9 @@
 
 namespace ns3
 {
+
+    NS_LOG_COMPONENT_DEFINE("FANETDeviceHelper");
+
     // Constructor
     FANETDeviceHelper::FANETDeviceHelper() {
         // Constructor initialization logic (if any)
