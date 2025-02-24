@@ -71,9 +71,9 @@ namespace ns3
         SetGDTMobility(fanet->GDTNode);
 
         double radius = 10.0;  // Distance of cluster heads from GDT
-        double angleStep = 360.0 / fanet->nClusterHeads;  // Evenly space CHs in a circular pattern
+        double angleStep = 360.0 / fanet->clusters.size();  // Evenly space CHs in a circular pattern
 
-        for (uint32_t i = 0; i < fanet->nClusterHeads; i++) {
+        for (size_t i = 0; i < fanet->clusters.size(); i++) {
             double angleRad = (angleStep * i) * (M_PI / 180.0);
             double xCH = radius * cos(angleRad);
             double yCH = radius * sin(angleRad);
@@ -83,7 +83,7 @@ namespace ns3
             //SetClusterMemberMobility(fanet->clusters[i], xCH, yCH);
         }
 
-        SetClusterHeadMobility(fanet->clusterHeadNodes, 0.0, 0.0, fanet->nClusterHeads, radius);
+        SetClusterHeadMobility(fanet->clusterHeadNodes, 0.0, 0.0, fanet->clusters.size(), radius);
     }
 
     void FANETMobilityHelper::ApplyMobilityWireless(FANETTopologyHelper* fanet) {
@@ -91,9 +91,9 @@ namespace ns3
         SetGDTMobility(fanet->GDTNode);
 
         double radius = 10.0;  // Distance of cluster heads from GDT
-        double angleStep = 360.0 / fanet->nClusterHeads;  // Evenly space CHs in a circular pattern
+        double angleStep = 360.0 / fanet->clusters.size();  // Evenly space CHs in a circular pattern
 
-        for (uint32_t i = 0; i < fanet->nClusterHeads; i++) {
+        for (size_t i = 0; i < fanet->clusters.size(); i++) {
             double angleRad = (angleStep * i) * (M_PI / 180.0);
             double xCH = radius * cos(angleRad);
             double yCH = radius * sin(angleRad);

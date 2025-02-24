@@ -10,7 +10,7 @@ namespace ns3
     {
         private:
 
-            /// Variables to store basic information of the network
+            // Variables to store basic information of the network
 
             /// @brief Number of clusters in the FANET.
             uint32_t nClusters;
@@ -20,23 +20,6 @@ namespace ns3
 
             /// @brief File name for NetAnim to run on.
             std::string fileName;
-
-            /// Variables to keep track of all the nodes in the FANET and their roles
-
-            /// @brief Container storing all nodes in the FANET.
-            NodeContainer allNodes;  
-
-            /// @brief Container storing the Ground Data Terminal (GDT) node.
-            NodeContainer GDTNode;  
-
-            /// @brief Vector of NodeContainers, where each container stores all nodes within a cluster.
-            std::vector<NodeContainer> clusters;  
-
-            /// @brief Vector storing pointers to all current cluster head (CH) nodes.
-            std::vector<Ptr<Node>> CHNodes;  
-
-            /// @brief Vector of vectors, where each inner vector contains pointers to nodes forming links.
-            std::vector<std::vector<Ptr<Node>>> links;  
 
             /// Variables to keep track of all network devices in the FANET  
 
@@ -60,7 +43,7 @@ namespace ns3
             /// @brief Vector of vectors, where each inner vector stores a pair containing a pointer to an IPv4 instance and its corresponding interface index for each GDT-CH link.
             std::vector<std::vector<std::pair<Ptr<Ipv4>, uint32_t>>> fanetGDT_CHLinkInterfaces;  
 
-            /// Helper functions
+            // Helper functions
 
             /// @brief Helper for managing FANET topology.
             FANETTopologyHelper fanet;
@@ -82,7 +65,6 @@ namespace ns3
 
 
             // Methods
-            
             
             /// @brief Obtain from user, the number of clusters to simulate
             void GetNClusters();

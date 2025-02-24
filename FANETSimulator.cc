@@ -38,6 +38,11 @@ namespace ns3
         }
     }
 
+    void FANETSimulator::CreateNetwork()
+    {
+        
+    }
+
     void FANETSimulator::RunBasicSimulation(std::string fileName)
     {
         NS_LOG_INFO("Setting XML output file to: " << this->fileName);
