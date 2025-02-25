@@ -1,4 +1,5 @@
 #include "FANETSimulator.h"
+#include "ns3/applications-module.h"
 
 namespace ns3 
 {
@@ -115,7 +116,8 @@ namespace ns3
 
     void FANETSimulator::SetUpNetAnim()
     {
-        
+        this->anim = new FANETAnimationHelper(this->fileName);
+        anim->SetMaxPktsPerTraceFile(5000000);
     }
 
 
@@ -140,10 +142,33 @@ namespace ns3
 
         this->AssignAddress("10.1.1.0", "255.255.255.0");
 
-            // FANETAnimationHelper animation("please_work.xml");
-    // animation.SetMaxPktsPerTraceFile(50000000);
+        this->SetUpNetAnim();
 
-        this->fanetDevices->AssignClusterHeads();
+        this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim);
+
+        // Install UDP Echo Server on a cluster 1 node
+        UdpEchoServerHelper echoServer(9);
+        ApplicationContainer serverApp = echoServer.Install(this->fanet->clusters[0].Get(1));
+        serverApp.Start(Seconds(2.0));
+        serverApp.Stop(Seconds(20.0));
+
+        // Install UDP Echo Client on last node
+        UdpEchoClientHelper echoClient(this->ipv4->clustersInterfaces[0].GetAddress(1), 9);
+        echoClient.SetAttribute("MaxPackets", UintegerValue(5));
+        echoClient.SetAttribute("Interval", TimeValue(Seconds(5)));
+        echoClient.SetAttribute("PacketSize", UintegerValue(512));
+        NS_LOG_UNCOND("Entered");
+
+        ApplicationContainer clientApp = echoClient.Install(this->fanet->GDTNode.Get(0));
+        clientApp.Start(Seconds(3.0));
+        clientApp.Stop(Seconds(20.0));
+        NS_LOG_UNCOND("Entered2");
+
+        this->anim->AnimateFANET(this->fanet);
+
+        Simulator::Stop(Seconds(20.0));
+        Simulator::Run();
+        Simulator::Destroy();
 
     }
 }

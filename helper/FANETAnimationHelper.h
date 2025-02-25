@@ -26,7 +26,7 @@ namespace ns3
             void AssignGDTAnim(NodeContainer gdtNode);
             void AssignCHAnim(std::vector<Ptr<Node>> CHNodes);
             void UpdateCHAnim(std::vector<Ptr<Node>> CHNodes);
-            void AnimateFANET(FANETTopologyHelper& fanet);
+            void AnimateFANET(FANETTopologyHelper* fanet);
     };
 }
 

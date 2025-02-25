@@ -43,7 +43,6 @@ namespace ns3
 
     void FANETAnimationHelper::UpdateCHAnim(std::vector<Ptr<Node>> CHNodes)
     {
-        //NS_LOG_UNCOND("ENtered");
         for (size_t i = 0; i < CHNodes.size(); i++)
         {
             if (curCHNodes[i]->GetId() != CHNodes[i]->GetId())
@@ -58,15 +57,15 @@ namespace ns3
         }
     }
 
-    void FANETAnimationHelper::AnimateFANET(FANETTopologyHelper& fanet) {
+    void FANETAnimationHelper::AnimateFANET(FANETTopologyHelper* fanet) {
 
-        for (size_t i = 0; i < fanet.clusters.size(); i++) {
-            AssignClusterAnim(i, fanet.clusters[i]);
+        for (size_t i = 0; i < fanet->clusters.size(); i++) {
+            AssignClusterAnim(i, fanet->clusters[i]);
         }
 
-        AssignGDTAnim(fanet.GDTNode);
+        AssignGDTAnim(fanet->GDTNode);
 
-        AssignCHAnim(fanet.CHNodes);
+        AssignCHAnim(fanet->CHNodes);
 
         EnablePacketMetadata(true);
     }

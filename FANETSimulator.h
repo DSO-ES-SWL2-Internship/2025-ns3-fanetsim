@@ -82,6 +82,7 @@ namespace ns3
             void SetMobility();
             void SetRoutingProtocol(RoutingProtocol protocol);
             void AssignAddress(Ipv4Address network, Ipv4Mask mask);
+            void SetUpNetAnim();
 
         public:
 
