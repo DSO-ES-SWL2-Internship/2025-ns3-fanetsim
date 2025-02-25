@@ -80,7 +80,7 @@ namespace ns3
             void CreateNetwork();
             void InstallDevices();
             void SetMobility();
-            void SetRoutingProtocol();
+            void SetRoutingProtocol(RoutingProtocol protocol);
             void AssignAddress();
 
         public:

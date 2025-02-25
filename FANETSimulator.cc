@@ -79,6 +79,34 @@ namespace ns3
         this->fanetDevices->AssignTdmaSlots(this->fanet->allNodes, MilliSeconds(this->cycleDuration));
     }
 
+    void FANETSimulator::SetRoutingProtocol(RoutingProtocol protocol)
+    {
+        this->router = new FANETRoutingHelper();
+        switch (protocol)
+        {
+            case AODV: {
+                // TODO: add functionality to include all the different settings for AODV
+                this->router->SetAODV(this->fanet->allNodes);
+                break;
+            }
+
+            case OLSR: {
+                this->router->SetOLSR(this->fanet->allNodes);
+                break;
+            }
+
+            case DSDV: {
+                this->router->SetDSDV(this->fanet->allNodes);
+                break;
+            }
+
+            default: {
+                NS_LOG_UNCOND("Invalid Routing Protocol");
+                exit(FAILURE);
+            }
+        }
+    }
+
     void FANETSimulator::RunBasicSimulation(std::string fileName)
     {
         NS_LOG_INFO("Setting XML output file to: " << this->fileName);
@@ -95,6 +123,8 @@ namespace ns3
         this->SetMobility();
 
         this->InstallDevices();
+
+        this->SetRoutingProtocol(AODV);
 
     }
 }
