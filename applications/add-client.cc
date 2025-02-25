@@ -1,7 +1,11 @@
 #include "add-client.h"
+#include "ns3/log.h"
+
 
 namespace ns3
 {
+    NS_LOG_COMPONENT_DEFINE("AddClient");
+    
     void AddClient::SendPacket() {
 
         int num1 = m_randomValue->GetInteger(1, 100);

@@ -1,7 +1,10 @@
 #include "add-server.h"
+#include "ns3/log.h"
 
 namespace ns3
 {
+    NS_LOG_COMPONENT_DEFINE("AddServer");
+    
     void AddServer::HandleRead(Ptr<Socket> socket) {
         Address from;
         Ptr<Packet> packet = socket->RecvFrom(from);

@@ -1,5 +1,7 @@
 #include "FANETSimulator.h"
 #include "ns3/applications-module.h"
+#include "ns3/add-client.h"
+#include "ns3/add-server.h"
 
 namespace ns3 
 {
@@ -148,21 +150,37 @@ namespace ns3
 
         // Install UDP Echo Server on a cluster 1 node
         UdpEchoServerHelper echoServer(9);
-        ApplicationContainer serverApp = echoServer.Install(this->fanet->clusters[0].Get(1));
+        ApplicationContainer serverApp = echoServer.Install(this->fanet->GDTNode.Get(0));
         serverApp.Start(Seconds(2.0));
         serverApp.Stop(Seconds(20.0));
 
         // Install UDP Echo Client on last node
-        UdpEchoClientHelper echoClient(this->ipv4->clustersInterfaces[0].GetAddress(1), 9);
+        UdpEchoClientHelper echoClient(this->ipv4->clustersInterfaces[0].GetAddress(0), 9);
         echoClient.SetAttribute("MaxPackets", UintegerValue(5));
         echoClient.SetAttribute("Interval", TimeValue(Seconds(5)));
         echoClient.SetAttribute("PacketSize", UintegerValue(512));
-        NS_LOG_UNCOND("Entered");
 
-        ApplicationContainer clientApp = echoClient.Install(this->fanet->GDTNode.Get(0));
+        ApplicationContainer clientApp = echoClient.Install(this->fanet->clusters[0].Get(1));
         clientApp.Start(Seconds(3.0));
         clientApp.Stop(Seconds(20.0));
-        NS_LOG_UNCOND("Entered2");
+
+        // Ptr<AddServer> serverApp = CreateObject<AddServer>();
+        // fanet->clusters[0].Get(1)->AddApplication(serverApp);
+        // serverApp->SetStartTime(Seconds(2.0));
+        // serverApp->SetStopTime(Seconds(20.0));
+
+        // Ptr<AddClient> clientApp = CreateObject<AddClient>();
+        // clientApp->Setup(this->ipv4->clustersInterfaces[0].GetAddress(1), 8080);
+
+
+        // for (uint32_t i = 1; i < fanet->allNodes.GetN(); ++i) {
+        //     Ptr<AddClient> senderApp = CreateObject<AddClient>();
+        //     senderApp->Setup(, 8080);
+        //     nodes.Get(i)->AddApplication(senderApp);
+        //     senderApp->SetStartTime(Seconds(2.0));
+        //     senderApp->SetStopTime(Seconds(20.0));
+        // }
+
 
         this->anim->AnimateFANET(this->fanet);
 
