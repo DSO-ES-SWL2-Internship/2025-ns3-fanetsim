@@ -41,23 +41,23 @@ namespace ns3
         return;
     }
 
-    void FANETAddressHelper::SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<NetDeviceContainer> GDTtoCHLinksDevices){
-        for (size_t i = 0; i < clustersDevices.size(); i++){
-            ipv4.SetBase(network, mask);
-            Ipv4InterfaceContainer clusterInterface = ipv4.Assign(clustersDevices[i]);
-            clustersInterfaces.push_back(clusterInterface);
-            IncrementNetwork();
-        }
+    // void FANETAddressHelper::SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<NetDeviceContainer> GDTtoCHLinksDevices){
+    //     for (size_t i = 0; i < clustersDevices.size(); i++){
+    //         ipv4.SetBase(network, mask);
+    //         Ipv4InterfaceContainer clusterInterface = ipv4.Assign(clustersDevices[i]);
+    //         clustersInterfaces.push_back(clusterInterface);
+    //         IncrementNetwork();
+    //     }
 
-        for (size_t i = 0; i < GDTtoCHLinksDevices.size(); i++){
-            ipv4.SetBase(network, mask);
-            Ipv4InterfaceContainer linkInterface = ipv4.Assign(GDTtoCHLinksDevices[i]);
-            GDTtoCHLinksInterfaces.push_back(linkInterface);  
-            IncrementNetwork();
-        }
+    //     for (size_t i = 0; i < GDTtoCHLinksDevices.size(); i++){
+    //         ipv4.SetBase(network, mask);
+    //         Ipv4InterfaceContainer linkInterface = ipv4.Assign(GDTtoCHLinksDevices[i]);
+    //         GDTtoCHLinksInterfaces.push_back(linkInterface);  
+    //         IncrementNetwork();
+    //     }
 
-        Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-    }
+    //     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+    // }
 
     void FANETAddressHelper::SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices)
     {

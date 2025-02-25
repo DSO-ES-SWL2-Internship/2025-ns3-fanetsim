@@ -107,6 +107,18 @@ namespace ns3
         }
     }
 
+    void FANETSimulator::AssignAddress(Ipv4Address network, Ipv4Mask mask)
+    {
+        this->ipv4 = new FANETAddressHelper(network, mask);
+        this->ipv4->SetBases(this->fanetDevices->clustersDevices, this->fanetDevices->clustersLinkDevices);
+    }
+
+    void FANETSimulator::SetUpNetAnim()
+    {
+        
+    }
+
+
     void FANETSimulator::RunBasicSimulation(std::string fileName)
     {
         NS_LOG_INFO("Setting XML output file to: " << this->fileName);
@@ -125,6 +137,13 @@ namespace ns3
         this->InstallDevices();
 
         this->SetRoutingProtocol(AODV);
+
+        this->AssignAddress("10.1.1.0", "255.255.255.0");
+
+            // FANETAnimationHelper animation("please_work.xml");
+    // animation.SetMaxPktsPerTraceFile(50000000);
+
+        this->fanetDevices->AssignClusterHeads();
 
     }
 }

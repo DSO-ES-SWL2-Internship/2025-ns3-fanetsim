@@ -81,7 +81,7 @@ namespace ns3
             void InstallDevices();
             void SetMobility();
             void SetRoutingProtocol(RoutingProtocol protocol);
-            void AssignAddress();
+            void AssignAddress(Ipv4Address network, Ipv4Mask mask);
 
         public:
 
