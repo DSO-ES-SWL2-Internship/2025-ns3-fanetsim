@@ -30,8 +30,6 @@ namespace ns3
         this->list.Add (aodv, 100);
 
         InstallInternetStackToAllNodes(nodes);
-
-        NS_LOG_INFO("AODV Protocol Set");
     }
 
     void FANETRoutingHelper::SetOLSR(NodeContainer nodes){

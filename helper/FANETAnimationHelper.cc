@@ -23,8 +23,9 @@ namespace ns3
             // e.g. C1Node-3_1 - Node 3 of cluster 1 with node index 1
             UpdateNodeDescription(cluster.Get(i), "C" + std::to_string(clusterIndex) + "Node-" + std::to_string(i) + "_" + std::to_string(cluster.Get(i)->GetId()));
             UpdateNodeColor(cluster.Get(i), r, g, b);
-            clustersColor.push_back({r,g,b});
         }
+
+        clustersColor.push_back({r,g,b});
     }
 
     void FANETAnimationHelper::AssignGDTAnim(NodeContainer GDTNode){
