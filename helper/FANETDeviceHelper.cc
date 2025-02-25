@@ -36,9 +36,7 @@ namespace ns3
     void FANETDeviceHelper::SetupClustersWifi(std::vector<NodeContainer> clusters) {
         // Ensure the WiFi standard is set
         wifi.SetStandard(clusterWifiStandard);
-
-        // Clear any existing devices
-        //clustersDevices.clear();
+        wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
 
         // Install WiFi devices for each cluster
         for (size_t i = 0; i < clusters.size(); i++) {
@@ -46,8 +44,6 @@ namespace ns3
             // Create a unique Wi-Fi channel for this cluster
             YansWifiChannelHelper wifiChannelCM;
             
-            // Edit the .h file if custom propagation delay and model is required
-            // Configure the channel properties (if specified)
             if (!clusterWifiChannelPropagationDelay.empty()) {
                 wifiChannelCM.SetPropagationDelay(clusterWifiChannelPropagationDelay);
             }
