@@ -23,6 +23,7 @@ namespace ns3
             Ptr<UniformRandomVariable> m_randomValue;
 
             void SendPacket();
+            void HandleRead(Ptr<Socket> socket);
 
 
 

@@ -12,10 +12,9 @@ namespace ns3
         uint32_t data[3];
 
         packet->CopyData(reinterpret_cast<uint8_t*>(data), sizeof(data));
-        uint32_t sum = data[0] + data[1];
-
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Server received question from Node " 
-                            << data[2] << ": " << data[0] << " + " << data[1] << " = " << sum);
+                    << data[2] << ": " << data[0] << " + " << data[1] << " = ");
+        uint32_t sum = data[0] + data[1];
 
         Ptr<Packet> response = Create<Packet>(reinterpret_cast<uint8_t*>(&sum), sizeof(sum));
         socket->SendTo(response, 0, from);

@@ -1,7 +1,6 @@
 #include "add-client.h"
 #include "ns3/log.h"
 
-
 namespace ns3
 {
     NS_LOG_COMPONENT_DEFINE("AddClient");
@@ -11,30 +10,37 @@ namespace ns3
         uint32_t num1 = m_randomValue->GetInteger(1, 100);
         uint32_t num2 = m_randomValue->GetInteger(1, 100);
 
-        uint32_t data[2] = {static_cast<uint32_t>(num1), static_cast<uint32_t>(num2)};
+        uint32_t data[3] = {num1, num2, nodeId};
         Ptr<Packet> packet = Create<Packet>(reinterpret_cast<uint8_t*>(data), sizeof(data));
         
         m_socket->Send(packet);
 
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
-                << nodeId << " sent addition question");
+                << nodeId << " sent addition question: " << num1 << " + " << num2);
 
-        // Schedule next send at random time
-        Time nextTime = Seconds(m_randomTime->GetValue());
-        m_sendEvent = Simulator::Schedule(nextTime, &AddClient::SendPacket, this);
+        // Schedule next send in exactly 5 seconds
+        m_sendEvent = Simulator::Schedule(Seconds(5.0), &AddClient::SendPacket, this);
     }
 
-    AddClient::AddClient()
-    {
-        
+    void AddClient::HandleRead(Ptr<Socket> socket) {
+        Ptr<Packet> packet;
+        Address from;
+        while ((packet = socket->RecvFrom(from))) {
+            if (packet->GetSize() == sizeof(uint32_t)) {
+                uint32_t result;
+                packet->CopyData(reinterpret_cast<uint8_t*>(&result), sizeof(uint32_t));
+
+                NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node "
+                        << GetNode()->GetId() << " received result: " << result);
+            }
+        }
     }
+
+    AddClient::AddClient() {}
 
     void AddClient::Setup(Address peerAddress, uint16_t peerPort) {
         m_peerAddress = peerAddress;
         m_peerPort = peerPort;
-        m_randomTime = CreateObject<UniformRandomVariable>();
-        m_randomTime->SetAttribute("Min", DoubleValue(1.0));
-        m_randomTime->SetAttribute("Max", DoubleValue(5.0));
         m_randomValue = CreateObject<UniformRandomVariable>();
     }
 
@@ -43,7 +49,10 @@ namespace ns3
         m_socket->Bind();
         m_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(m_peerAddress), m_peerPort));
 
-        SendPacket();  // Start sending packets
+        // Set receive callback to handle incoming packets
+        m_socket->SetRecvCallback(MakeCallback(&AddClient::HandleRead, this));
+
+        SendPacket();  // Start sending packets every 5 seconds
     }
 
     void AddClient::StopApplication() {
@@ -54,5 +63,4 @@ namespace ns3
             m_socket->Close();
         }
     }
-
 }
