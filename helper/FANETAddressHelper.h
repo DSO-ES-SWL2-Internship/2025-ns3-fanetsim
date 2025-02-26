@@ -30,7 +30,7 @@ namespace ns3
 
             void SetUp(Ipv4Address network, Ipv4Mask mask);                     //done
             //void SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<NetDeviceContainer> GDTtoCHLinksDevices);    //done
-            void SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices);
+            void SetBases(Ipv4Address* gdtVirtualAddress, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices);
             static Ipv4Address GetBaseAddress(Ipv4Address ip);
         };
 }

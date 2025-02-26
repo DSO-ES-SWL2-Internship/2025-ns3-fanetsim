@@ -59,8 +59,10 @@ namespace ns3
     //     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     // }
 
-    void FANETAddressHelper::SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices)
+    void FANETAddressHelper::SetBases(Ipv4Address* gdtVirtualAddress, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices)
     {
+
+
         for (size_t i = 0; i < clustersDevices.size(); i++){
             ipv4.SetBase(network, mask);
             Ipv4InterfaceContainer clusterInterface = ipv4.Assign(clustersDevices[i]);
@@ -83,7 +85,7 @@ namespace ns3
                 uint32_t gdtInterfaceIndex = linkInterface.Get(0).second;
                 uint32_t clusterNodeInterfaceIndex = linkInterface.Get(1).second;
 
-                gdtIpv4Ptr->SetDown(gdtInterfaceIndex);
+                //gdtIpv4Ptr->SetDown(gdtInterfaceIndex);
                 clusterNodeIpv4Ptr->SetDown(clusterNodeInterfaceIndex);
 
                 clusterLinkInterfaces.push_back(linkInterface);
@@ -95,6 +97,29 @@ namespace ns3
             clustersLinkInterfaces.push_back(clusterLinkInterfaces);
             //IncrementNetwork();
         }
+
+        // Setting a virtual IP to GDT so the application will know which IP to use in order to send the UDP to the GDT
+
+        uint32_t address = network.Get();
+
+        // Extract the octets
+        uint8_t octet1 = (address >> 24) & 0xFF;
+        uint8_t octet2 = (address >> 16) & 0xFF;
+        uint8_t octet3 = (address >> 8) & 0xFF;
+        uint8_t octet4 = address & 0xFF;
+
+        // Increment the fourth octet
+        octet4++;   
+
+        network = Ipv4Address((octet1 << 24) | (octet2 << 16) | (octet3 << 8) | octet4);
+
+        uint32_t gdtMainInterfaceIndex = clustersLinkInterfaces[0][0].Get(0).second;
+
+        Ptr<Ipv4> GDTipv4 = clustersLinkInterfaces[0][0].Get(0).first;
+
+        GDTipv4->AddAddress(gdtMainInterfaceIndex, Ipv4InterfaceAddress(network, mask));
+
+        *gdtVirtualAddress = network;
 
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     }

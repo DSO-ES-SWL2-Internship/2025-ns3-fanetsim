@@ -113,7 +113,7 @@ namespace ns3
     void FANETSimulator::AssignAddress(Ipv4Address network, Ipv4Mask mask)
     {
         this->ipv4 = new FANETAddressHelper(network, mask);
-        this->ipv4->SetBases(this->fanetDevices->clustersDevices, this->fanetDevices->clustersLinkDevices);
+        this->ipv4->SetBases(&(this->gdtVirtualAddress), this->fanetDevices->clustersDevices, this->fanetDevices->clustersLinkDevices);
     }
 
     void FANETSimulator::SetUpNetAnim()
@@ -150,12 +150,13 @@ namespace ns3
 
         // Install UDP Echo Server on a cluster 1 node
         UdpEchoServerHelper echoServer(9);
-        ApplicationContainer serverApp = echoServer.Install(this->fanet->GDTNode.Get(0));
+        ApplicationContainer serverApp = echoServer.Install(fanet->clusters[1].Get(1));
         serverApp.Start(Seconds(2.0));
         serverApp.Stop(Seconds(20.0));
 
         // Install UDP Echo Client on last node
-        UdpEchoClientHelper echoClient(this->ipv4->clustersInterfaces[0].GetAddress(0), 9);
+        
+        UdpEchoClientHelper echoClient(this->ipv4->clustersInterfaces[1].GetAddress(1), 9);
         echoClient.SetAttribute("MaxPackets", UintegerValue(5));
         echoClient.SetAttribute("Interval", TimeValue(Seconds(5)));
         echoClient.SetAttribute("PacketSize", UintegerValue(512));
