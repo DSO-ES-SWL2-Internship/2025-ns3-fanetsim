@@ -23,10 +23,6 @@ namespace ns3
 
             /// @brief Duration of each cycle in TDMA
             uint32_t cycleDuration;
-
-            /// @brief virtual IP of the GDT
-            Ipv4Address gdtVirtualAddress;
-
             
             /// Variables to keep track of all network interfaces in the FANET  
 

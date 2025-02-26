@@ -77,6 +77,7 @@ namespace ns3
     {
         this->fanetDevices = new FANETDeviceHelper();
         this->fanetDevices->TdmaWifi();
+        this->fanetDevices->SetupGDTWifi(this->fanet->GDTNode);
         this->fanetDevices->SetupClustersWifi(this->fanet->clusters);
         this->fanetDevices->SetUpLinksWifi(this->fanet);
         this->fanetDevices->AssignTdmaSlots(this->fanet->allNodes, MilliSeconds(this->cycleDuration));
@@ -113,7 +114,7 @@ namespace ns3
     void FANETSimulator::AssignAddress(Ipv4Address network, Ipv4Mask mask)
     {
         this->ipv4 = new FANETAddressHelper(network, mask);
-        this->ipv4->SetBases(this->fanet->GDTNode.Get(0), &(this->gdtVirtualAddress), this->fanetDevices->clustersDevices, this->fanetDevices->clustersLinkDevices);
+        this->ipv4->SetBases(this->fanetDevices->GDTDevice,  this->fanetDevices->clustersDevices, this->fanetDevices->clustersLinkDevices);
     }
 
     void FANETSimulator::SetUpNetAnim()
@@ -144,17 +145,8 @@ namespace ns3
 
         this->AssignAddress("10.1.1.0", "255.255.255.0");
 
-        Ptr<Node> gdtNode = this->fanet->GDTNode.Get(0);
-        Ptr<Ipv4> gdtIpv4 = gdtNode->GetObject<Ipv4>();
-
-        // Print all interface addresses
-        for (uint32_t i = 0; i < gdtIpv4->GetNInterfaces(); i++) {
-            for (uint32_t j = 0; j < gdtIpv4->GetNAddresses(i); j++) {
-                std::cout << "Interface " << i << " - Address: " 
-                        << gdtIpv4->GetAddress(i, j).GetLocal() << std::endl;
-            }
-        }
-
+        NS_LOG_UNCOND("GDT IP: " << this->ipv4->GDTInterface.GetAddress(0));
+        
 
         this->SetUpNetAnim();
 
@@ -168,7 +160,7 @@ namespace ns3
 
         // Install UDP Echo Client on last node
         
-        UdpEchoClientHelper echoClient(this->gdtVirtualAddress, 9);
+        UdpEchoClientHelper echoClient(this->ipv4->GDTInterface.GetAddress(0), 9);
         echoClient.SetAttribute("MaxPackets", UintegerValue(5));
         echoClient.SetAttribute("Interval", TimeValue(Seconds(5)));
         echoClient.SetAttribute("PacketSize", UintegerValue(512));

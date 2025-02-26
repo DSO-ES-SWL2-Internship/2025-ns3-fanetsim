@@ -59,7 +59,7 @@ namespace ns3
     //     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     // }
 
-    void FANETAddressHelper::SetBases(Ptr<Node> GDTNode, Ipv4Address* gdtVirtualAddress, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices)
+    void FANETAddressHelper::SetBases(NetDeviceContainer GDTDevice, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices)
     {
 
 
@@ -98,30 +98,9 @@ namespace ns3
             //IncrementNetwork();
         }
 
-        // Setting a virtual IP to GDT so the application will know which IP to use in order to send the UDP to the GDT
-
-        uint32_t address = network.Get();
-
-        // Extract the octets
-        uint8_t octet1 = (address >> 24) & 0xFF;
-        uint8_t octet2 = (address >> 16) & 0xFF;
-        uint8_t octet3 = (address >> 8) & 0xFF;
-        uint8_t octet4 = address & 0xFF;
-
-        // Increment the fourth octet
-        octet4++;   
-
-        network = Ipv4Address((octet1 << 24) | (octet2 << 16) | (octet3 << 8) | octet4);
-
-        Ptr<Ipv4> gdtIpv4 = GDTNode->GetObject<Ipv4>();
-
-        uint32_t loopbackIndex = gdtIpv4->GetInterfaceForDevice(GDTNode->GetDevice(0));
-
-        gdtIpv4->AddAddress(0, Ipv4InterfaceAddress(network, mask));
-
-        *gdtVirtualAddress = network;
-
-        NS_LOG_UNCOND("GDT IP: " << *gdtVirtualAddress);
+        ipv4.SetBase(network, mask);
+        IncrementNetwork();
+        this->GDTInterface = ipv4.Assign(GDTDevice);
 
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     }

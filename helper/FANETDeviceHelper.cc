@@ -33,6 +33,33 @@ namespace ns3
         clusterMacType = "ns3::TdmaWifiMac";
     }
 
+    void FANETDeviceHelper::SetupGDTWifi(NodeContainer GDTNode)
+    {
+        wifi.SetStandard(clusterWifiStandard);
+        // Create a separate WiFi channel for the dedicated GDT WiFi device
+        YansWifiChannelHelper wifiChannelGDT;
+        if (!clusterWifiChannelPropagationDelay.empty()) {
+            wifiChannelGDT.SetPropagationDelay(clusterWifiChannelPropagationDelay);
+        }
+        if (!clusterPropagationLossModel.empty()) {
+            wifiChannelGDT.AddPropagationLoss(clusterPropagationLossModel);
+        }
+
+        // Setup the PHY layer for the GDT WiFi device
+        YansWifiPhyHelper wifiPhyGDT;
+        wifiPhyGDT.SetChannel(wifiChannelGDT.Create());
+
+        // Configure the MAC layer for AdHoc mode
+        WifiMacHelper wifiMacAdHocGDT;
+        wifiMacAdHocGDT.SetType(clusterMacType, "Ssid", SsidValue(Ssid("GDT-WiFi")));
+
+        // Install the WiFi device on the GDT node
+        NetDeviceContainer gdtWiFiDevice = wifi.Install(wifiPhyGDT, wifiMacAdHocGDT, GDTNode.Get(0));
+
+        // Store the new device
+        this->GDTDevice = gdtWiFiDevice;
+    }
+
     void FANETDeviceHelper::SetupClustersWifi(std::vector<NodeContainer> clusters) {
         // Ensure the WiFi standard is set
         wifi.SetStandard(clusterWifiStandard);
@@ -89,7 +116,7 @@ namespace ns3
             for (uint32_t j = 0; j < fanet->clusters[i].GetN(); j++)
             {
                 
-                // Create a separate WiFi channel for the link between cluster node and GDT
+                // Create a separate WiFi channel for the link between cluster node and GDT 
                 YansWifiChannelHelper wifiChannelLink;
                 if (!clusterWifiChannelPropagationDelay.empty()) {
                     wifiChannelLink.SetPropagationDelay(clusterWifiChannelPropagationDelay);
@@ -197,7 +224,7 @@ namespace ns3
                     linkInterface.push_back(ipv4->clustersLinkInterfaces[i][j].Get(1));
                     ipv4->linksInterfaces.push_back(linkInterface);
 
-                    NS_LOG_UNCOND("At time " << Simulator::Now().GetSeconds() << "s, Node " 
+                    NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
                           << clusterNode->GetId() << " selected as cluster head");
 
                     break;
@@ -264,7 +291,7 @@ namespace ns3
                         ipv4->linksInterfaces[i].clear();
                         ipv4->linksInterfaces[i] = linkInterface;
 
-                        NS_LOG_UNCOND("At time " << Simulator::Now().GetSeconds() << "s, Node " 
+                        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
                           << clusterNode->GetId() << " reassigned as cluster head");
                         break;
                     }
