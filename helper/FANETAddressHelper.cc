@@ -59,7 +59,7 @@ namespace ns3
     //     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     // }
 
-    void FANETAddressHelper::SetBases(Ipv4Address* gdtVirtualAddress, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices)
+    void FANETAddressHelper::SetBases(Ptr<Node> GDTNode, Ipv4Address* gdtVirtualAddress, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices)
     {
 
 
@@ -85,7 +85,7 @@ namespace ns3
                 uint32_t gdtInterfaceIndex = linkInterface.Get(0).second;
                 uint32_t clusterNodeInterfaceIndex = linkInterface.Get(1).second;
 
-                //gdtIpv4Ptr->SetDown(gdtInterfaceIndex);
+                gdtIpv4Ptr->SetDown(gdtInterfaceIndex);
                 clusterNodeIpv4Ptr->SetDown(clusterNodeInterfaceIndex);
 
                 clusterLinkInterfaces.push_back(linkInterface);
@@ -113,13 +113,15 @@ namespace ns3
 
         network = Ipv4Address((octet1 << 24) | (octet2 << 16) | (octet3 << 8) | octet4);
 
-        uint32_t gdtMainInterfaceIndex = clustersLinkInterfaces[0][0].Get(0).second;
+        Ptr<Ipv4> gdtIpv4 = GDTNode->GetObject<Ipv4>();
 
-        Ptr<Ipv4> GDTipv4 = clustersLinkInterfaces[0][0].Get(0).first;
+        uint32_t loopbackIndex = gdtIpv4->GetInterfaceForDevice(GDTNode->GetDevice(0));
 
-        GDTipv4->AddAddress(gdtMainInterfaceIndex, Ipv4InterfaceAddress(network, mask));
+        gdtIpv4->AddAddress(0, Ipv4InterfaceAddress(network, mask));
 
         *gdtVirtualAddress = network;
+
+        NS_LOG_UNCOND("GDT IP: " << *gdtVirtualAddress);
 
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     }
