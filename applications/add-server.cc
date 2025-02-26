@@ -3,17 +3,19 @@
 
 namespace ns3
 {
+    NS_OBJECT_ENSURE_REGISTERED(AddServer);
     NS_LOG_COMPONENT_DEFINE("AddServer");
     
     void AddServer::HandleRead(Ptr<Socket> socket) {
         Address from;
         Ptr<Packet> packet = socket->RecvFrom(from);
-        uint32_t data[2];
+        uint32_t data[3];
 
         packet->CopyData(reinterpret_cast<uint8_t*>(data), sizeof(data));
         uint32_t sum = data[0] + data[1];
 
-        NS_LOG_INFO("Server received: " << data[0] << " + " << data[1] << " = " << sum);
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Server received question from Node " 
+                            << data[2] << ": " << data[0] << " + " << data[1] << " = " << sum);
 
         Ptr<Packet> response = Create<Packet>(reinterpret_cast<uint8_t*>(&sum), sizeof(sum));
         socket->SendTo(response, 0, from);

@@ -7,16 +7,17 @@ namespace ns3
     NS_LOG_COMPONENT_DEFINE("AddClient");
     
     void AddClient::SendPacket() {
-
-        int num1 = m_randomValue->GetInteger(1, 100);
-        int num2 = m_randomValue->GetInteger(1, 100);
+        uint32_t nodeId = GetNode()->GetId();
+        uint32_t num1 = m_randomValue->GetInteger(1, 100);
+        uint32_t num2 = m_randomValue->GetInteger(1, 100);
 
         uint32_t data[2] = {static_cast<uint32_t>(num1), static_cast<uint32_t>(num2)};
         Ptr<Packet> packet = Create<Packet>(reinterpret_cast<uint8_t*>(data), sizeof(data));
         
         m_socket->Send(packet);
 
-        NS_LOG_INFO("Sender sent: " << num1 << " + " << num2);
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
+                << nodeId << " sent addition question");
 
         // Schedule next send at random time
         Time nextTime = Seconds(m_randomTime->GetValue());
