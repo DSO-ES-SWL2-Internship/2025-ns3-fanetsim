@@ -129,6 +129,8 @@ namespace ns3
         NS_LOG_INFO("Setting XML output file to: " << this->fileName);
         this->fileName = fileName;
 
+        ns3::PacketMetadata::Enable();
+
         this->GetNClusters();
 
         this->GetNClusterNodes();

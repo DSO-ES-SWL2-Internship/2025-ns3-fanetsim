@@ -226,6 +226,8 @@ namespace ns3
                     NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
                           << clusterNode->GetId() << " selected as cluster head");
 
+                    NotifyCHStatusChange(clusterNode, "BECOME_CH");
+
                     break;
                 }
             }
@@ -255,6 +257,8 @@ namespace ns3
 
                 curGdtIpv4Ptr->SetDown(gdtInterfaceIndex);
                 curCHIpv4Ptr->SetDown(clusterNodeInterfaceIndex);
+
+                NotifyCHStatusChange(clusterHeadNode, "STOP_CH");
 
                 for (size_t j = 0; j < ipv4->clustersLinkInterfaces[i].size(); j++)
                 {
@@ -292,6 +296,8 @@ namespace ns3
 
                         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
                           << clusterNode->GetId() << " reassigned as cluster head");
+
+                        NotifyCHStatusChange(clusterNode, "BECOME_CH");
                         break;
                     }
                 }
@@ -313,6 +319,8 @@ namespace ns3
         Ptr<Packet> packet = Create<Packet>((uint8_t*) status.c_str(), status.length());
         socket->Send(packet);
         socket->Close();
+
+        NS_LOG_DEBUG("Node " << node->GetId() <<" notifying application of CH status change");
     }
 }
 

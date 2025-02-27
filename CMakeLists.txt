@@ -9,6 +9,7 @@ build_lib(
     helper/FANETTopologyHelper.cc
     applications/add-server.cc
     applications/add-client.cc
+    applications/ClusterNodePromotionApp.cc
     FANETSimulator.cc
   HEADER_FILES
     helper/FANETAddressHelper.h
@@ -19,6 +20,7 @@ build_lib(
     helper/FANETTopologyHelper.h
     applications/add-server.h
     applications/add-client.h
+    applications/ClusterNodePromotionApp.h
     FANETSimulator.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}

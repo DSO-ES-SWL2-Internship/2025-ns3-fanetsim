@@ -2,6 +2,8 @@
 
 namespace ns3
 {
+    NS_LOG_COMPONENT_DEFINE("ClusterNodePromotionApp");
+
     ClusterNodePromotionApp::ClusterNodePromotionApp()
         :m_socket(nullptr), m_gdtIp(Ipv4Address("0.0.0.0")), m_port(8080), m_isClusterHead(false), m_isActive(false)
     {

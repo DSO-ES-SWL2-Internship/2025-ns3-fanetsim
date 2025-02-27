@@ -67,6 +67,6 @@ namespace ns3
 
         AssignCHAnim(fanet->CHNodes);
 
-        EnablePacketMetadata(true);
+        //EnablePacketMetadata(true);
     }
 }
