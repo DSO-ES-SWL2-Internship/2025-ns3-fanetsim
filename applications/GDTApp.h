@@ -1,10 +1,10 @@
 #ifndef GDT_APP_H
 #define GDT_APP_H
 
-#include "ns3/application.h"
-#include "ns3/socket.h"
-#include "ns3/address.h"
-#include "ns3/ipv4-address.h"
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
 
 namespace ns3
 {
@@ -21,7 +21,7 @@ namespace ns3
             virtual void StopApplication() override;
             virtual void DoInitialize() override;
 
-            void HandleRead();
+            void HandleRead(Ptr<Socket> socket);
             Ptr<Socket> m_socket;
             uint16_t m_port;
     };
