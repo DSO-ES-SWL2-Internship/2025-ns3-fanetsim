@@ -15,21 +15,25 @@ namespace ns3
             ClusterNodePromotionApp();
             virtual ~ClusterNodePromotionApp();
 
-            void SetUp(Ptr<Node> GDTNode, Ipv4Address GDTIp, uint16_t port);
+            void SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex);
+            void NotifyGDT(bool isCH);
+
 
         private:
             
             Ptr<Socket> m_socket;
-            Ipv4Address m_GDTIp;
+            Ipv4Address m_gdtIp;
             uint16_t m_port;
-            bool isClusterHead;
+            bool m_isClusterHead;
+            bool m_isActive;
             EventId m_sendEvent; 
+            uint32_t m_clusterIndex;
             
             virtual void StartApplication() override;
             virtual void StopApplication() override;
 
             void HandleRead(Ptr<Socket> socket);
-            void NotifyGDT();
+            void SendMessage();
     };
 }
 
