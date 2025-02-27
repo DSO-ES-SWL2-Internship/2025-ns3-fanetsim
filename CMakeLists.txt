@@ -10,6 +10,7 @@ build_lib(
     applications/add-server.cc
     applications/add-client.cc
     applications/ClusterNodePromotionApp.cc
+    applications/GDTApp.cc
     FANETSimulator.cc
   HEADER_FILES
     helper/FANETAddressHelper.h
@@ -21,6 +22,7 @@ build_lib(
     applications/add-server.h
     applications/add-client.h
     applications/ClusterNodePromotionApp.h
+    applications/GDTApp.h
     FANETSimulator.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}

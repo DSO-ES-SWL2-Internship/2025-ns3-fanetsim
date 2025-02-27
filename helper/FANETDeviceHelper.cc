@@ -320,7 +320,7 @@ namespace ns3
         socket->Send(packet);
         socket->Close();
 
-        NS_LOG_DEBUG("Node " << node->GetId() <<" notifying application of CH status change");
+        //NS_LOG_DEBUG("Node " << node->GetId() <<" notifying application of CH status change");
     }
 }
 

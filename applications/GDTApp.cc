@@ -58,13 +58,16 @@ namespace ns3
 
         while ((packet = socket->RecvFrom(from)))
         {
+            if (packet->GetSize() == 0) break;  // No more messages to process
+
             uint8_t buffer[128] = {0};
             packet->CopyData(buffer, packet->GetSize());
 
-            std::string msg ((char *) buffer);
+            std::string msg((char*)buffer);
 
             NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " GDT received message: " << msg);
         }
     }
+
 
 }

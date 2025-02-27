@@ -36,6 +36,7 @@ namespace ns3
 
             void HandleRead(Ptr<Socket> socket);
             void SendMessage();
+            void EnableAsciiTracing(Ptr<OutputStreamWrapper> stream);
     };
 }
 
