@@ -95,7 +95,7 @@ namespace ns3
             clustersDevices.push_back(clusterDevices);
         }
 
-        NS_LOG_INFO("Devices for intra-cluster communication installed on the nodes");
+        NS_LOG_DEBUG("Devices for intra-cluster communication installed on the nodes");
     }
 
     // Create the link for nodes to the GDT to prepare for dynamic assignment of CH during the simulation
@@ -151,7 +151,7 @@ namespace ns3
             }
         }
 
-        NS_LOG_INFO("Devices for GDT-Cluster communication installed on the nodes");
+        NS_LOG_DEBUG("Devices for GDT-Cluster communication installed on the nodes");
     }
 
     void FANETDeviceHelper::AssignTdmaSlots(NodeContainer nodes, Time cycleDuration){
@@ -182,7 +182,7 @@ namespace ns3
             }
         }
 
-        NS_LOG_INFO("Slots allocated to each node for TDMA");
+        NS_LOG_DEBUG("Slots allocated to each node for TDMA");
     }
 
 

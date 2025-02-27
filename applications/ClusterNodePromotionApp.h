@@ -31,6 +31,8 @@ namespace ns3
             
             virtual void StartApplication() override;
             virtual void StopApplication() override;
+            virtual void DoInitialize() override;
+
 
             void HandleRead(Ptr<Socket> socket);
             void SendMessage();

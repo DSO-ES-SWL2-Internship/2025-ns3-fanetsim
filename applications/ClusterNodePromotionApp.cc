@@ -28,15 +28,8 @@ namespace ns3
 
     void ClusterNodePromotionApp::StartApplication()
     {
-        if (!m_socket)
-        {
-            m_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
-            InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
-            m_socket->Bind(local);
-            m_socket->SetRecvCallback(MakeCallback(&ClusterNodePromotionApp::HandleRead, this));
-        }
 
-        NS_LOG_DEBUG("Node " << GetNode()->GetId() << "application to notify gdt that it became clusterhead started");
+        NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application to notify gdt that it became clusterhead started");
     }
 
     void ClusterNodePromotionApp::StopApplication()
@@ -46,6 +39,19 @@ namespace ns3
             m_socket->Close();
             m_socket = nullptr;
         }
+    }
+
+    void ClusterNodePromotionApp::DoInitialize()
+    {
+        if (!m_socket)
+        {
+            m_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+            InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
+            m_socket->Bind(local);
+            m_socket->SetRecvCallback(MakeCallback(&ClusterNodePromotionApp::HandleRead, this));
+        }
+
+        Application::DoInitialize();
     }
 
     void ClusterNodePromotionApp::NotifyGDT(bool isCH)
@@ -83,7 +89,7 @@ namespace ns3
 
         m_socket->Send(packet);
 
-        NS_LOG_DEBUG("Node " << GetNode()->GetId() << "application sent GDT the notification");        
+        NS_LOG_INFO("Cluster " << m_clusterIndex << " Node " << GetNode()->GetId() << " application sent GDT the notification");        
     }
 
     void ClusterNodePromotionApp::HandleRead(Ptr<Socket> socket)
@@ -107,6 +113,7 @@ namespace ns3
             else if (msg == "STOP_CH")
             {
                 NotifyGDT(false);
+                m_isClusterHead = false;
             }
         }
     }

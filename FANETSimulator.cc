@@ -2,6 +2,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/add-client.h"
 #include "ns3/add-server.h"
+#include "ns3/ClusterNodePromotionApp.h"
 
 namespace ns3 
 {
@@ -147,7 +148,17 @@ namespace ns3
 
         this->AssignAddress("10.1.1.0", "255.255.255.0");
 
-        NS_LOG_UNCOND("GDT IP: " << this->ipv4->GDTInterface.GetAddress(0));
+        for (size_t i = 0; i < this->fanet->clusters.size(); i++)
+        {
+            for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
+            {
+                Ptr<ClusterNodePromotionApp> app = CreateObject<ClusterNodePromotionApp>();
+                this->fanet->clusters[i].Get(j)->AddApplication(app);
+                app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                app->SetStartTime(Seconds(0.0));
+                app->SetStopTime(Seconds(20.0));
+            }
+        }
         
 
         this->SetUpNetAnim();
@@ -171,22 +182,22 @@ namespace ns3
         // clientApp.Start(Seconds(3.0));
         // clientApp.Stop(Seconds(20.0));
 
-        Ptr<AddServer> serverApp = CreateObject<AddServer>();
-        this->fanet->GDTNode.Get(0)->AddApplication(serverApp);
-        serverApp->SetStartTime(Seconds(2.0));
-        serverApp->SetStopTime(Seconds(20.0));
+        // Ptr<AddServer> serverApp = CreateObject<AddServer>();
+        // this->fanet->GDTNode.Get(0)->AddApplication(serverApp);
+        // serverApp->SetStartTime(Seconds(2.0));
+        // serverApp->SetStopTime(Seconds(20.0));
 
-        Ptr<AddClient> clientApp1 = CreateObject<AddClient>();
-        clientApp1->Setup(this->ipv4->GDTInterface.GetAddress(0), 8080);
-        this->fanet->clusters[1].Get(2)->AddApplication(clientApp1);
-        clientApp1->SetStartTime(Seconds(3.0));
-        clientApp1->SetStopTime(Seconds(20.0));
+        // Ptr<AddClient> clientApp1 = CreateObject<AddClient>();
+        // clientApp1->Setup(this->ipv4->GDTInterface.GetAddress(0), 8080);
+        // this->fanet->clusters[1].Get(2)->AddApplication(clientApp1);
+        // clientApp1->SetStartTime(Seconds(3.0));
+        // clientApp1->SetStopTime(Seconds(20.0));
 
-        Ptr<AddClient> clientApp2 = CreateObject<AddClient>();
-        clientApp2->Setup(this->ipv4->GDTInterface.GetAddress(0), 8080);
-        this->fanet->clusters[2].Get(2)->AddApplication(clientApp2);
-        clientApp2->SetStartTime(Seconds(3.0));
-        clientApp2->SetStopTime(Seconds(20.0));
+        // Ptr<AddClient> clientApp2 = CreateObject<AddClient>();
+        // clientApp2->Setup(this->ipv4->GDTInterface.GetAddress(0), 8080);
+        // this->fanet->clusters[2].Get(2)->AddApplication(clientApp2);
+        // clientApp2->SetStartTime(Seconds(3.0));
+        // clientApp2->SetStopTime(Seconds(20.0));
 
 
         // for (uint32_t i = 1; i < fanet->allNodes.GetN(); ++i) {
