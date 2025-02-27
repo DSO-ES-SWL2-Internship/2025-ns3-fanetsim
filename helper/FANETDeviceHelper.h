@@ -50,6 +50,7 @@ namespace ns3
             void AssignTdmaSlots(NodeContainer nodes, Time cycleDuration);
             void AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
             void ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
+            void NotifyCHStatusChange(Ptr<Node> node, std::string status);
     }; 
 }
 

@@ -303,5 +303,16 @@ namespace ns3
 
         Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);      
     }
+
+    void FANETDeviceHelper::NotifyCHStatusChange(Ptr<Node> node, std::string status)
+    {
+        Ptr<Socket> socket = Socket::CreateSocket(node, UdpSocketFactory::GetTypeId());
+        InetSocketAddress addr = InetSocketAddress(Ipv4Address("127.0.0.1"), 8080);
+        socket->Connect(addr);
+
+        Ptr<Packet> packet = Create<Packet>((uint8_t*) status.c_str(), status.length());
+        socket->Send(packet);
+        socket->Close();
+    }
 }
 
