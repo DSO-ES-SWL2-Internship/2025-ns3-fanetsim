@@ -19,6 +19,7 @@ namespace ns3
             void SetClusterMemberMobility(NodeContainer& clusterMembers, double xCenter, double yCenter);                               //done
             void ApplyMobilityP2P(FANETTopologyHelper* fanet);                                                                             //done
             void ApplyMobilityWireless(FANETTopologyHelper* fanet);
+            void ApplyMobilityWirelessV2(FANETTopologyHelper* fanet);
 
             static Ptr<Node> GetClosestNode(Ptr<Node> target, NodeContainer nodes);
 

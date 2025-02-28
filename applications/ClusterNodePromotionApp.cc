@@ -100,7 +100,7 @@ namespace ns3
         if (sentBytes > 0)
         {
 
-            NS_LOG_INFO("Cluster " << m_clusterIndex << " Node " << GetNode()->GetId() << " application sent GDT the notification");        
+            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " Cluster " << m_clusterIndex << " Node " << GetNode()->GetId() << " application sent GDT the notification");        
         }
         else
         {

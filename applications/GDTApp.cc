@@ -31,7 +31,7 @@ namespace ns3
 
     void GDTApp::StopApplication()
     {
-        if (m_socket)
+        if (m_socket) 
         {
             m_socket->Close();
             m_socket = nullptr;
@@ -46,6 +46,7 @@ namespace ns3
             InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
             m_socket->Bind(local);
             m_socket->SetRecvCallback(MakeCallback(&GDTApp::HandleRead, this));
+            m_socket->SetAttribute("RcvBufSize", UintegerValue(65536));
         }
 
         Application::DoInitialize();
@@ -58,16 +59,35 @@ namespace ns3
 
         while ((packet = socket->RecvFrom(from)))
         {
-            if (packet->GetSize() == 0) break;  // No more messages to process
+            m_packetQueue.push(packet);
+            m_addressQueue.push(from);
+        }
 
-            uint8_t buffer[128] = {0};
-            packet->CopyData(buffer, packet->GetSize());
-
-            std::string msg((char*)buffer);
-
-            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " GDT received message: " << msg);
+        if (!m_packetQueue.empty())
+        {
+            Simulator::ScheduleNow(&GDTApp::ProcessNextPacket, this);
         }
     }
 
+    void GDTApp::ProcessNextPacket()
+    {
+        if (m_packetQueue.empty())
+            return;
 
+        Ptr<Packet> packet = m_packetQueue.front();
+        Address addr = m_addressQueue.front();
+        m_packetQueue.pop();
+        m_addressQueue.pop();
+
+        uint8_t buffer[128] = {0};
+        packet->CopyData(buffer, packet->GetSize());
+
+        std::string msg ((char *) buffer);
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " GDT received message: " << msg);
+
+        if (!m_packetQueue.empty())
+        {
+            Simulator::ScheduleNow(&GDTApp::ProcessNextPacket, this);
+        }
+    }
 }
