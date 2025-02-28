@@ -12,14 +12,17 @@ namespace ns3
 
         uint32_t data[3] = {num1, num2, nodeId};
         Ptr<Packet> packet = Create<Packet>(reinterpret_cast<uint8_t*>(data), sizeof(data));
+        packet->AddPaddingAtEnd(sizeof(data));
         
         m_socket->Send(packet);
 
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
-                << nodeId << " sent addition question: " << num1 << " + " << num2);
+                << nodeId << " scheduled to sent addition question: " << num1 << " + " << num2);
+
+        double randomInterval = m_randomValue->GetValue(1.0, 5.0);
 
         // Schedule next send in exactly 5 seconds
-        m_sendEvent = Simulator::Schedule(Seconds(5.0), &AddClient::SendPacket, this);
+        m_sendEvent = Simulator::Schedule(Seconds(1), &AddClient::SendPacket, this);
     }
 
     void AddClient::HandleRead(Ptr<Socket> socket) {
@@ -46,7 +49,9 @@ namespace ns3
 
     void AddClient::StartApplication() {
         m_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
-        m_socket->Bind();
+        //m_socket->Bind();
+        m_socket->Bind(InetSocketAddress(Ipv4Address::GetAny(), 50000 + GetNode()->GetId()));
+
         m_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(m_peerAddress), m_peerPort));
 
         // Set receive callback to handle incoming packets

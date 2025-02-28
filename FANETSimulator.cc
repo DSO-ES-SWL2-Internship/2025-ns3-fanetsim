@@ -184,18 +184,27 @@ namespace ns3
 
         // // Install UDP Echo Client on last node
         
-        // UdpEchoClientHelper echoClient(this->ipv4->GDTInterface.GetAddress(0), 9);
-        // echoClient.SetAttribute("MaxPackets", UintegerValue(5));
-        // echoClient.SetAttribute("Interval", TimeValue(Seconds(5)));
-        // echoClient.SetAttribute("PacketSize", UintegerValue(512));
+        // UdpEchoClientHelper echoClient1(this->ipv4->GDTInterface.GetAddress(0), 9);
+        // echoClient1.SetAttribute("MaxPackets", UintegerValue(5));
+        // echoClient1.SetAttribute("Interval", TimeValue(Seconds(5)));
+        // echoClient1.SetAttribute("PacketSize", UintegerValue(512));
 
-        // ApplicationContainer clientApp = echoClient.Install(this->fanet->clusters[0].Get(1));
-        // clientApp.Start(Seconds(3.0));
-        // clientApp.Stop(Seconds(20.0));
+        // ApplicationContainer clientApp1 = echoClient1.Install(this->fanet->clusters[0].Get(1));
+        // clientApp1.Start(Seconds(3.0));
+        // clientApp1.Stop(Seconds(20.0));
+
+        // UdpEchoClientHelper echoClient2(this->ipv4->GDTInterface.GetAddress(0), 9);
+        // echoClient2.SetAttribute("MaxPackets", UintegerValue(1));
+        // echoClient2.SetAttribute("Interval", TimeValue(Seconds(5)));
+        // echoClient2.SetAttribute("PacketSize", UintegerValue(512));
+
+        // ApplicationContainer clientApp2 = echoClient2.Install(this->fanet->clusters[2].Get(2));
+        // clientApp2.Start(Seconds(3.0));
+        // clientApp2.Stop(Seconds(20.0));
 
         Ptr<AddServer> serverApp = CreateObject<AddServer>();
         this->fanet->GDTNode.Get(0)->AddApplication(serverApp);
-        serverApp->SetStartTime(Seconds(2.0));
+        serverApp->SetStartTime(Seconds(0.0));
         serverApp->SetStopTime(Seconds(20.0));
 
         Ptr<AddClient> clientApp1 = CreateObject<AddClient>();

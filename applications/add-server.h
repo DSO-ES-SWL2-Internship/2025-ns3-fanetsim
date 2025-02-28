@@ -6,14 +6,19 @@
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/random-variable-stream.h"
+#include <queue>
 
 namespace ns3
 {
     class AddServer : public Application {
         private:
             Ptr<Socket> m_socket;
+            std::queue<Ptr<Packet>> m_packetQueue;
+            std::queue<Address> m_addressQueue;
 
             void HandleRead(Ptr<Socket> socket);
+
+            void ProcessNextPacket();
 
 
         public:
