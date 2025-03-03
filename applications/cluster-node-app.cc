@@ -1,4 +1,4 @@
-#include "ClusterNodePromotionApp.h"
+#include "cluster-node-app.h"
 
 namespace ns3
 {

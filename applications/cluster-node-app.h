@@ -1,5 +1,5 @@
-#ifndef CLUSTER_NODE_PROMOTION_APP_H
-#define CLUSTER_NODE_PROMOTION_APP_H
+#ifndef CLUSTER_NODE_APP_H
+#define CLUSTER_NODE_APP_H
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"

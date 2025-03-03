@@ -2,8 +2,8 @@
 #include "ns3/applications-module.h"
 #include "ns3/add-client.h"
 #include "ns3/add-server.h"
-#include "ns3/ClusterNodePromotionApp.h"
-#include "ns3/GDTApp.h"
+#include "ns3/cluster-node-app.h"
+#include "ns3/gdt-app.h"
 
 namespace ns3 
 {

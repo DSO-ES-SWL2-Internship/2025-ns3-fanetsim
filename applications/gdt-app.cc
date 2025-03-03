@@ -1,4 +1,4 @@
-#include "GDTApp.h"
+#include "gdt-app.h"
 
 namespace ns3 
 {
