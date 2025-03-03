@@ -84,8 +84,14 @@ namespace ns3
              */
             void StopApplication() override;
 
+            /**
+             * @brief Enable NS_LOG_INFO for this component
+             */
             void EnableInfoLog();
 
+            /**
+             * @brief Enable NS_LOG_DEBUG for this component
+             */
             void EnableDebugLog();
 
     };

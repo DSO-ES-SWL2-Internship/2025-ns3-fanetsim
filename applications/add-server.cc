@@ -32,12 +32,14 @@ namespace ns3
         Ptr<Packet> packet;
         Address from;
 
+        // Push all incoming packets into a queue
         while ((packet = socket->RecvFrom(from)))
         {
             m_packetQueue.push(packet);
             m_addressQueue.push(from);
         }
 
+        // Schedule processing of packets 
         if (!m_packetQueue.empty())
         {
             Simulator::ScheduleNow(&AddServer::ProcessNextPacket, this);
