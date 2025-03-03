@@ -6,18 +6,32 @@
 
 namespace ns3
 {
+    /**
+     * @enum RoutingProtocol
+     * @brief Enumeration of supported routing protocols.
+     */
     enum RoutingProtocol {
         AODV,
         OLSR,
         DSDV,
         DSR,
     };
-
+    
+    /**
+     * @class FANETRoutingHelper
+     * @brief Provides helper functions to configure routing protocols in FANET networks.
+     */
     class FANETRoutingHelper {
         private:
+            /// @brief Internet stack helper for protocol installation.
             InternetStackHelper internet;
+            /// @brief List of routing protocols for the network.
             Ipv4ListRoutingHelper list;
 
+            /**
+             * @brief Installs the internet stack with the selected routing helper on all nodes.
+             * @param nodes The container of nodes to install the stack on.
+             */           
             void InstallInternetStackToAllNodes(NodeContainer nodes);
 
         public:
@@ -25,8 +39,22 @@ namespace ns3
             ~FANETRoutingHelper();
 
             // Methods to set the routing protocol used
+            /**
+             * @brief Configures and installs the AODV routing protocol on the given nodes.
+             * @param nodes The container of nodes to configure.
+             */
             void SetAODV(NodeContainer nodes);
+
+            /**
+             * @brief Configures and installs the OLSR routing protocol on the given nodes.
+             * @param nodes The container of nodes to configure.
+             */
             void SetOLSR(NodeContainer nodes);
+
+            /**
+             * @brief Configures and installs the DSDV routing protocol on the given nodes.
+             * @param nodes The container of nodes to configure.
+             */
             void SetDSDV(NodeContainer nodes);
             //void SetDSR(NodeContainer nodes);
     };
