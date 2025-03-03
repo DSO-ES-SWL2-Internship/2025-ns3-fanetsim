@@ -14,43 +14,97 @@
 
 namespace ns3 
 {
+    /**
+     * @class FANETDeviceHelper
+     * @brief Helper class for setting up FANET network devices.
+     */
     class FANETDeviceHelper {
-        private:
+    private:
+        WifiStandard clusterWifiStandard = WIFI_STANDARD_80211b; /**< WiFi standard used for clusters. */
+        std::string clusterWifiChannelPropagationDelay; /**< Propagation delay model for cluster WiFi channels. */
+        std::string clusterPropagationLossModel; /**< Propagation loss model for clusters. */
+        std::string clusterMacType; /**< MAC type used for cluster devices. */
 
-            WifiStandard clusterWifiStandard = WIFI_STANDARD_80211b;
-            std::string clusterWifiChannelPropagationDelay = "";
-            std::string clusterPropagationLossModel = "";
-            std::string clusterMacType = "";
+        WifiStandard linkWifiStandard = WIFI_STANDARD_80211b; /**< WiFi standard used for links. */
+        std::string linkWifiChannelPropagationDelay; /**< Propagation delay model for link WiFi channels. */
+        std::string linkPropagationLossModel; /**< Propagation loss model for links. */
+        std::string linkMacType; /**< MAC type used for link devices. */
 
-            WifiStandard linkWifiStandard = WIFI_STANDARD_80211b;
-            std::string linkWifiChannelPropagationDelay = "";
-            std::string linkPropagationLossModel = "";
-            std::string linkMacType = "";
-            
+    public:
+        WifiHelper wifi; /**< WiFi helper for device configuration. */
 
+        NetDeviceContainer GDTDevice; /**< Container for GDT network devices. */
+        std::vector<NetDeviceContainer> clustersDevices; /**< Containers for cluster devices. */
+        std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices; /**< Containers for cluster link devices. */
+        std::vector<std::vector<Ptr<NetDevice>>> linksDevices; /**< Pointers to link devices. */
 
+        /**
+         * @brief Constructor for FANETDeviceHelper.
+         */
+        FANETDeviceHelper();
 
-        public:
-            PointToPointHelper p2p;
-            WifiHelper wifi;
+        /**
+         * @brief Destructor for FANETDeviceHelper.
+         */
+        ~FANETDeviceHelper();
 
-            NetDeviceContainer GDTDevice;
-            std::vector<NetDeviceContainer> clustersDevices;
-            std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices;
-            std::vector<std::vector<Ptr<NetDevice>>> linksDevices;
+        /**
+         * @brief Configures default WiFi settings.
+         */
+        void DefaultWifi();
 
-            FANETDeviceHelper();                                                
-            ~FANETDeviceHelper();                                               
+        /**
+         * @brief Configures TDMA-based WiFi settings.
+         */
+        void TdmaWifi();
 
-            void DefaultWifi();                                                 
-            void TdmaWifi();                    
-            void SetupGDTWifi(NodeContainer GDTNode);
-            void SetupClustersWifi(std::vector<NodeContainer> clusters);        
-            void SetUpLinksWifi(FANETTopologyHelper* fanet);
-            void AssignTdmaSlots(NodeContainer nodes, Time cycleDuration);
-            void AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
-            void ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
-            void NotifyCHStatusChange(Ptr<Node> node, std::string status);
+        /**
+         * @brief Sets up WiFi for the GDT node.
+         * @param GDTNode The node container for GDT.
+         */
+        void SetupGDTWifi(NodeContainer GDTNode);
+
+        /**
+         * @brief Sets up WiFi for cluster nodes.
+         * @param clusters A vector containing cluster node containers.
+         */
+        void SetupClustersWifi(std::vector<NodeContainer> clusters);
+
+        /**
+         * @brief Sets up WiFi links between clusters.
+         * @param fanet A pointer to the FANETTopologyHelper instance.
+         */
+        void SetUpLinksWifi(FANETTopologyHelper* fanet);
+
+        /**
+         * @brief Assigns TDMA slots to nodes.
+         * @param nodes The node container.
+         * @param cycleDuration The duration of a TDMA cycle.
+         */
+        void AssignTdmaSlots(NodeContainer nodes, Time cycleDuration);
+
+        /**
+         * @brief Assigns cluster heads in the network.
+         * @param fanet Pointer to the FANET topology helper.
+         * @param ipv4 Pointer to the FANET address helper.
+         * @param anim Pointer to the FANET animation helper.
+         */
+        void AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
+
+        /**
+         * @brief Reassigns cluster heads dynamically.
+         * @param fanet Pointer to the FANET topology helper.
+         * @param ipv4 Pointer to the FANET address helper.
+         * @param anim Pointer to the FANET animation helper.
+         */
+        void ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
+
+        /**
+         * @brief Notifies a change in cluster head status.
+         * @param node Pointer to the node whose status changed.
+         * @param status New status of the node.
+         */
+        void NotifyCHStatusChange(Ptr<Node> node, std::string status);
     }; 
 }
 
