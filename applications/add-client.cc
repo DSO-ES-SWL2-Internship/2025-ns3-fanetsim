@@ -48,16 +48,23 @@ namespace ns3
     }
 
     void AddClient::StartApplication() {
+        // Create a new UDP socket for this node
         m_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
-        //m_socket->Bind();
+
+        // Bind the socket to a unique port for this node (50000 + node ID)
+        // This allows each node to listen on a different port, preventing conflicts
         m_socket->Bind(InetSocketAddress(Ipv4Address::GetAny(), 50000 + GetNode()->GetId()));
 
+        // Connect the socket to the specified peer address and port
+        // This sets the destination for outgoing packets
         m_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(m_peerAddress), m_peerPort));
 
-        // Set receive callback to handle incoming packets
+        // Set a callback function to handle incoming packets
+        // When data is received, the HandleRead function is called
         m_socket->SetRecvCallback(MakeCallback(&AddClient::HandleRead, this));
 
-        SendPacket();  // Start sending packets every 5 seconds
+        // Start sending packets to the peer at regular intervals
+        SendPacket();
     }
 
     void AddClient::StopApplication() {
