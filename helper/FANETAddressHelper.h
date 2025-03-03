@@ -10,29 +10,74 @@
 
 namespace ns3
 {
+    /**
+     * @class FANETAddressHelper
+     * @brief Manages the allocation of IP addresses for FANET networks.
+     */
     class FANETAddressHelper {
         private:
+            /// @brief Base network address
             Ipv4Address network;
+            /// @brief Subnet mask
             Ipv4Mask mask;
+            /// @brief NS-3 IPv4 Address Helper
             Ipv4AddressHelper ipv4;
 
+            /**
+             * @brief Increments the network address for the next subnet
+             */
             void IncrementNetwork();                                           
             
         public:
+            /// @brief Interface container for the GDT device
             Ipv4InterfaceContainer GDTInterface;
+            /// @brief Vector containing the Interface container of each cluster
             std::vector<Ipv4InterfaceContainer> clustersInterfaces;
-            //std::vector<Ipv4InterfaceContainer> GDTtoCHLinksInterfaces;
+            /// @brief Interfaces of the links between cluster nodes and gdt. Outer vecter being the clusters, inner vector being the links of each cluster node to the gdt
             std::vector<std::vector<Ipv4InterfaceContainer>> clustersLinkInterfaces;
+            /// @brief Interface details of CH-GDT links
             std::vector<std::vector<std::pair<Ptr<Ipv4>, uint32_t>>> linksInterfaces;
 
-            FANETAddressHelper();                                              
-            FANETAddressHelper(Ipv4Address network, Ipv4Mask mask);            
+            /**
+             * @brief Default constructor
+             */
+            FANETAddressHelper();         
+
+            /**
+             * @brief Parameterized constructor
+             * @param network Base network address
+             * @param mask Subnet mask 
+            */                                     
+            FANETAddressHelper(Ipv4Address network, Ipv4Mask mask);  
+            /**
+             * @brief Destructor 
+             * */          
             ~FANETAddressHelper();                                             
 
+            /**
+             * @brief Initialize the network base address and subnet mask
+             * @param network Base network address
+             * @param mask Subnet mask
+             */
             void SetUp(Ipv4Address network, Ipv4Mask mask);                    
-            //void SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<NetDeviceContainer> GDTtoCHLinksDevices);   
+            
+            /**
+             * @brief Assigns IP addresses to the devices in the FANET network
+             * @param GDTDevice The GDT network device
+             * @param clustersDevices Vector of network devices in clusters
+             * @param clustersLinkDevices 2D vector of network devices linking the GDT to cluster nodes
+             */
             void SetBases(NetDeviceContainer GDTDevice, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices);
+            
+            /**
+             * @brief Computes the base network address from a given IP address.
+             * @param ip The IP address to extract the base address from.
+             * @return The base network address.
+             */
             static Ipv4Address GetBaseAddress(Ipv4Address ip);
+
+            //std::vector<Ipv4InterfaceContainer> GDTtoCHLinksInterfaces;
+            //void SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<NetDeviceContainer> GDTtoCHLinksDevices);   
         };
 }
 

@@ -64,14 +64,13 @@ namespace ns3
 
 
         for (size_t i = 0; i < clustersDevices.size(); i++){
+            // Setup the interfaces for intra-cluster communication
             ipv4.SetBase(network, mask);
             Ipv4InterfaceContainer clusterInterface = ipv4.Assign(clustersDevices[i]);
             clustersInterfaces.push_back(clusterInterface);
             IncrementNetwork();
-
-            //Ipv4Address linkNetwork = network;
-            //uint32_t address = linkNetwork.Get();
             
+            // For each nodes in the cluster create the interface between the GDT and cluster node devices and disable them
             std::vector<Ipv4InterfaceContainer> clusterLinkInterfaces;
             for (size_t j = 0; j < clustersLinkDevices[i].size(); j++)
             {
@@ -98,6 +97,7 @@ namespace ns3
             //IncrementNetwork();
         }
 
+        // Setup the common interface on GDT that all cluster nodes can use to communicate with the GDT
         ipv4.SetBase(network, mask);
         IncrementNetwork();
         this->GDTInterface = ipv4.Assign(GDTDevice);
