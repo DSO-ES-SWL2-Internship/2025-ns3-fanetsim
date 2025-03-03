@@ -8,35 +8,77 @@
 
 namespace ns3
 {
-    class ClusterNodePromotionApp : public Application
+    class ClusterNodeApp : public Application
     {
+        /**
+         * @class ClusterNodeApp
+         * @brief FANET Application that handles cluster node operations
+         */
         public:
+            /// @brief Constructor for ClusterNodeApp
+            ClusterNodeApp();
+            /// @brief Destructor for ClusterNodeApp
+            virtual ~ClusterNodeApp();
 
-            ClusterNodePromotionApp();
-            virtual ~ClusterNodePromotionApp();
-
+            /**
+             * @brief Configures the application with GDT IP, port and cluster Index
+             * @param gdtIp The IP address of the GDT
+             * @param port The port number used for communication
+             * @param clusterIndex The index of the cluster
+             */
             void SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex);
+
+            /**
+             * @brief Schedules the message to notify the GDT of the promotion to CH
+             * @param isCH Boolean indicating whether the node is promoted to CH or not
+             */
             void NotifyGDT(bool isCH);
+            /// @brief Enable NS_LOG_INFO for this component
             void EnableInfoLog();
+            /// @brief Enable NS_LOG_DEBUG for this component
             void EnableDebugLog();
 
         private:
-            
+            /// @brief Socket for communication            
             Ptr<Socket> m_socket;
+            /// @brief IP Address of the GDT
             Ipv4Address m_gdtIp;
+            /// @brief Communication port
             uint16_t m_port;
+            /// @brief Flag indication if the node is a cluster head
             bool m_isClusterHead;
-            bool m_isActive;
+            /// @brief Event ID for scheduled message sending
             EventId m_sendEvent; 
+            /// @brief Cluster index the node belongs to
             uint32_t m_clusterIndex;
-            
+
+            /// @brief Starts the application
             virtual void StartApplication() override;
+
+            /**
+             * Stop the application
+             */
             virtual void StopApplication() override;
+
+            /**
+             * @brief Initialise the application
+             * 
+             * Creates the socket and bind it to m_port and set up the call back function
+             * to handle incoming packets
+             */
             virtual void DoInitialize() override;
 
-
+            /**
+             * @brief Handles the messages sent to the node
+             * @param socket socket receiving the data
+             */
             void HandleRead(Ptr<Socket> socket);
+
+            /**
+             * @brief Sends the message to notify GDT about the cluster head status
+             */
             void SendMessage();
+            
             void EnableAsciiTracing(Ptr<OutputStreamWrapper> stream);
 
     };

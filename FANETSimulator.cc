@@ -163,9 +163,9 @@ namespace ns3
         {
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
             {
-                InstallApplication<ClusterNodePromotionApp>(
+                InstallApplication<ClusterNodeApp>(
                     this->fanet->clusters[i].Get(j), 0.0, 20.0,
-                    [this, i](Ptr<ClusterNodePromotionApp> app) {
+                    [this, i](Ptr<ClusterNodeApp> app) {
                         app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
                     }
                     //, [] (Ptr<ClusterNodePromotionApp> app) { app->EnableInfoLog(); }
