@@ -45,6 +45,7 @@ namespace ns3
     {
         for (size_t i = 0; i < CHNodes.size(); i++)
         {
+            //Check if there has been a change in the cluster nodes
             if (curCHNodes[i]->GetId() != CHNodes[i]->GetId())
             {
                 // Update new CH to CH color
