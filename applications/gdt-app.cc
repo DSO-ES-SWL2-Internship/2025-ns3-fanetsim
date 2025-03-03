@@ -90,4 +90,14 @@ namespace ns3
             Simulator::ScheduleNow(&GDTApp::ProcessNextPacket, this);
         }
     }
+
+    void GDTApp::EnableInfoLog()
+    {
+        LogComponentEnable("GDTApp", LOG_LEVEL_INFO);
+    }
+
+    void GDTApp::EnableDebugLog()
+    {
+        LogComponentEnable("GDTApp", LOG_LEVEL_DEBUG);
+    }
 }

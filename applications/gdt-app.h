@@ -16,6 +16,9 @@ namespace ns3
             ~GDTApp();
 
             void SetPort(uint16_t port);
+            void EnableInfoLog();
+            void EnableDebugLog();
+
 
         private:
             Ptr<Socket> m_socket;

@@ -19,6 +19,7 @@ build_lib(
     helper/FANETMobilityHelper.h
     helper/FANETRoutingHelper.h
     helper/FANETTopologyHelper.h
+    helper/FANETAppHelper.h
     applications/add-server.h
     applications/add-client.h
     applications/cluster-node-app.h

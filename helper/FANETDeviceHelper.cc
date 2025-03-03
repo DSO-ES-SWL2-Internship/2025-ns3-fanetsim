@@ -35,6 +35,7 @@ namespace ns3
     void FANETDeviceHelper::SetupGDTWifi(NodeContainer GDTNode)
     {
         wifi.SetStandard(clusterWifiStandard);
+        
         // Create a separate WiFi channel for the dedicated GDT WiFi device
         YansWifiChannelHelper wifiChannelGDT;
         if (!clusterWifiChannelPropagationDelay.empty()) {
@@ -233,7 +234,7 @@ namespace ns3
             }
         }
 
-        Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);
+        Simulator::Schedule(Seconds(5.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);
     }
 
     void FANETDeviceHelper::ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim)
@@ -307,7 +308,7 @@ namespace ns3
 
         anim->UpdateCHAnim(fanet->CHNodes);
 
-        Simulator::Schedule(Seconds(1.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);      
+        Simulator::Schedule(Seconds(5.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);      
     }
 
     void FANETDeviceHelper::NotifyCHStatusChange(Ptr<Node> node, std::string status)

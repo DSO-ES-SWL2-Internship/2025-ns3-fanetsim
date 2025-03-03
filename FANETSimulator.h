@@ -95,7 +95,7 @@ namespace ns3
              * 
              * @param fileName Name of output file neccessary for NetAnim
              */
-            void RunBasicSimulation(std::string fileName = "animation.xml");
+            void RunSimulation(std::string fileName = "animation.xml");
 
     };
 }

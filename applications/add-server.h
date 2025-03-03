@@ -27,6 +27,10 @@ namespace ns3
             void StartApplication() override;
 
             void StopApplication() override;
+
+            void EnableInfoLog();
+
+            void EnableDebugLog();
     };
 }
 

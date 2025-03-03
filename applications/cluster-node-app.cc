@@ -148,4 +148,14 @@ namespace ns3
     {
         m_socket->TraceConnectWithoutContext("Send", MakeBoundCallback(&UdpSendTrace, stream));
     }
+
+    void ClusterNodePromotionApp::EnableInfoLog()
+    {
+        LogComponentEnable("ClusterNodePromotionApp", LOG_LEVEL_INFO);
+    }
+
+    void ClusterNodePromotionApp::EnableDebugLog()
+    {
+        LogComponentEnable("ClusterNodePromotionApp", LOG_LEVEL_DEBUG);
+    }
 }

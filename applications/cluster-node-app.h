@@ -1,5 +1,5 @@
-#ifndef CLUSTER_NODE_APP_H
-#define CLUSTER_NODE_APP_H
+#ifndef CLUSTER_NODE_PROMOTION_APP_H
+#define CLUSTER_NODE_PROMOTION_APP_H
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -17,7 +17,8 @@ namespace ns3
 
             void SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex);
             void NotifyGDT(bool isCH);
-
+            void EnableInfoLog();
+            void EnableDebugLog();
 
         private:
             
@@ -37,6 +38,7 @@ namespace ns3
             void HandleRead(Ptr<Socket> socket);
             void SendMessage();
             void EnableAsciiTracing(Ptr<OutputStreamWrapper> stream);
+
     };
 }
 

@@ -86,4 +86,14 @@ namespace ns3
             m_socket->Close();
         }
     }
+
+    void AddServer::EnableInfoLog()
+    {
+        LogComponentEnable("AddServer", LOG_LEVEL_INFO);
+    }
+
+    void AddServer::EnableDebugLog()
+    {
+        LogComponentEnable("AddServer", LOG_LEVEL_DEBUG);
+    }
 }

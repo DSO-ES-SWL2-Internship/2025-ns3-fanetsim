@@ -4,6 +4,7 @@
 #include "ns3/add-server.h"
 #include "ns3/cluster-node-app.h"
 #include "ns3/gdt-app.h"
+#include "ns3/FANETAppHelper.h"
 
 namespace ns3 
 {
@@ -126,7 +127,7 @@ namespace ns3
     }
 
 
-    void FANETSimulator::RunBasicSimulation(std::string fileName)
+    void FANETSimulator::RunSimulation(std::string fileName)
     {
         NS_LOG_INFO("Setting XML output file to: " << this->fileName);
         this->fileName = fileName;
@@ -151,24 +152,26 @@ namespace ns3
 
         this->AssignAddress("10.1.1.0", "255.255.255.0");
 
-        Ptr<GDTApp> gdtApp = CreateObject<GDTApp>();
-        this->fanet->GDTNode.Get(0)->AddApplication(gdtApp);
-        gdtApp->SetPort(8080);
-        gdtApp->SetStartTime(Seconds(0.0));
-        gdtApp->SetStopTime(Seconds(20.0));
 
+        InstallApplication<GDTApp>(
+            this->fanet->GDTNode.Get(0), 0.0, 20.0,
+            [](Ptr<GDTApp> app) {app->SetPort(8080);},
+            [](Ptr<GDTApp> app) {app->EnableInfoLog();}
+        );
+        
         for (size_t i = 0; i < this->fanet->clusters.size(); i++)
         {
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
             {
-                Ptr<ClusterNodePromotionApp> app = CreateObject<ClusterNodePromotionApp>();
-                this->fanet->clusters[i].Get(j)->AddApplication(app);
-                app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
-                app->SetStartTime(Seconds(0.0));
-                app->SetStopTime(Seconds(20.0));
+                InstallApplication<ClusterNodePromotionApp>(
+                    this->fanet->clusters[i].Get(j), 0.0, 20.0,
+                    [this, i](Ptr<ClusterNodePromotionApp> app) {
+                        app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                    }
+                    //, [] (Ptr<ClusterNodePromotionApp> app) { app->EnableInfoLog(); }
+                );
             }
         }
-        
 
         this->SetUpNetAnim();
 

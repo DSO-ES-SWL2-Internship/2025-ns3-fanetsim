@@ -68,4 +68,14 @@ namespace ns3
             m_socket->Close();
         }
     }
+
+    void AddClient::EnableInfoLog()
+    {
+        LogComponentEnable("AddClient", LOG_LEVEL_INFO);
+    }
+
+    void AddClient::EnableDebugLog()
+    {
+        LogComponentEnable("AddClient", LOG_LEVEL_DEBUG);
+    }
 }
