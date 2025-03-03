@@ -11,17 +11,16 @@ namespace ns3
 {
     class FANETMobilityHelper {
         public:
-            FANETMobilityHelper();                                                                                                      //done
-            ~FANETMobilityHelper();                                                                                                     //done
+            FANETMobilityHelper();                                                                                                      
+            ~FANETMobilityHelper();                                                                                                     
 
-            void SetGDTMobility(NodeContainer& gdtNode);                                                                                //done
-            void SetClusterHeadMobility(NodeContainer& clusterHeads, double x, double y, uint32_t nClusterHeads, double radius);        //done
-            void SetClusterMemberMobility(NodeContainer& clusterMembers, double xCenter, double yCenter);                               //done
-            void ApplyMobilityP2P(FANETTopologyHelper* fanet);                                                                             //done
+            void SetGDTMobility(NodeContainer& gdtNode);                                                                                                                                                          
             void ApplyMobilityWireless(FANETTopologyHelper* fanet);
-            void ApplyMobilityWirelessV2(FANETTopologyHelper* fanet);
-
             static Ptr<Node> GetClosestNode(Ptr<Node> target, NodeContainer nodes);
+
+            // void SetClusterHeadMobility(NodeContainer& clusterHeads, double x, double y, uint32_t nClusterHeads, double radius);        
+            // void SetClusterMemberMobility(NodeContainer& clusterMembers, double xCenter, double yCenter);                               
+            // void ApplyMobilityP2P(FANETTopologyHelper* fanet);   
 
         private:
             MobilityHelper mobility;

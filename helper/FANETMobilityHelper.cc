@@ -28,6 +28,7 @@ namespace ns3
         NS_LOG_INFO("GDT mobility set");
     }
 
+/*
     // Set fixed positions for cluster heads in a circular layout around GDT
     void FANETMobilityHelper::SetClusterHeadMobility(NodeContainer& clusterHeads, double x, double y, uint32_t nClusterHeads, double radius) {
         Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
@@ -87,7 +88,7 @@ namespace ns3
 
         SetClusterHeadMobility(fanet->clusterHeadNodes, 0.0, 0.0, fanet->clusters.size(), radius);
     }
-
+*/
     void FANETMobilityHelper::ApplyMobilityWireless(FANETTopologyHelper* fanet) {
         NodeContainer singleCH;
         SetGDTMobility(fanet->GDTNode);
@@ -107,37 +108,6 @@ namespace ns3
         NS_LOG_INFO("Cluster Nodes mobility set");
     }
 
-    void FANETMobilityHelper::ApplyMobilityWirelessV2(FANETTopologyHelper* fanet)
-    {
-        SetGDTMobility(fanet->GDTNode);
-
-        uint32_t nClusters = fanet->clusters.size();
-        double areaRadius = 10.0;  // Total area size (adjust as needed)
-        double sectorAngleStep = 360.0 / nClusters;  // Divide into equal angular sectors
-
-        for (size_t i = 0; i < nClusters; i++) {
-            // Calculate sector center using polar coordinates
-            double sectorAngleRad = (sectorAngleStep * i) * (M_PI / 180.0);
-            double sectorCenterX = areaRadius * cos(sectorAngleRad);
-            double sectorCenterY = areaRadius * sin(sectorAngleRad);
-
-            // Assign initial positions using Gaussian clustering around the sector center
-            mobility.SetPositionAllocator("ns3::RandomBoxPositionAllocator",
-                "X", StringValue("ns3::NormalRandomVariable[Mean=" + std::to_string(sectorCenterX) + "|Variance=5.0]"),
-                "Y", StringValue("ns3::NormalRandomVariable[Mean=" + std::to_string(sectorCenterY) + "|Variance=5.0]"));
-
-            // Allow movement within sector using Random Walk Mobility Model
-            mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                "Bounds", RectangleValue(Rectangle(sectorCenterX - 10.0, sectorCenterX + 10.0, 
-                                                sectorCenterY - 10.0, sectorCenterY + 10.0)),
-                "Speed", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=5.0]")); // Adjust speed
-
-            // Apply mobility to nodes in this sector
-            mobility.Install(fanet->clusters[i]);
-        }
-
-        NS_LOG_INFO("Cluster nodes assigned to sectors with natural clustering and mobility.");
-    }
 
     Ptr<Node> FANETMobilityHelper::GetClosestNode(Ptr<Node> target, NodeContainer nodes)
     {

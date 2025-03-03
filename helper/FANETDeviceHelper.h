@@ -39,13 +39,13 @@ namespace ns3
             std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices;
             std::vector<std::vector<Ptr<NetDevice>>> linksDevices;
 
-            FANETDeviceHelper();                                                //done
-            ~FANETDeviceHelper();                                               //done
+            FANETDeviceHelper();                                                
+            ~FANETDeviceHelper();                                               
 
-            void DefaultWifi();                                                 //done
+            void DefaultWifi();                                                 
             void TdmaWifi();                    
             void SetupGDTWifi(NodeContainer GDTNode);
-            void SetupClustersWifi(std::vector<NodeContainer> clusters);        //done
+            void SetupClustersWifi(std::vector<NodeContainer> clusters);        
             void SetUpLinksWifi(FANETTopologyHelper* fanet);
             void AssignTdmaSlots(NodeContainer nodes, Time cycleDuration);
             void AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);

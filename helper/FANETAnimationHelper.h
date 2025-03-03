@@ -20,7 +20,7 @@ namespace ns3
         public:
 
             FANETAnimationHelper(std::string name);
-            ~FANETAnimationHelper(); // Destructor
+            ~FANETAnimationHelper(); 
 
             void AssignClusterAnim(uint32_t clusterIndex, NodeContainer cluster);
             void AssignGDTAnim(NodeContainer gdtNode);
