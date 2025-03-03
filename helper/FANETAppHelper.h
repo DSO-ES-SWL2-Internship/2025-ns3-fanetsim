@@ -8,6 +8,20 @@
 
 namespace ns3
 {
+    /**
+     * @brief Installs an application on an NS-3 node.
+     * 
+     * This template function creates an instance of the specified application type,
+     * adds it to the given node, and sets its start and stop times. Additional setup
+     * functions can be provided to configure the application.
+     * 
+     * @tparam T The type of the application to be installed (must inherit from ns3::Application).
+     * @tparam Args Variadic template parameters for setup functions.
+     * @param node The NS-3 node on which to install the application.
+     * @param startTime The simulation time (in seconds) at which the application should start.
+     * @param endTime The simulation time (in seconds) at which the application should stop.
+     * @param setupFunctions One or more setup functions that take a Ptr<T> and configure the application.
+     */
     template <typename T, typename... Args>
     void InstallApplication(Ptr<Node> node, double startTime, double endTime, Args&&... setupFunctions)
     {
