@@ -7,10 +7,10 @@ build_lib(
     helper/FANETMobilityHelper.cc
     helper/FANETRoutingHelper.cc
     helper/FANETTopologyHelper.cc
-    applications/add-server.cc
-    applications/add-client.cc
-    applications/cluster-node-app.cc
-    applications/gdt-app.cc
+    applications/add-client-server/add-server.cc
+    applications/add-client-server/add-client.cc
+    applications/cluster-node-app/cluster-node-app.cc
+    applications/gdt-app/gdt-app.cc
     FANETSimulator.cc
   HEADER_FILES
     helper/FANETAddressHelper.h
@@ -20,10 +20,10 @@ build_lib(
     helper/FANETRoutingHelper.h
     helper/FANETTopologyHelper.h
     helper/FANETAppHelper.h
-    applications/add-server.h
-    applications/add-client.h
-    applications/cluster-node-app.h
-    applications/gdt-app.h
+    applications/add-client-server/add-server.h
+    applications/add-client-server/add-client.h
+    applications/cluster-node-app/cluster-node-app.h
+    applications/gdt-app/gdt-app.h
     FANETSimulator.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}
