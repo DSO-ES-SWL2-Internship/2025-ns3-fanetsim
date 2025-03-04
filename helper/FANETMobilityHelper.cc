@@ -17,13 +17,13 @@ namespace ns3
 
         Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
         positionAlloc->Add(Vector(0.0, 0.0, 0.0)); // Static GDT Node
-        SetPositionAllocator(positionAlloc);
+        mobility.SetPositionAllocator(positionAlloc);
 
         // mobility.SetPositionAllocator("ns3::ListPositionAllocator",
         //                             "Positions", VectorValue({Vector(0.0, 0.0, 0.0)}));  // GDT at (0,0)
         
-        SetMobilityModel("ns3::ConstantPositionMobilityModel");
-        Install(gdtNode);
+        mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+        mobility.Install(gdtNode);
 
         NS_LOG_INFO("GDT mobility set");
     }
@@ -55,17 +55,17 @@ namespace ns3
             // "Bounds", RectangleValue(Rectangle(-100, 100, -100, 100)), // Increase bounds
             // "Speed", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=200.0]"));
             // mobility.Install(fanet.clusters[1]);
-        SetPositionAllocator("ns3::RandomRectanglePositionAllocator", 
+        mobility.SetPositionAllocator("ns3::RandomRectanglePositionAllocator", 
             "X", StringValue("ns3::UniformRandomVariable[Min=" + std::to_string(xCenter - 10.0) + "|Max=" + std::to_string(xCenter + 10.0) + "]"),
             "Y", StringValue("ns3::UniformRandomVariable[Min=" + std::to_string(yCenter - 10.0) + "|Max=" + std::to_string(yCenter + 10.0) + "]"));
 
         // Set the Mobility Model with larger bounds for Random Walk
-        SetMobilityModel("ns3::RandomWalk2dMobilityModel", 
+        mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel", 
             "Bounds", RectangleValue(Rectangle(xCenter - 100.0, xCenter + 100.0, yCenter - 100.0, yCenter + 100.0)),
             "Speed", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=50.0]"));
 
 
-        Install(clusterMembers);
+        mobility.Install(clusterMembers);
     }
 
     // // Apply mobility to all nodes in the FANET topology, cluster heads are set to be not mobile in this model as P2P is used

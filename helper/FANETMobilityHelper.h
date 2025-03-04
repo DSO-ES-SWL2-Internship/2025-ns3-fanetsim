@@ -13,7 +13,7 @@ namespace ns3
      * @class FANETMobilityHelper
      * @brief Provides mobility configuration for FANET nodes.
      */
-    class FANETMobilityHelper : MobilityHelper {
+    class FANETMobilityHelper {
         public:
             /**
              * @brief Constructs a FANETMobilityHelper object.
@@ -57,7 +57,7 @@ namespace ns3
             // void ApplyMobilityP2P(FANETTopologyHelper* fanet);   
 
         private:
-
+            MobilityHelper mobility;
     };
 }
 
