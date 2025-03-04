@@ -8,17 +8,14 @@ namespace ns3
 
     // Constructor
     FANETDeviceHelper::FANETDeviceHelper() {
-        // Constructor initialization logic (if any)
     }
 
     // Destructor
     FANETDeviceHelper::~FANETDeviceHelper() {
-        // Cleanup logic (if necessary)
+
     }
 
-    // Default settings for WiFi connections
     void FANETDeviceHelper::DefaultWifi() {
-        // Configure default settings for WiFi
         clusterWifiStandard = WIFI_STANDARD_80211b;
         clusterWifiChannelPropagationDelay = "ns3::ConstantSpeedPropagationDelayModel";
         clusterPropagationLossModel = "ns3::FriisPropagationLossModel";
@@ -267,6 +264,7 @@ namespace ns3
                     // Loop through the clustersLinkInterfaces to find the appropriate index for the closest node
                     if (closestNode->GetId() == clusterNode->GetId())
                     {
+                        // Enabling the interface of the node for the link to the GDT
                         Ptr<Ipv4> gdtIpv4Ptr = ipv4->clustersLinkInterfaces[i][j].Get(0).first;
                         Ptr<Ipv4> clusterNodeIpv4Ptr = ipv4->clustersLinkInterfaces[i][j].Get(1).first;
                         uint32_t gdtInterfaceIndex = ipv4->clustersLinkInterfaces[i][j].Get(0).second;
@@ -275,6 +273,7 @@ namespace ns3
                         gdtIpv4Ptr->SetUp(gdtInterfaceIndex);
                         clusterNodeIpv4Ptr->SetUp(clusterNodeInterfaceIndex);   
 
+                        // Storing the CH node,devices,interfaces in appropriate containers
                         fanet->CHNodes[i] = closestNode;
 
                         std::vector<Ptr<Node>> link;
@@ -298,6 +297,7 @@ namespace ns3
                         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
                           << clusterNode->GetId() << " reassigned as cluster head");
 
+                        // Notify application layer of change in CH status
                         NotifyCHStatusChange(clusterNode, "BECOME_CH");
                         break;
                     }
