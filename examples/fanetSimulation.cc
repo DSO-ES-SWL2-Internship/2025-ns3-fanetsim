@@ -3,11 +3,6 @@
 #include "fanet_utils.h"
 #include "ns3/FANETSimulator.h"
 
-// This topology is mimicing 2 MANET clusters with its cluster head having a point to point connection with the GDT
-// Issue with this topology is that if there are too many nodes, the echo packet is lost, which i highly suspect might be caused by either, AODV protocol which caused too much overhead causing the packet to be lost.
-// or the nodes simply are too far away from each other resulting in poor connection
-// In progress
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("MANETNetwork");
