@@ -32,6 +32,7 @@ namespace ns3
     void FANETDeviceHelper::SetupGDTWifi(NodeContainer GDTNode)
     {
         wifi.SetStandard(clusterWifiStandard);
+        //wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
         
         // Create a separate WiFi channel for the dedicated GDT WiFi device
         YansWifiChannelHelper wifiChannelGDT;
@@ -60,7 +61,7 @@ namespace ns3
     void FANETDeviceHelper::SetupClustersWifi(std::vector<NodeContainer> clusters) {
         // Ensure the WiFi standard is set
         wifi.SetStandard(clusterWifiStandard);
-        wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
+        //wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
 
         // Install WiFi devices for each cluster
         for (size_t i = 0; i < clusters.size(); i++) {
@@ -100,6 +101,7 @@ namespace ns3
     void FANETDeviceHelper::SetUpLinksWifi(FANETTopologyHelper* fanet) {
         // Ensure the WiFi standard is set
         wifi.SetStandard(clusterWifiStandard);
+        //wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
 
         for (size_t i = 0; i < fanet->clusters.size(); i++){
             std::vector<NetDeviceContainer> clusterLinks;

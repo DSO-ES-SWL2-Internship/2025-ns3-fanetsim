@@ -23,17 +23,6 @@ namespace ns3
 
             /// @brief Duration of each cycle in TDMA
             uint32_t cycleDuration;
-            
-            /// Variables to keep track of all network interfaces in the FANET  
-
-            /// @brief Vector storing the IPv4 interfaces of each cluster, enabling intra-cluster communication.
-            std::vector<Ipv4InterfaceContainer> fanetClusterInterfaces;  
-
-            /// @brief Vector of vectors, where each inner vector contains the IPv4 interfaces for links connecting cluster nodes to the GDT.
-            std::vector<std::vector<Ipv4InterfaceContainer>> fanetClusterLinkInterfaces;  
-
-            /// @brief Vector of vectors, where each inner vector stores a pair containing a pointer to an IPv4 instance and its corresponding interface index for each GDT-CH link.
-            std::vector<std::vector<std::pair<Ptr<Ipv4>, uint32_t>>> fanetGDT_CHLinkInterfaces;  
 
             // Helper functions
 

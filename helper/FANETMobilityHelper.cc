@@ -56,13 +56,13 @@ namespace ns3
             // "Speed", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=200.0]"));
             // mobility.Install(fanet.clusters[1]);
         mobility.SetPositionAllocator("ns3::RandomRectanglePositionAllocator", 
-            "X", StringValue("ns3::UniformRandomVariable[Min=" + std::to_string(xCenter - 10.0) + "|Max=" + std::to_string(xCenter + 10.0) + "]"),
-            "Y", StringValue("ns3::UniformRandomVariable[Min=" + std::to_string(yCenter - 10.0) + "|Max=" + std::to_string(yCenter + 10.0) + "]"));
+            "X", StringValue("ns3::UniformRandomVariable[Min=" + std::to_string(xCenter - 50.0) + "|Max=" + std::to_string(xCenter + 50.0) + "]"),
+            "Y", StringValue("ns3::UniformRandomVariable[Min=" + std::to_string(yCenter - 50.0) + "|Max=" + std::to_string(yCenter + 50.0) + "]"));
 
         // Set the Mobility Model with larger bounds for Random Walk
         mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel", 
             "Bounds", RectangleValue(Rectangle(xCenter - 100.0, xCenter + 100.0, yCenter - 100.0, yCenter + 100.0)),
-            "Speed", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=50.0]"));
+            "Speed", StringValue("ns3::UniformRandomVariable[Min=10.0|Max=100.0]"));
 
 
         mobility.Install(clusterMembers);
