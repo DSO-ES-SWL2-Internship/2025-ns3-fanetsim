@@ -16,6 +16,7 @@ namespace ns3
     enum ServiceType {
         GENERAL,
         PLR,
+        CH_PROMO,
         OTHER_SERVICE
     };
 

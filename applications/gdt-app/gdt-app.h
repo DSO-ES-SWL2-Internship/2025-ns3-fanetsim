@@ -38,7 +38,7 @@ namespace ns3
             Ptr<Socket> m_socket;
             /// @brief Port to listen to
             uint16_t m_port;
-            /// @brief ueue to store received packets for processing
+            /// @brief Queue to store received packets for processing
             std::queue<Ptr<Packet>> m_packetQueue;
             /// @brief  Queue to store sender addresses associated with received packets
             std::queue<Address> m_addressQueue;

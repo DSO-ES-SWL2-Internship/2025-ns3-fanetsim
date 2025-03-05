@@ -60,18 +60,15 @@ namespace ns3
 
         if (isCH)
         {
-
-            //m_isActive = true;
-            Simulator::ScheduleNow(&ClusterNodeApp::SendMessage, this);
+            //Simulator::ScheduleNow(&ClusterNodeApp::SendMessage, this);
+            SendMessage();
             NS_LOG_DEBUG("Node " << GetNode()->GetId() << " scheduled to notify GDT of its promotion to CH");
 
         }     
         else
         {
-            //m_isActive = false;
             NS_LOG_DEBUG("Node " << GetNode()->GetId() << " demoted back to CH");
-                //}
-            }
+        }
     }
 
     void ClusterNodeApp::SendMessage()
@@ -99,13 +96,26 @@ namespace ns3
 
         if (sentBytes > 0)
         {
-
-            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " Cluster " << m_clusterIndex << " Node " << GetNode()->GetId() << " application sent GDT the notification");        
+            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " Cluster " << m_clusterIndex 
+                << " Node " << GetNode()->GetId() << " scheduled to notify GDT of its promotion to CH");        
         }
         else
         {
             NS_LOG_UNCOND("FAILED");
         }
+    }
+
+    bool ClusterNodeApp::SendMessage(const InetSocketAddress& destAddress, const std::string& message, const FANETHeader& header)
+    {
+        Ptr<Packet> packet = Create<Packet>();
+        packet->AddHeader(header);
+        int sentBytes = m_socket->Send(packet);
+
+        if (sentBytes > 0)
+            return true;
+        else
+            return false;
+
     }
 
     void ClusterNodeApp::HandleRead(Ptr<Socket> socket)

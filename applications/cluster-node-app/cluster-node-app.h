@@ -5,6 +5,7 @@
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
+#include "ns3/FANETHeader.h"
 
 namespace ns3
 {
@@ -54,7 +55,7 @@ namespace ns3
 
             /// @brief Queue to store received packets for processing
             std::queue<Ptr<Packet>> m_packetQueue;
-            
+
             /// @brief  Queue to store sender addresses associated with received packets
             std::queue<Address> m_addressQueue;
 
@@ -92,6 +93,8 @@ namespace ns3
              * @brief Sends the message to notify GDT about the cluster head status
              */
             void SendMessage();
+
+            bool SendMessage(const InetSocketAddress& destAddress, const std::string& message, const FANETHeader& header);
             
             void EnableAsciiTracing(Ptr<OutputStreamWrapper> stream);
 
