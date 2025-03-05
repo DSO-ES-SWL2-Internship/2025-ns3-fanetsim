@@ -13,15 +13,42 @@ namespace ns3
         RESPONSE
     };
 
+    enum ServiceType {
+        GENERAL,
+        PLR,
+        OTHER_SERVICE
+    };
+
+
     class FANETHeader : public Header
     {
         public:
             FANETHeader();
+
             void SetType(PacketType type);
+            PacketType GetType();
+
             void SetNodeId(uint32_t nodeId);
+            uint32_t GetNodeId();
+
+            void SetClusterId(uint32_t clusterId);
+            uint32_t GetClusterId();
+
+            void SetService(ServiceType service);
+            ServiceType GetService();
+
             static TypeId GetTypeId();
             virtual TypeId GetInstanceTypeId() const override;
             virtual uint32_t GetSerializedSize() const override;
+            virtual void Serialize(Buffer::Iterator start) const override;
+            virtual uint32_t Deserialize(Buffer::Iterator start) override;
+            virtual void Print(std::ostream &os) const override;
+        
+        private:
+            PacketType m_type;
+            uint32_t m_nodeId;
+            uint32_t m_clusterId;
+            ServiceType m_service;
 
     };
 }

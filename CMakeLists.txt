@@ -11,6 +11,7 @@ build_lib(
     applications/add-client-server/add-client.cc
     applications/cluster-node-app/cluster-node-app.cc
     applications/gdt-app/gdt-app.cc
+    FANETHeader.cc
     FANETSimulator.cc
   HEADER_FILES
     helper/FANETAddressHelper.h
@@ -24,6 +25,7 @@ build_lib(
     applications/add-client-server/add-client.h
     applications/cluster-node-app/cluster-node-app.h
     applications/gdt-app/gdt-app.h
+    FANETHeader.h
     FANETSimulator.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}
