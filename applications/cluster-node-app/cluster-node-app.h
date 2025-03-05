@@ -52,6 +52,12 @@ namespace ns3
             /// @brief Cluster index the node belongs to
             uint32_t m_clusterIndex;
 
+            /// @brief Queue to store received packets for processing
+            std::queue<Ptr<Packet>> m_packetQueue;
+            
+            /// @brief  Queue to store sender addresses associated with received packets
+            std::queue<Address> m_addressQueue;
+
             /// @brief Starts the application
             virtual void StartApplication() override;
 
@@ -73,6 +79,14 @@ namespace ns3
              * @param socket socket receiving the data
              */
             void HandleRead(Ptr<Socket> socket);
+
+            /**
+             * @brief Process the next packet in the queue
+             * 
+             * Extracts the next packet from te queue and performs the necessary 
+             * operations on it
+             */
+            void ProcessNextPacket();
 
             /**
              * @brief Sends the message to notify GDT about the cluster head status

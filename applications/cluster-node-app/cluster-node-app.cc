@@ -115,24 +115,41 @@ namespace ns3
 
         while ((packet = socket->RecvFrom(from)))
         {
-            if (packet->GetSize() == 0) break;  // Stop if no more data
+            m_packetQueue.push(packet);
+            m_addressQueue.push(from);
+        }
 
-            uint8_t buffer[128] = {0};  
-            packet->CopyData(buffer, packet->GetSize());
+        if (!m_packetQueue.empty())
+        {
+            Simulator::ScheduleNow(&ClusterNodeApp::ProcessNextPacket, this);
+        }
+    }
 
-            std::string msg((char*)buffer);
+    void ClusterNodeApp::ProcessNextPacket()
+    {
+        if (m_packetQueue.empty())
+            return;
+        
+        Ptr<Packet> packet = m_packetQueue.front();
+        Address addr = m_addressQueue.front();
+        m_packetQueue.pop();
+        m_addressQueue.pop();
 
-            NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application received CH status notification: " << msg);
+        uint8_t buffer[128] = {0};  
+        packet->CopyData(buffer, packet->GetSize());
 
-            if (msg == "BECOME_CH")
-            {
-                NotifyGDT(true);
-            }
-            else if (msg == "STOP_CH")
-            {
-                NotifyGDT(false);
-                m_isClusterHead = false;
-            }
+        std::string msg((char*)buffer);
+
+        NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application received CH status notification: " << msg);
+
+        if (msg == "BECOME_CH")
+        {
+            NotifyGDT(true);
+        }
+        else if (msg == "STOP_CH")
+        {
+            NotifyGDT(false);
+            m_isClusterHead = false;
         }
     }
 
