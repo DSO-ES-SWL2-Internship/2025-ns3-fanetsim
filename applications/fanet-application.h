@@ -15,6 +15,14 @@ namespace ns3
         FANETApplication();
         virtual ~FANETApplication();
 
+        void SetDestAddr(Ipv4Address destAddr);
+        void SetPort(uint16_t port);
+        Ptr<Socket> GetSocket();
+        Ipv4Address GetDestAddr();
+        uint16_t GetPort();
+        std::queue<Ptr<Packet>>& GetPacketQueue();
+        std::queue<Address>& GetAddressQueue();
+
         //virtual void HandleRead() = 0;         // Must be implemented by derived classes
         virtual void ProcessNextPacket() = 0;  // Must be implemented by derived classes
 

@@ -8,6 +8,7 @@ build_lib(
     helper/FANETRoutingHelper.cc
     helper/FANETTopologyHelper.cc
     applications/fanet-application.cc
+    applications/fanet-communication.cc
     applications/add-client-server/add-server.cc
     applications/add-client-server/add-client.cc
     applications/cluster-node-app/cluster-node-app.cc
@@ -23,6 +24,7 @@ build_lib(
     helper/FANETTopologyHelper.h
     helper/FANETAppHelper.h
     applications/fanet-application.h
+    applications/fanet-communication.h
     applications/add-client-server/add-server.h
     applications/add-client-server/add-client.h
     applications/cluster-node-app/cluster-node-app.h
