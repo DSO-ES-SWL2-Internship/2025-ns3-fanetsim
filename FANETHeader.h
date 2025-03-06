@@ -1,3 +1,6 @@
+#ifndef FANET_HEADER_H
+#define FANET_HEADER_H
+
 #include "ns3/header.h"       // Base class for headers
 #include "ns3/type-id.h"      // For defining TypeId
 #include "ns3/buffer.h"       // For serialization and deserialization
@@ -53,3 +56,5 @@ namespace ns3
 
     };
 }
+
+#endif
