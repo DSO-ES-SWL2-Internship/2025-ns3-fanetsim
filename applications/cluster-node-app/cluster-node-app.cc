@@ -1,4 +1,5 @@
 #include "cluster-node-app.h"
+#include "ns3/fanet-communication.h"
 
 namespace ns3
 {
@@ -72,31 +73,18 @@ namespace ns3
     }
 
     void ClusterNodeApp::SendMessage()
-    { 
-        if (!m_socket){
-            if (!m_socket)
-            {
-                NS_LOG_ERROR("Socket is NULL. Did DoInitialize() run?");
-                return;
-            }
-        }
-
+    {
         if (!m_isClusterHead)
-          return;
+            return;
 
         std::ostringstream message;
         message << "Node " << GetNode()->GetId() << " is now cluster " << m_clusterIndex << " CH";
 
         Ptr<Packet> packet = Create<Packet>((uint8_t*) message.str().c_str(), message.str().length());
-        
-        InetSocketAddress addr = InetSocketAddress(m_destAddr, 8080);
-        m_socket->Connect(addr);
 
-        int sentBytes = m_socket->Send(packet);
-
-        if (sentBytes > 0)
+        if (FANETCommunication::SendPacket(this, packet) > 0)
         {
-            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " Cluster " << m_clusterIndex 
+            NS_LOG_DEBUG("At time " << Simulator::Now().GetSeconds() << " Cluster " << m_clusterIndex 
                 << " Node " << GetNode()->GetId() << " scheduled to notify GDT of its promotion to CH");        
         }
         else
@@ -105,40 +93,18 @@ namespace ns3
         }
     }
 
-    bool ClusterNodeApp::SendMessage(const InetSocketAddress& destAddress, const std::string& message, const FANETHeader& header)
-    {
-        Ptr<Packet> packet = Create<Packet>();
-        packet->AddHeader(header);
-        int sentBytes = m_socket->Send(packet);
-
-        if (sentBytes > 0)
-            return true;
-        else
-            return false;
-
-    }
-
     void ClusterNodeApp::HandleRead(Ptr<Socket> socket)
     {
-        Ptr<Packet> packet;
-        Address from;
-
-        while ((packet = socket->RecvFrom(from)))
-        {
-            m_packetQueue.push(packet);
-            m_addressQueue.push(from);
-        }
-
-        if (!m_packetQueue.empty())
-        {
-            Simulator::ScheduleNow(&ClusterNodeApp::ProcessNextPacket, this);
-        }
+        FANETCommunication::ReceivePacket(this, socket);
     }
 
     void ClusterNodeApp::ProcessNextPacket()
     {
         if (m_packetQueue.empty())
+        {
+            NS_LOG_UNCOND("GG");
             return;
+        }
         
         Ptr<Packet> packet = m_packetQueue.front();
         Address addr = m_addressQueue.front();

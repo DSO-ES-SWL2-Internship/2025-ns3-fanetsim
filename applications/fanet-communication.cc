@@ -26,18 +26,17 @@ namespace ns3
         return sentBytes;
     }
 
-    void FANETCommunication::ReceivePacket(FANETApplication* app)
+    void FANETCommunication::ReceivePacket(FANETApplication* app, Ptr<Socket> socket)
     {
         std::queue<Ptr<Packet>>& packetQueue = app->GetPacketQueue();
         std::queue<Address>& addressQueue = app->GetAddressQueue();
-        Ptr<Socket> socket = app->GetSocket();
 
         Ptr<Packet> packet;
         Address from;
 
         while ((packet = socket->RecvFrom(from)))
         {
-            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " Node " << app->GetNode()->GetId() << " received a packet of size " << packet->GetSize());
+            NS_LOG_DEBUG("At time " << Simulator::Now().GetSeconds() << " Node " << app->GetNode()->GetId() << " received a packet of size " << packet->GetSize());
             packetQueue.push(packet);
             addressQueue.push(from);
         }

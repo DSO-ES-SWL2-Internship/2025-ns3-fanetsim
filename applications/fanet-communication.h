@@ -7,8 +7,9 @@ namespace ns3
 {
     class FANETCommunication
     {
-        static int SendPacket(FANETApplication* app, const Ptr<Packet> packet);
-        void ReceivePacket(FANETApplication* app);
+        public:
+            static int SendPacket(FANETApplication* app, const Ptr<Packet> packet);
+            static void ReceivePacket(FANETApplication* app, Ptr<Socket> socket);
     };
 }
 
