@@ -41,12 +41,6 @@ namespace ns3
             void EnableDebugLog();
 
         private:
-            // /// @brief Socket for communication            
-            // Ptr<Socket> m_socket;
-            // /// @brief IP Address of the GDT
-            // Ipv4Address m_gdtIp;
-            // /// @brief Communication port
-            // uint16_t m_port;
             /// @brief Flag indication if the node is a cluster head
             bool m_isClusterHead;
             /// @brief Event ID for scheduled message sending
@@ -89,7 +83,7 @@ namespace ns3
              */
             void SendMessage();
 
-            bool SendMessage(const InetSocketAddress& destAddress, const std::string& message, const FANETHeader& header);
+            void SendNotifyGdtMessage();
             
             void EnableAsciiTracing(Ptr<OutputStreamWrapper> stream);
 

@@ -1,4 +1,5 @@
 #include "gdt-app.h"
+#include "ns3/FANETHeader.h"
 
 namespace ns3 
 {
@@ -77,11 +78,19 @@ namespace ns3
         m_packetQueue.pop();
         m_addressQueue.pop();
 
-        uint8_t buffer[128] = {0};
-        packet->CopyData(buffer, packet->GetSize());
+        FANETHeader header;
+        packet->RemoveHeader(header);
 
-        std::string msg ((char *) buffer);
-        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " GDT received message: " << msg);
+
+        uint8_t buffer[128] = {0};
+        packet->CopyData(buffer, 8);
+
+        std::string msg ((char *) buffer );
+
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
+                        << ", GDT received notification from Cluster " << header.GetClusterId() 
+                        << " Node " << header.GetNodeId() 
+                        << " that it " << msg << " to CH");
 
         if (!m_packetQueue.empty())
         {

@@ -61,9 +61,9 @@ namespace ns3
 
         if (isCH)
         {
-            //Simulator::ScheduleNow(&ClusterNodeApp::SendMessage, this);
-            SendMessage();
-            NS_LOG_DEBUG("Node " << GetNode()->GetId() << " scheduled to notify GDT of its promotion to CH");
+            Simulator::ScheduleNow(&ClusterNodeApp::SendNotifyGdtMessage, this);
+            //SendMessage();
+            // NS_LOG_DEBUG("Node " << GetNode()->GetId() << " scheduled to notify GDT of its promotion to CH");
 
         }     
         else
@@ -72,10 +72,43 @@ namespace ns3
         }
     }
 
+    void ClusterNodeApp::SendNotifyGdtMessage()
+    {
+        FANETHeader header;
+        header.SetType(HELLO);
+        header.SetClusterId(m_clusterIndex);
+        header.SetNodeId(GetNode()->GetId());
+        header.SetService(CH_PROMO);
+
+        std::ostringstream message;
+        message << "PROMOTED";
+
+
+        Ptr<Packet> packet = Create<Packet>((uint8_t*) message.str().c_str(), message.str().length());
+
+        packet->AddHeader(header);
+
+        if (FANETCommunication::SendPacket(this, packet) > 0)
+        {
+            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
+                << " Cluster " << m_clusterIndex 
+                << " Node " << GetNode()->GetId() 
+                << " scheduled to notify GDT of its promotion to CH");        
+        }
+        else
+        {
+            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
+                << " Cluster " << m_clusterIndex 
+                << " Node " << GetNode()->GetId() 
+                << " failed to notify GDT of its promotion to CH");     
+        }
+    }
+
     void ClusterNodeApp::SendMessage()
     {
         if (!m_isClusterHead)
             return;
+
 
         std::ostringstream message;
         message << "Node " << GetNode()->GetId() << " is now cluster " << m_clusterIndex << " CH";
@@ -89,7 +122,7 @@ namespace ns3
         }
         else
         {
-            NS_LOG_UNCOND("FAILED");
+            NS_LOG_DEBUG("Failed to schedule packet to notify GDT of CH promotion");
         }
     }
 
@@ -102,7 +135,6 @@ namespace ns3
     {
         if (m_packetQueue.empty())
         {
-            NS_LOG_UNCOND("GG");
             return;
         }
         

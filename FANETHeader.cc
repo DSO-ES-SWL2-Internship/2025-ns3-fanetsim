@@ -31,7 +31,7 @@ namespace ns3
 
     TypeId FANETHeader::GetInstanceTypeId() const { return GetTypeId(); }
 
-    uint32_t FANETHeader::GetSerializedSize() const { return 6; }
+    uint32_t FANETHeader::GetSerializedSize() const { return sizeof(m_type) + sizeof(m_clusterId) + sizeof(m_nodeId) + sizeof(m_service); }
 
     void FANETHeader::Serialize(Buffer::Iterator start) const
     {
@@ -48,7 +48,7 @@ namespace ns3
         m_clusterId = start.ReadU32();
         m_service = static_cast<ServiceType> (start.ReadU8());
 
-        return 6;
+        return 16;
     }
 
     void FANETHeader::Print(std::ostream &os) const
