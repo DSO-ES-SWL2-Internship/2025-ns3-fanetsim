@@ -5,9 +5,7 @@ namespace ns3
     NS_LOG_COMPONENT_DEFINE("GDTApp");
 
     GDTApp::GDTApp()
-        : m_socket(nullptr), m_port(8080)
     {
-
     }
 
     GDTApp::~GDTApp()

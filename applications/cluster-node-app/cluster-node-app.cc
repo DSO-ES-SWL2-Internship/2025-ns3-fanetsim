@@ -5,7 +5,7 @@ namespace ns3
     NS_LOG_COMPONENT_DEFINE("ClusterNodeApp");
 
     ClusterNodeApp::ClusterNodeApp()
-        :m_socket(nullptr), m_gdtIp(Ipv4Address("0.0.0.0")), m_port(8080), m_isClusterHead(false)
+        : m_isClusterHead(false)
     {
 
     }
@@ -21,7 +21,7 @@ namespace ns3
 
     void ClusterNodeApp::SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex)
     {
-        m_gdtIp = gdtIp;
+        m_destAddr = gdtIp;
         m_port = port;
         m_clusterIndex = clusterIndex;
     }
@@ -89,7 +89,7 @@ namespace ns3
 
         Ptr<Packet> packet = Create<Packet>((uint8_t*) message.str().c_str(), message.str().length());
         
-        InetSocketAddress addr = InetSocketAddress(m_gdtIp, 8080);
+        InetSocketAddress addr = InetSocketAddress(m_destAddr, 8080);
         m_socket->Connect(addr);
 
         int sentBytes = m_socket->Send(packet);

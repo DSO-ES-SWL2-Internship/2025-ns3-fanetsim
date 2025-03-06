@@ -6,10 +6,11 @@
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/FANETHeader.h"
+#include "ns3/fanet-application.h"
 
 namespace ns3
 {
-    class ClusterNodeApp : public Application
+    class ClusterNodeApp : public FANETApplication
     {
         /**
          * @class ClusterNodeApp
@@ -40,12 +41,12 @@ namespace ns3
             void EnableDebugLog();
 
         private:
-            /// @brief Socket for communication            
-            Ptr<Socket> m_socket;
-            /// @brief IP Address of the GDT
-            Ipv4Address m_gdtIp;
-            /// @brief Communication port
-            uint16_t m_port;
+            // /// @brief Socket for communication            
+            // Ptr<Socket> m_socket;
+            // /// @brief IP Address of the GDT
+            // Ipv4Address m_gdtIp;
+            // /// @brief Communication port
+            // uint16_t m_port;
             /// @brief Flag indication if the node is a cluster head
             bool m_isClusterHead;
             /// @brief Event ID for scheduled message sending

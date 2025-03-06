@@ -7,13 +7,15 @@
 #include "ns3/applications-module.h"
 #include <queue>
 
+#include "ns3/fanet-application.h"
+
 namespace ns3
 {
     /**
      * @class GDTApp
      * @brief An application that manages the operations in a GDT
      */
-    class GDTApp : public Application
+    class GDTApp : public FANETApplication
     {
         public:
             /// @brief Constructor of GDTApp
@@ -34,14 +36,6 @@ namespace ns3
 
 
         private:
-            /// @brief UDP socket for receiving and sending data
-            Ptr<Socket> m_socket;
-            /// @brief Port to listen to
-            uint16_t m_port;
-            /// @brief Queue to store received packets for processing
-            std::queue<Ptr<Packet>> m_packetQueue;
-            /// @brief  Queue to store sender addresses associated with received packets
-            std::queue<Address> m_addressQueue;
 
             /// @brief Starts the application
             virtual void StartApplication() override;
