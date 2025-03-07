@@ -69,6 +69,14 @@ namespace ns3
              */
             void ProcessNextPacket();
 
+            void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet);
+
+            void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet);
+
+            void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet);
+
+            void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet);
+
     };
 }
 

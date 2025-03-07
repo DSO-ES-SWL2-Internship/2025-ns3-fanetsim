@@ -5,6 +5,7 @@
 #include "ns3/socket.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/packet.h"
+#include "ns3/FANETHeader.h"
 #include <queue>
 
 namespace ns3
@@ -23,8 +24,17 @@ namespace ns3
         std::queue<Ptr<Packet>>& GetPacketQueue();
         std::queue<Address>& GetAddressQueue();
 
-        //virtual void HandleRead() = 0;         // Must be implemented by derived classes
-        virtual void ProcessNextPacket() = 0;  // Must be implemented by derived classes
+        //virtual void HandleRead() = 0;         
+        virtual void ProcessNextPacket() = 0;  
+
+        virtual void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet) = 0;
+
+        virtual void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet) = 0;
+
+        virtual void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet) = 0;
+
+        virtual void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet) = 0;
+
 
     protected:
         virtual void StartApplication() override = 0; // Ensure derived class implements

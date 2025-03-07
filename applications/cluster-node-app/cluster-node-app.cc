@@ -161,6 +161,26 @@ namespace ns3
         }
     }
 
+    void ClusterNodeApp::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet)
+    {
+
+    }
+
+    void ClusterNodeApp::ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet)
+    {
+
+    }
+
+    void ClusterNodeApp::ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet)
+    {
+
+    }
+
+    void ClusterNodeApp::ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet)
+    {
+
+    }
+
 
     void UdpSendTrace(Ptr<OutputStreamWrapper> stream, Ptr<const Packet> packet)
     {

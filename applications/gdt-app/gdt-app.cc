@@ -81,21 +81,87 @@ namespace ns3
         FANETHeader header;
         packet->RemoveHeader(header);
 
+        switch (header.GetType())
+        {
+            case HELLO: {
+                ProcessHelloPacket(&header, packet);
+                break;
+            }
 
-        uint8_t buffer[128] = {0};
-        packet->CopyData(buffer, 8);
+            case DATA: {
+                ProcessDataPacket(&header, packet);
+                break;
+            }
 
-        std::string msg ((char *) buffer );
+            case REQUEST: {
+                ProcessRequestPacket(&header, packet);
+                break;
+            }
 
-        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
-                        << ", GDT received notification from Cluster " << header.GetClusterId() 
-                        << " Node " << header.GetNodeId() 
-                        << " that it " << msg << " to CH");
+            case RESPONSE: {
+                ProcessResponsePacket(&header, packet);
+                break;
+            }
+
+            default: {
+
+            }
+        }
 
         if (!m_packetQueue.empty())
         {
             Simulator::ScheduleNow(&GDTApp::ProcessNextPacket, this);
         }
+    }
+
+    void GDTApp::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet)
+    {
+        switch (header->GetService())
+        {
+            case GENERAL: {
+                break;
+            }
+
+            case PLR: {
+                break;
+            }
+
+            case CH_PROMO: {
+                uint8_t buffer[128] = {0};
+                packet->CopyData(buffer, 8);
+
+                std::string msg ((char *) buffer );
+
+                NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
+                                << ", GDT received notification from Cluster " << header->GetClusterId() 
+                                << " Node " << header->GetNodeId() 
+                                << " that it " << msg << " to CH");
+                break;
+            }
+
+            case OTHER_SERVICE: {
+                break;
+            }
+
+            default: {
+
+            }
+        }
+    }
+
+    void GDTApp::ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet)
+    {
+        
+    }
+
+    void GDTApp::ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet)
+    {
+        
+    }
+
+    void GDTApp::ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet)
+    {
+        
     }
 
     void GDTApp::EnableInfoLog()
