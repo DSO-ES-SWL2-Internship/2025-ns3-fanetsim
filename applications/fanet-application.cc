@@ -81,7 +81,7 @@ namespace ns3
     void FANETApplication::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet) {
         auto it = helloServiceHandlers.find(header->GetService());
         if (it != helloServiceHandlers.end()) {
-            it->second(header, packet);  // Call the registered handler
+            it->second(header, packet);  
         } else {
             NS_LOG_UNCOND("No Hello handler registered for service type: " << header->GetService());
         }

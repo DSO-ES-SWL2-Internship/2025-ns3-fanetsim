@@ -1,5 +1,4 @@
 #include "gdt-app.h"
-#include "ns3/FANETHeader.h"
 
 namespace ns3 
 {
@@ -71,17 +70,19 @@ namespace ns3
 
     void GDTApp::RegisterHandlers()
     {
-        helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet)
-        {
-            uint8_t buffer[128] = {0};
-            packet->CopyData(buffer, 8);
-            std::string msg((char*)buffer);
+        helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandleCHPromo(header, packet); };
+    }
 
-            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds()
-                << ", GDT received notification from Cluster " << header->GetClusterId()
-                << " Node " << header->GetNodeId()
-                << " that it " << msg << " to CH");
-        };
+    void GDTApp::HandleCHPromo(FANETHeader* header, Ptr<Packet> packet)
+    {
+        uint8_t buffer[128] = {0};
+        packet->CopyData(buffer, 8);
+        std::string msg((char*)buffer);
+
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds()
+            << ", GDT received notification from Cluster " << header->GetClusterId()
+            << " Node " << header->GetNodeId()
+            << " that it " << msg << " to CH");
     }
 
     void GDTApp::EnableInfoLog()

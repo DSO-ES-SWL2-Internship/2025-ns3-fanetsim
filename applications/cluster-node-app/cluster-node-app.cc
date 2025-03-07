@@ -136,25 +136,27 @@ namespace ns3
 
     void ClusterNodeApp::RegisterHandlers()
     {
-        helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet)
+        helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandleCHPromo(header, packet); };
+    }
+
+    void ClusterNodeApp::HandleCHPromo(FANETHeader* header, Ptr<Packet> packet)
+    {
+        uint8_t buffer[128] = {0};
+        packet->CopyData(buffer, packet->GetSize());
+        std::string msg((char*)buffer);
+
+        NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application received CH status notification: " << msg);
+
+        if (msg == "BECOME_CH")
         {
-            uint8_t buffer[128] = {0};
-            packet->CopyData(buffer, packet->GetSize());
-            std::string msg((char*)buffer);
-
-            NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application received CH status notification: " << msg);
-
-            if (msg == "BECOME_CH")
-            {
-                
-                NotifyGDT(true);
-            }
-            else if (msg == "STOP_CH")
-            {
-                NotifyGDT(false);
-                m_isClusterHead = false;
-            }
-        };
+            
+            NotifyGDT(true);
+        }
+        else if (msg == "STOP_CH")
+        {
+            NotifyGDT(false);
+            m_isClusterHead = false;
+        }
     }
 
     void ClusterNodeApp::EnableInfoLog()

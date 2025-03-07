@@ -8,6 +8,7 @@
 #include <queue>
 
 #include "ns3/fanet-application.h"
+#include "ns3/FANETHeader.h"
 
 namespace ns3
 {
@@ -62,6 +63,8 @@ namespace ns3
             void HandleRead(Ptr<Socket> socket);
 
             void RegisterHandlers();
+
+            void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet);
 
             /**
              * @brief Process the next packet in the queue
