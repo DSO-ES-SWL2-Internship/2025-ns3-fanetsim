@@ -46,6 +46,7 @@ namespace ns3
             m_socket->Bind(local);
             m_socket->SetRecvCallback(MakeCallback(&GDTApp::HandleRead, this));
             m_socket->SetAttribute("RcvBufSize", UintegerValue(65536));
+            RegisterHandlers();
         }
 
         Application::DoInitialize();
@@ -68,101 +69,139 @@ namespace ns3
         }
     }
 
-    void GDTApp::ProcessNextPacket()
+    void GDTApp::RegisterHandlers()
     {
-        if (m_packetQueue.empty())
-            return;
-
-        Ptr<Packet> packet = m_packetQueue.front();
-        Address addr = m_addressQueue.front();
-        m_packetQueue.pop();
-        m_addressQueue.pop();
-
-        FANETHeader header;
-        packet->RemoveHeader(header);
-
-        switch (header.GetType())
+        helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet)
         {
-            case HELLO: {
-                ProcessHelloPacket(&header, packet);
-                break;
-            }
+            uint8_t buffer[128] = {0};
+            packet->CopyData(buffer, 8);
+            std::string msg((char*)buffer);
 
-            case DATA: {
-                ProcessDataPacket(&header, packet);
-                break;
-            }
-
-            case REQUEST: {
-                ProcessRequestPacket(&header, packet);
-                break;
-            }
-
-            case RESPONSE: {
-                ProcessResponsePacket(&header, packet);
-                break;
-            }
-
-            default: {
-
-            }
-        }
-
-        if (!m_packetQueue.empty())
-        {
-            Simulator::ScheduleNow(&GDTApp::ProcessNextPacket, this);
-        }
+            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds()
+                << ", GDT received notification from Cluster " << header->GetClusterId()
+                << " Node " << header->GetNodeId()
+                << " that it " << msg << " to CH");
+        };
     }
 
-    void GDTApp::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet)
-    {
-        switch (header->GetService())
-        {
-            case GENERAL: {
-                break;
-            }
+    // void GDTApp::ProcessNextPacket()
+    // {
+    //     if (m_packetQueue.empty())
+    //         return;
 
-            case PLR: {
-                break;
-            }
+    //     Ptr<Packet> packet = m_packetQueue.front();
+    //     Address addr = m_addressQueue.front();
+    //     m_packetQueue.pop();
+    //     m_addressQueue.pop();
 
-            case CH_PROMO: {
-                uint8_t buffer[128] = {0};
-                packet->CopyData(buffer, 8);
+    //     FANETHeader header;
+    //     packet->RemoveHeader(header);
 
-                std::string msg ((char *) buffer );
+    //     int serviceType = header.GetService();
+    //     int packetType = header.GetType();
 
-                NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
-                                << ", GDT received notification from Cluster " << header->GetClusterId() 
-                                << " Node " << header->GetNodeId() 
-                                << " that it " << msg << " to CH");
-                break;
-            }
+    //     std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>>* handlerMap = nullptr;
 
-            case OTHER_SERVICE: {
-                break;
-            }
+    //     switch (header.GetType())
+    //     {
+    //         case HELLO: {
 
-            default: {
+    //             handlerMap = &helloServiceHandlers;
+    //             //ProcessHelloPacket(&header, packet);
+    //             break;
+    //         }
 
-            }
-        }
-    }
+    //         case DATA: {
+    //             handlerMap = &dataServiceHandlers;
+    //             //ProcessDataPacket(&header, packet);
+    //             break;
+    //         }
 
-    void GDTApp::ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet)
-    {
+    //         case REQUEST: {
+    //             handlerMap = &requestServiceHandlers;
+    //             //ProcessRequestPacket(&header, packet);
+    //             break;
+    //         }
+
+    //         case RESPONSE: {
+    //             handlerMap = &responseServiceHandlers;
+    //             //ProcessResponsePacket(&header, packet);
+    //             break;
+    //         }
+
+    //         default: {
+    //             NS_LOG_WARN("Unknown Packet Received");
+    //             if (!m_packetQueue.empty())
+    //             {
+    //                 Simulator::ScheduleNow(&GDTApp::ProcessNextPacket, this);
+    //             }
+    //         }
+    //     }
+
+    //     if (handlerMap && handlerMap->count(serviceType))
+    //     {
+    //         (*handlerMap)[serviceType](&header, packet);
+    //     } 
+    //     else 
+    //     {
+    //         NS_LOG_WARN("No handler registered for service type: " << serviceType);
+    //     }
+
+    //     if (!m_packetQueue.empty())
+    //     {
+    //         Simulator::ScheduleNow(&GDTApp::ProcessNextPacket, this);
+    //     }
+    // }
+
+    // void GDTApp::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet)
+    // {
+    //     switch (header->GetService())
+    //     {
+    //         case GENERAL: {
+    //             break;
+    //         }
+
+    //         case PLR: {
+    //             break;
+    //         }
+
+    //         case CH_PROMO: {
+    //             uint8_t buffer[128] = {0};
+    //             packet->CopyData(buffer, 8);
+
+    //             std::string msg ((char *) buffer );
+
+    //             NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
+    //                             << ", GDT received notification from Cluster " << header->GetClusterId() 
+    //                             << " Node " << header->GetNodeId() 
+    //                             << " that it " << msg << " to CH");
+    //             break;
+    //         }
+
+    //         case OTHER_SERVICE: {
+    //             break;
+    //         }
+
+    //         default: {
+
+    //         }
+    //     }
+    // }
+
+    // void GDTApp::ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet)
+    // {
         
-    }
+    // }
 
-    void GDTApp::ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet)
-    {
+    // void GDTApp::ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet)
+    // {
         
-    }
+    // }
 
-    void GDTApp::ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet)
-    {
+    // void GDTApp::ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet)
+    // {
         
-    }
+    // }
 
     void GDTApp::EnableInfoLog()
     {

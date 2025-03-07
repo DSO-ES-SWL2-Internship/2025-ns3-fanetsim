@@ -7,6 +7,8 @@
 #include "ns3/packet.h"
 #include "ns3/FANETHeader.h"
 #include <queue>
+#include <unordered_map>
+#include <functional>
 
 namespace ns3
 {
@@ -24,16 +26,21 @@ namespace ns3
         std::queue<Ptr<Packet>>& GetPacketQueue();
         std::queue<Address>& GetAddressQueue();
 
+        void RegisterHelloHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
+        void RegisterDataHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
+        void RegisterRequestHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
+        void RegisterResponseHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
+
         //virtual void HandleRead() = 0;         
-        virtual void ProcessNextPacket() = 0;  
+        void ProcessNextPacket();  
 
-        virtual void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet) = 0;
+        void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet);
 
-        virtual void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet) = 0;
+        void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet);
 
-        virtual void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet) = 0;
+        void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet);
 
-        virtual void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet) = 0;
+        void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet);
 
 
     protected:
@@ -50,6 +57,11 @@ namespace ns3
         std::queue<Ptr<Packet>> m_packetQueue;
         /// @brief  Queue to store sender addresses associated with received packets
         std::queue<Address> m_addressQueue;
+
+        std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> helloServiceHandlers;
+        std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> dataServiceHandlers;
+        std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> requestServiceHandlers;
+        std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> responseServiceHandlers;
     };
 }
 

@@ -88,6 +88,8 @@ namespace ns3
 
         packet->AddHeader(header);
 
+        NS_LOG_UNCOND("Packet size: " << packet->GetSize());
+
         if (FANETCommunication::SendPacket(this, packet) > 0)
         {
             NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
@@ -159,26 +161,6 @@ namespace ns3
             NotifyGDT(false);
             m_isClusterHead = false;
         }
-    }
-
-    void ClusterNodeApp::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet)
-    {
-
-    }
-
-    void ClusterNodeApp::ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet)
-    {
-
-    }
-
-    void ClusterNodeApp::ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet)
-    {
-
-    }
-
-    void ClusterNodeApp::ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet)
-    {
-
     }
 
 

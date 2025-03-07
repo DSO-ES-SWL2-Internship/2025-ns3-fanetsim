@@ -78,14 +78,6 @@ namespace ns3
              */
             void ProcessNextPacket();
 
-            void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet);
-
-            void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet);
-
-            void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet);
-
-            void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet);
-
 
             /**
              * @brief Sends the message to notify GDT about the cluster head status
