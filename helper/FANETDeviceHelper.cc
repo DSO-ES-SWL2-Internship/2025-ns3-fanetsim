@@ -1,6 +1,7 @@
 #include "FANETDeviceHelper.h"
 #include "ns3/core-module.h"
 #include "ns3/FANETMobilityHelper.h"
+#include "ns3/FANETHeader.h"
 
 namespace ns3
 {
@@ -317,9 +318,17 @@ namespace ns3
     {
         Ptr<Socket> socket = Socket::CreateSocket(node, UdpSocketFactory::GetTypeId());
         InetSocketAddress addr = InetSocketAddress(Ipv4Address("127.0.0.1"), 8080);
-        socket->Connect(addr);
+
+        FANETHeader header;
+        header.SetNodeId(node->GetId());
+        header.SetClusterId(999);
+        header.SetType(HELLO);
+        header.SetService(CH_PROMO);
 
         Ptr<Packet> packet = Create<Packet>((uint8_t*) status.c_str(), status.length());
+        packet->AddHeader(header);
+
+        socket->Connect(addr);
         socket->Send(packet);
         socket->Close();
 

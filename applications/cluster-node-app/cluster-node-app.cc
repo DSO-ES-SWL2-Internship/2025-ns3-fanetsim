@@ -50,6 +50,8 @@ namespace ns3
             InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
             m_socket->Bind(local);
             m_socket->SetRecvCallback(MakeCallback(&ClusterNodeApp::HandleRead, this));
+
+            RegisterHandlers();
         }
 
         Application::DoInitialize();
@@ -87,8 +89,6 @@ namespace ns3
         Ptr<Packet> packet = Create<Packet>((uint8_t*) message.str().c_str(), message.str().length());
 
         packet->AddHeader(header);
-
-        NS_LOG_UNCOND("Packet size: " << packet->GetSize());
 
         if (FANETCommunication::SendPacket(this, packet) > 0)
         {
@@ -133,47 +133,28 @@ namespace ns3
         FANETCommunication::ReceivePacket(this, socket);
     }
 
-    void ClusterNodeApp::ProcessNextPacket()
+
+    void ClusterNodeApp::RegisterHandlers()
     {
-        if (m_packetQueue.empty())
+        helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet)
         {
-            return;
-        }
-        
-        Ptr<Packet> packet = m_packetQueue.front();
-        Address addr = m_addressQueue.front();
-        m_packetQueue.pop();
-        m_addressQueue.pop();
+            uint8_t buffer[128] = {0};
+            packet->CopyData(buffer, packet->GetSize());
+            std::string msg((char*)buffer);
 
-        uint8_t buffer[128] = {0};  
-        packet->CopyData(buffer, packet->GetSize());
+            NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application received CH status notification: " << msg);
 
-        std::string msg((char*)buffer);
-
-        NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application received CH status notification: " << msg);
-
-        if (msg == "BECOME_CH")
-        {
-            NotifyGDT(true);
-        }
-        else if (msg == "STOP_CH")
-        {
-            NotifyGDT(false);
-            m_isClusterHead = false;
-        }
-    }
-
-
-    void UdpSendTrace(Ptr<OutputStreamWrapper> stream, Ptr<const Packet> packet)
-    {
-        *stream->GetStream() << "Packet Sent: " << packet->GetSize()
-                        << " bytes at time " << Simulator::Now().GetSeconds()
-                        << "s" << std::endl;
-    }
-
-    void ClusterNodeApp::EnableAsciiTracing(Ptr<OutputStreamWrapper> stream)
-    {
-        m_socket->TraceConnectWithoutContext("Send", MakeBoundCallback(&UdpSendTrace, stream));
+            if (msg == "BECOME_CH")
+            {
+                
+                NotifyGDT(true);
+            }
+            else if (msg == "STOP_CH")
+            {
+                NotifyGDT(false);
+                m_isClusterHead = false;
+            }
+        };
     }
 
     void ClusterNodeApp::EnableInfoLog()

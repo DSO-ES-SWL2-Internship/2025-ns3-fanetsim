@@ -48,7 +48,7 @@ namespace ns3
         m_clusterId = start.ReadU32();
         m_service = static_cast<ServiceType> (start.ReadU8());
 
-        return 16;
+        return GetSerializedSize();
     }
 
     void FANETHeader::Print(std::ostream &os) const

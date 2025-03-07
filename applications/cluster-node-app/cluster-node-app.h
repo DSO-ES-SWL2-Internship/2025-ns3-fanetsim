@@ -71,22 +71,13 @@ namespace ns3
             void HandleRead(Ptr<Socket> socket);
 
             /**
-             * @brief Process the next packet in the queue
-             * 
-             * Extracts the next packet from te queue and performs the necessary 
-             * operations on it
-             */
-            void ProcessNextPacket();
-
-
-            /**
              * @brief Sends the message to notify GDT about the cluster head status
              */
             void SendMessage();
 
             void SendNotifyGdtMessage();
-            
-            void EnableAsciiTracing(Ptr<OutputStreamWrapper> stream);
+
+            void RegisterHandlers();
 
     };
 }

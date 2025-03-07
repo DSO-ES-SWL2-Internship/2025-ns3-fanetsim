@@ -50,17 +50,8 @@ namespace ns3
         m_packetQueue.pop();
         m_addressQueue.pop();
 
-        NS_LOG_UNCOND("Got Here1:" << packet->GetSize());
-
-                    uint8_t buffer[128] = {0};
-            packet->CopyData(buffer, 8);
-            std::string msg((char*)buffer);
-            NS_LOG_UNCOND(msg);
-
         FANETHeader header;
         packet->RemoveHeader(header);
-
-        NS_LOG_UNCOND("Got Here2: " << packet->GetSize());
 
         // Use the dynamically registered handlers
         switch (header.GetType())
@@ -88,12 +79,11 @@ namespace ns3
     }
 
     void FANETApplication::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet) {
-        NS_LOG_UNCOND("HELPS");
         auto it = helloServiceHandlers.find(header->GetService());
         if (it != helloServiceHandlers.end()) {
             it->second(header, packet);  // Call the registered handler
         } else {
-            NS_LOG_INFO("No Hello handler registered for service type: " << header->GetService());
+            NS_LOG_UNCOND("No Hello handler registered for service type: " << header->GetService());
         }
     }
 
