@@ -77,7 +77,7 @@ namespace ns3
 
             void SendNotifyGdtMessage();
 
-            void RegisterHandlers();
+            void RegisterHandlers() override;
 
             void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet);
 

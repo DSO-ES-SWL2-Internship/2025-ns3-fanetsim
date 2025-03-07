@@ -26,26 +26,12 @@ namespace ns3
         std::queue<Ptr<Packet>>& GetPacketQueue();
         std::queue<Address>& GetAddressQueue();
 
-        void RegisterHelloHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
-        void RegisterDataHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
-        void RegisterRequestHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
-        void RegisterResponseHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
-
-        //virtual void HandleRead() = 0;         
-        void ProcessNextPacket();  
-
-        void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet);
-
-        void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet);
-
-        void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet);
-
-        void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet);
-
+        void ProcessNextPacket(); 
 
     protected:
         virtual void StartApplication() override = 0; // Ensure derived class implements
         virtual void StopApplication() override = 0;  // Ensure derived class implements
+        virtual void RegisterHandlers() = 0;
 
         /// @brief UDP socket for receiving and sending data
         Ptr<Socket> m_socket;
@@ -62,6 +48,21 @@ namespace ns3
         std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> dataServiceHandlers;
         std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> requestServiceHandlers;
         std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> responseServiceHandlers;
+
+        void RegisterHelloHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
+        void RegisterDataHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
+        void RegisterRequestHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
+        void RegisterResponseHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
+
+        //virtual void HandleRead() = 0;          
+
+        void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet);
+
+        void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet);
+
+        void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet);
+
+        void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet);
     };
 }
 

@@ -12,7 +12,9 @@ build_lib(
     applications/add-client-server/add-server.cc
     applications/add-client-server/add-client.cc
     applications/cluster-node-app/cluster-node-app.cc
+    applications/cluster-node-app/cluster-node-CH-promo.cc
     applications/gdt-app/gdt-app.cc
+    applications/gdt-app/gdt-CH-promo.cc
     FANETHeader.cc
     FANETSimulator.cc
   HEADER_FILES

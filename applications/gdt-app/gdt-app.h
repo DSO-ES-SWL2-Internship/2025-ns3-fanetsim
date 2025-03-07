@@ -30,6 +30,8 @@ namespace ns3
              */
             void SetPort(uint16_t port);
 
+            void PrintCHTable();
+
             /// @brief Enable NS_LOG_INFO for this component
             void EnableInfoLog();
             
@@ -38,6 +40,8 @@ namespace ns3
 
 
         private:
+
+            std::map<uint32_t, uint32_t> m_clusterHeads;
 
             /// @brief Starts the application
             virtual void StartApplication() override;
@@ -62,7 +66,7 @@ namespace ns3
              */
             void HandleRead(Ptr<Socket> socket);
 
-            void RegisterHandlers();
+            void RegisterHandlers() override;
 
             void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet);
 

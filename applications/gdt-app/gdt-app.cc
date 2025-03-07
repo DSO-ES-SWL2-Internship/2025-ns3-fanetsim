@@ -25,6 +25,7 @@ namespace ns3
     void GDTApp::StartApplication()
     {
         NS_LOG_DEBUG("GDT App started on GDT");
+        Simulator::Schedule(Seconds(19), &GDTApp::PrintCHTable, this);
     }
 
     void GDTApp::StopApplication()
@@ -73,26 +74,16 @@ namespace ns3
         helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandleCHPromo(header, packet); };
     }
 
-    void GDTApp::HandleCHPromo(FANETHeader* header, Ptr<Packet> packet)
-    {
-        uint8_t buffer[128] = {0};
-        packet->CopyData(buffer, 8);
-        std::string msg((char*)buffer);
-
-        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds()
-            << ", GDT received notification from Cluster " << header->GetClusterId()
-            << " Node " << header->GetNodeId()
-            << " that it " << msg << " to CH");
-    }
-
     void GDTApp::EnableInfoLog()
     {
         LogComponentEnable("GDTApp", LOG_LEVEL_INFO);
         LogComponentDisable("GDTApp", LOG_LEVEL_DEBUG);
+        LogComponentEnable("GdtChPromo", LOG_LEVEL_INFO);
     }
 
     void GDTApp::EnableDebugLog()
     {
         LogComponentEnable("GDTApp", LOG_LEVEL_DEBUG);
+        LogComponentEnable("GdtChPromo", LOG_LEVEL_DEBUG);
     }
 }

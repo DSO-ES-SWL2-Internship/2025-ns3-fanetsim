@@ -57,76 +57,7 @@ namespace ns3
         Application::DoInitialize();
     }
 
-    void ClusterNodeApp::NotifyGDT(bool isCH)
-    {
-        m_isClusterHead = isCH;
 
-        if (isCH)
-        {
-            Simulator::ScheduleNow(&ClusterNodeApp::SendNotifyGdtMessage, this);
-            //SendMessage();
-            // NS_LOG_DEBUG("Node " << GetNode()->GetId() << " scheduled to notify GDT of its promotion to CH");
-
-        }     
-        else
-        {
-            NS_LOG_DEBUG("Node " << GetNode()->GetId() << " demoted back to CH");
-        }
-    }
-
-    void ClusterNodeApp::SendNotifyGdtMessage()
-    {
-        FANETHeader header;
-        header.SetType(HELLO);
-        header.SetClusterId(m_clusterIndex);
-        header.SetNodeId(GetNode()->GetId());
-        header.SetService(CH_PROMO);
-
-        std::ostringstream message;
-        message << "PROMOTED";
-
-
-        Ptr<Packet> packet = Create<Packet>((uint8_t*) message.str().c_str(), message.str().length());
-
-        packet->AddHeader(header);
-
-        if (FANETCommunication::SendPacket(this, packet) > 0)
-        {
-            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
-                << " Cluster " << m_clusterIndex 
-                << " Node " << GetNode()->GetId() 
-                << " scheduled to notify GDT of its promotion to CH");        
-        }
-        else
-        {
-            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
-                << " Cluster " << m_clusterIndex 
-                << " Node " << GetNode()->GetId() 
-                << " failed to notify GDT of its promotion to CH");     
-        }
-    }
-
-    void ClusterNodeApp::SendMessage()
-    {
-        if (!m_isClusterHead)
-            return;
-
-
-        std::ostringstream message;
-        message << "Node " << GetNode()->GetId() << " is now cluster " << m_clusterIndex << " CH";
-
-        Ptr<Packet> packet = Create<Packet>((uint8_t*) message.str().c_str(), message.str().length());
-
-        if (FANETCommunication::SendPacket(this, packet) > 0)
-        {
-            NS_LOG_DEBUG("At time " << Simulator::Now().GetSeconds() << " Cluster " << m_clusterIndex 
-                << " Node " << GetNode()->GetId() << " scheduled to notify GDT of its promotion to CH");        
-        }
-        else
-        {
-            NS_LOG_DEBUG("Failed to schedule packet to notify GDT of CH promotion");
-        }
-    }
 
     void ClusterNodeApp::HandleRead(Ptr<Socket> socket)
     {
@@ -134,38 +65,20 @@ namespace ns3
     }
 
 
-    void ClusterNodeApp::RegisterHandlers()
+    void ClusterNodeApp::RegisterHandlers() 
     {
         helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandleCHPromo(header, packet); };
-    }
-
-    void ClusterNodeApp::HandleCHPromo(FANETHeader* header, Ptr<Packet> packet)
-    {
-        uint8_t buffer[128] = {0};
-        packet->CopyData(buffer, packet->GetSize());
-        std::string msg((char*)buffer);
-
-        NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application received CH status notification: " << msg);
-
-        if (msg == "BECOME_CH")
-        {
-            
-            NotifyGDT(true);
-        }
-        else if (msg == "STOP_CH")
-        {
-            NotifyGDT(false);
-            m_isClusterHead = false;
-        }
     }
 
     void ClusterNodeApp::EnableInfoLog()
     {
         LogComponentEnable("ClusterNodeApp", LOG_LEVEL_INFO);
+        LogComponentEnable("ClusterNodeCHPromo", LOG_LEVEL_INFO);
     }
 
     void ClusterNodeApp::EnableDebugLog()
     {
         LogComponentEnable("ClusterNodeApp", LOG_LEVEL_DEBUG);
+        LogComponentEnable("ClusterNodeCHPromo", LOG_LEVEL_DEBUG);
     }
 }
