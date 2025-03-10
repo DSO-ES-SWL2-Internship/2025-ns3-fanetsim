@@ -25,7 +25,7 @@ namespace ns3
     void GDTApp::StartApplication()
     {
         NS_LOG_DEBUG("GDT App started on GDT");
-        Simulator::Schedule(Seconds(19), &GDTApp::PrintCHTable, this);
+        //Simulator::Schedule(Seconds(19), &GDTApp::PrintCHTable, this);
     }
 
     void GDTApp::StopApplication()

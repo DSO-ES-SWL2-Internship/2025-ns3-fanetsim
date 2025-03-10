@@ -43,18 +43,14 @@ namespace ns3
         std::queue<Ptr<Packet>> m_packetQueue;
         /// @brief  Queue to store sender addresses associated with received packets
         std::queue<Address> m_addressQueue;
-
+        /// @brief unordered map to store hello service-handler key-value pairs
         std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> helloServiceHandlers;
+        /// @brief unordered map to store data service-handler key-value pairs
         std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> dataServiceHandlers;
+        /// @brief unordered map to store request service-handler key-value pairs
         std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> requestServiceHandlers;
-        std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> responseServiceHandlers;
-
-        void RegisterHelloHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
-        void RegisterDataHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
-        void RegisterRequestHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
-        void RegisterResponseHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler);
-
-        //virtual void HandleRead() = 0;          
+        /// @brief unordered map to store response service-handler key-value pairs
+        std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> responseServiceHandlers;     
 
         void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet);
 

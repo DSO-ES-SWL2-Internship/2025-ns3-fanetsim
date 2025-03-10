@@ -69,23 +69,6 @@ namespace ns3
             void RegisterHandlers() override;
 
             void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet);
-
-            /**
-             * @brief Process the next packet in the queue
-             * 
-             * Extracts the next packet from te queue and performs the necessary 
-             * operations on it
-             */
-            // void ProcessNextPacket();
-
-            // void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet);
-
-            // void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet);
-
-            // void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet);
-
-            // void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet);
-
     };
 }
 

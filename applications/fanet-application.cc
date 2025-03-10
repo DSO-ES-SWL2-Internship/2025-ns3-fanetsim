@@ -24,22 +24,6 @@ namespace ns3
 
     std::queue<Address>& FANETApplication::GetAddressQueue() { return m_addressQueue;}
 
-    void FANETApplication::RegisterHelloHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler) {
-        helloServiceHandlers[serviceType] = handler;
-    }
-
-    void FANETApplication::RegisterDataHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler) {
-        dataServiceHandlers[serviceType] = handler;
-    }
-
-    void FANETApplication::RegisterRequestHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler) {
-        requestServiceHandlers[serviceType] = handler;
-    }
-
-    void FANETApplication::RegisterResponseHandler(int serviceType, std::function<void(FANETHeader*, Ptr<Packet>)> handler) {
-        responseServiceHandlers[serviceType] = handler;
-    }
-
     void FANETApplication::ProcessNextPacket()
     {
         if (m_packetQueue.empty())
