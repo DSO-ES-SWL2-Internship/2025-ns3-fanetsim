@@ -71,6 +71,8 @@ namespace ns3
 
     void GDTApp::RegisterHandlers()
     {
+        FANETApplication::RegisterHandlers();
+
         helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandleCHPromo(header, packet); };
     }
 

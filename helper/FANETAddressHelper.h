@@ -75,9 +75,6 @@ namespace ns3
              * @return The base network address.
              */
             static Ipv4Address GetBaseAddress(Ipv4Address ip);
-
-            //std::vector<Ipv4InterfaceContainer> GDTtoCHLinksInterfaces;
-            //void SetBases(std::vector<NetDeviceContainer> clustersDevices, std::vector<NetDeviceContainer> GDTtoCHLinksDevices);   
         };
 }
 

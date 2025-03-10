@@ -91,6 +91,9 @@ namespace ns3
              */
             void ProcessNextPacket(); 
 
+            virtual void EnableInfoLog();
+            virtual void EnableDebugLog();
+
             void SetupPLRSender(Ipv4Address address, double interval);
             double GetPLR();
             void SendPLRPacket();
@@ -119,7 +122,7 @@ namespace ns3
              * This is a pure virtual function that must be implemented by derived classes. 
              * It sets up the appropriate handlers for processing different types of packets.
              */
-            virtual void RegisterHandlers() = 0;
+            virtual void RegisterHandlers();
 
             /// @brief UDP socket for receiving and sending data
             Ptr<Socket> m_socket;
@@ -191,12 +194,15 @@ namespace ns3
 
             void HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet);
 
+            void CheckForPLRTimeout();
+            void StartPLRTimeoutCheck();
+
         private:
-            uint32_t m_packetSizePLR = 0;
-            uint32_t m_sequenceNumberPLR = 0;
-            uint32_t m_expectedSeqPLR = 0;
-            uint32_t m_receivedPacketsPLR = 0;
-            uint32_t m_lostPacketsPLR = 0;
+            uint32_t m_packetSizePLR;
+            uint32_t m_sequenceNumberPLR;
+            uint32_t m_expectedSeqPLR;
+            uint32_t m_receivedPacketsPLR;
+            uint32_t m_lostPacketsPLR;
             Ipv4Address m_destAddrPLR;
             double m_intervalPLR;
             

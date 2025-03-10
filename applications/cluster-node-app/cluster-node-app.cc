@@ -30,7 +30,7 @@ namespace ns3
     void ClusterNodeApp::StartApplication()
     {
 
-        NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application to notify gdt that it became clusterhead started");
+        //NS_LOG_DEBUG("Node " << GetNode()->GetId() << " application to notify gdt that it became clusterhead started");
     }
 
     void ClusterNodeApp::StopApplication()
@@ -67,17 +67,21 @@ namespace ns3
 
     void ClusterNodeApp::RegisterHandlers() 
     {
+        FANETApplication::RegisterHandlers();
+
         helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandleCHPromo(header, packet); };
     }
 
     void ClusterNodeApp::EnableInfoLog()
     {
+        FANETApplication::EnableInfoLog();
         LogComponentEnable("ClusterNodeApp", LOG_LEVEL_INFO);
         LogComponentEnable("ClusterNodeCHPromo", LOG_LEVEL_INFO);
     }
 
     void ClusterNodeApp::EnableDebugLog()
     {
+        FANETApplication::EnableDebugLog();
         LogComponentEnable("ClusterNodeApp", LOG_LEVEL_DEBUG);
         LogComponentEnable("ClusterNodeCHPromo", LOG_LEVEL_DEBUG);
     }

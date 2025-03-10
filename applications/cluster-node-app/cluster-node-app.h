@@ -36,9 +36,9 @@ namespace ns3
              */
             void NotifyGDT(bool isCH);
             /// @brief Enable NS_LOG_INFO for this component
-            void EnableInfoLog();
+            void EnableInfoLog() override;
             /// @brief Enable NS_LOG_DEBUG for this component
-            void EnableDebugLog();
+            void EnableDebugLog() override;
 
         private:
             /// @brief Flag indication if the node is a cluster head

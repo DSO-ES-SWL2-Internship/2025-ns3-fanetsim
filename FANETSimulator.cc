@@ -177,26 +177,36 @@ namespace ns3
         {
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
             {
-                InstallApplication<ClusterNodeApp>(
-                    this->fanet->clusters[i].Get(j), 0.0, simDuration,
-                    [this, i](Ptr<ClusterNodeApp> app) {
-                        app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
-                    },
-                    [this] (Ptr<ClusterNodeApp> app) {
-                        app->SetupPLRSender(this->ipv4->clustersInterfaces[0].GetAddress(2), 3.0);
-                        app->SendPLRPacket();
-                    }
-                );
+                if (i == 0 && j == 2)
+                {
+                    InstallApplication<ClusterNodeApp>(
+                        this->fanet->clusters[i].Get(j), 0.0, simDuration,
+                        [this, i](Ptr<ClusterNodeApp> app) {
+                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                            app->SetupPLRSender(this->ipv4->clustersInterfaces[1].GetAddress(2), 0.5);
+                            Simulator::Schedule(Seconds(0.5), &ClusterNodeApp::SendPLRPacket, app);
+                            app->EnableInfoLog();
+                        }
+                    );                    
+                } 
+                else 
+                {
+                    InstallApplication<ClusterNodeApp>(
+                        this->fanet->clusters[i].Get(j), 0.0, simDuration,
+                        [this, i](Ptr<ClusterNodeApp> app) {
+                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                            app->EnableInfoLog();
+                        }
+                    );
+                }
             }
         }
+
+        LogComponentDisable("ClusterNodeCHPromo", LOG_LEVEL_DEBUG);
 
         this->SetUpNetAnim();
 
         this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim);
-
-
-
-
 
         // Install UDP Echo Server on a cluster 1 node
         // UdpEchoServerHelper echoServer(9);

@@ -1,12 +1,23 @@
 #include "fanet-application.h"
 #include "ns3/core-module.h"
+#include "ns3/log.h"
 
 namespace ns3 
 {
     NS_LOG_COMPONENT_DEFINE("FANETApplication");
 
     FANETApplication::FANETApplication()
-        : m_socket(nullptr), m_destAddr(Ipv4Address("0.0.0.0")), m_port(8080) {}
+        : m_socket(nullptr), 
+        m_destAddr(Ipv4Address("0.0.0.0")), 
+        m_port(8080),
+        m_packetSizePLR(0),
+        m_sequenceNumberPLR(0),
+        m_expectedSeqPLR(0),
+        m_receivedPacketsPLR(0),
+        m_lostPacketsPLR(0),
+        m_destAddrPLR(Ipv4Address("0.0.0.0")),
+        m_intervalPLR(0.0) {}
+
 
     FANETApplication::~FANETApplication(){}
 
@@ -67,7 +78,7 @@ namespace ns3
         if (it != helloServiceHandlers.end()) {
             it->second(header, packet);  
         } else {
-            NS_LOG_UNCOND("No Hello handler registered for service type: " << header->GetService());
+            NS_LOG_DEBUG("No Hello handler registered for service type: " << header->GetService());
         }
     }
 
@@ -76,7 +87,7 @@ namespace ns3
         if (it != dataServiceHandlers.end()) {
             it->second(header, packet);
         } else {
-            NS_LOG_INFO("No Data handler registered for service type: " << header->GetService());
+            NS_LOG_DEBUG("No Data handler registered for service type: " << header->GetService());
         }
     }
 
@@ -85,7 +96,7 @@ namespace ns3
         if (it != requestServiceHandlers.end()) {
             it->second(header, packet);
         } else {
-            NS_LOG_INFO("No Request handler registered for service type: " << header->GetService());
+            NS_LOG_DEBUG("No Request handler registered for service type: " << header->GetService());
         }
     }
 
@@ -94,7 +105,24 @@ namespace ns3
         if (it != responseServiceHandlers.end()) {
             it->second(header, packet);
         } else {
-            NS_LOG_INFO("No Response handler registered for service type: " << header->GetService());
+            NS_LOG_DEBUG("No Response handler registered for service type: " << header->GetService());
         }
+    }
+
+    void FANETApplication::EnableInfoLog()
+    {
+        LogComponentEnable("FANETPlr", LOG_LEVEL_INFO);
+        LogComponentEnable("FANETApplication", LOG_LEVEL_INFO);
+    }
+
+    void FANETApplication::EnableDebugLog()
+    {
+        LogComponentEnable("FANETPlr", LOG_LEVEL_DEBUG);
+        LogComponentEnable("FANETApplication", LOG_LEVEL_DEBUG);
+    }
+
+    void FANETApplication::RegisterHandlers()
+    {
+        dataServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandlePLRPacket(header, packet); };
     }
 }
