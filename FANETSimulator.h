@@ -44,6 +44,7 @@ namespace ns3
             /// @brief Pointer to the FANET animation helper for visualization.
             FANETAnimationHelper *anim;
 
+            double simDuration;
 
             // Methods
             
@@ -64,6 +65,8 @@ namespace ns3
 
             /// @brief Obtain from user, the duration of each frame in TDMA
             void GetCycleDuration();
+
+            void GetSimulationDuration();
 
             void CreateNetwork();
             void InstallDevices();

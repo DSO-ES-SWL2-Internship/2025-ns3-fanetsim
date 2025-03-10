@@ -63,6 +63,18 @@ namespace ns3
         this->cycleDuration = temp;
     }
 
+    void FANETSimulator::GetSimulationDuration()
+    {
+        std::string input;
+        double duration;
+
+        std::cout << "Duration of simulation (s) : ";
+        std::getline(std::cin, input);
+
+        duration = std::stod(input);
+        this->simDuration = duration;
+    }
+
     void FANETSimulator::CreateNetwork()
     {
         this->fanet = new FANETTopologyHelper(this->nClusters, this->nClusterNodes);
@@ -142,6 +154,8 @@ namespace ns3
 
         this->GetCycleDuration();
 
+        this->GetSimulationDuration();
+
         this->CreateNetwork();
 
         this->SetMobility();
@@ -154,7 +168,7 @@ namespace ns3
 
 
         InstallApplication<GDTApp>(
-            this->fanet->GDTNode.Get(0), 0.0, 20.0,
+            this->fanet->GDTNode.Get(0), 0.0, simDuration,
             [](Ptr<GDTApp> app) {app->SetPort(8080);},
             [](Ptr<GDTApp> app) {app->EnableInfoLog();}
         );
@@ -164,11 +178,10 @@ namespace ns3
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
             {
                 InstallApplication<ClusterNodeApp>(
-                    this->fanet->clusters[i].Get(j), 0.0, 20.0,
+                    this->fanet->clusters[i].Get(j), 0.0, simDuration,
                     [this, i](Ptr<ClusterNodeApp> app) {
                         app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
                     }
-                    //, [] (Ptr<ClusterNodePromotionApp> app) { app->EnableInfoLog(); }
                 );
             }
         }
@@ -236,7 +249,7 @@ namespace ns3
 
         this->anim->AnimateFANET(this->fanet);
 
-        Simulator::Stop(Seconds(20.0));
+        Simulator::Stop(Seconds(simDuration));
         Simulator::Run();
         Simulator::Destroy();
 
