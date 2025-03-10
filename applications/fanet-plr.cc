@@ -11,8 +11,6 @@ namespace ns3
         m_destAddrPLR = address;
         m_intervalPLR = interval;
         m_sequenceNumberPLR = 0;
-
-        NS_LOG_UNCOND("Seq no.: " << m_sequenceNumberPLR);
     }
 
     double FANETApplication::GetPLR() { return (double) m_lostPacketsPLR / (m_receivedPacketsPLR + m_lostPacketsPLR); }
@@ -43,7 +41,6 @@ namespace ns3
         uint32_t seqNum;
         packet->CopyData((uint8_t*) &seqNum, sizeof(uint32_t));
 
-
         if (seqNum > m_expectedSeqPLR)
             m_lostPacketsPLR += (seqNum - m_expectedSeqPLR);
 
@@ -53,5 +50,4 @@ namespace ns3
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
             << GetNode()->GetId() << " received PLR from " << header->GetNodeId() << " . Current PLR: " << GetPLR() << "%");
     }
-
 }
