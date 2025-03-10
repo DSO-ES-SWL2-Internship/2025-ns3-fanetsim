@@ -9,6 +9,7 @@ build_lib(
     helper/FANETTopologyHelper.cc
     applications/fanet-application.cc
     applications/fanet-communication.cc
+    applications/fanet-plr.cc
     applications/add-client-server/add-server.cc
     applications/add-client-server/add-client.cc
     applications/cluster-node-app/cluster-node-app.cc

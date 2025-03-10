@@ -40,7 +40,7 @@ namespace ns3
 
         packet->AddHeader(header);
 
-        if (FANETCommunication::SendPacket(this, packet) > 0)
+        if (FANETCommunication::SendPacket(this, packet, m_destAddr) > 0)
         {
             NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
                 << " Cluster " << m_clusterIndex 

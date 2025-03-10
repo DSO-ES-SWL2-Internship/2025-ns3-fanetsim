@@ -181,6 +181,10 @@ namespace ns3
                     this->fanet->clusters[i].Get(j), 0.0, simDuration,
                     [this, i](Ptr<ClusterNodeApp> app) {
                         app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                    },
+                    [this] (Ptr<ClusterNodeApp> app) {
+                        app->SetupPLRSender(this->ipv4->clustersInterfaces[0].GetAddress(2), 3.0);
+                        app->SendPLRPacket();
                     }
                 );
             }

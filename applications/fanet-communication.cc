@@ -5,7 +5,7 @@ namespace ns3
 {
     NS_LOG_COMPONENT_DEFINE("FANETCommunication");
 
-    int FANETCommunication::SendPacket(FANETApplication* app, const Ptr<Packet> packet)
+    int FANETCommunication::SendPacket(FANETApplication* app, const Ptr<Packet> packet, Ipv4Address destAddr)
     {
         if (!app->GetSocket())
         {
@@ -14,7 +14,7 @@ namespace ns3
         }
 
         Ptr<Socket> socket = app->GetSocket();
-        socket->Connect(InetSocketAddress(app->GetDestAddr(), app->GetPort()));
+        socket->Connect(InetSocketAddress(destAddr, app->GetPort()));
 
         int sentBytes = socket->Send(packet);
 
