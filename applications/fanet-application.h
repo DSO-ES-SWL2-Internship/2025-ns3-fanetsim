@@ -9,6 +9,7 @@
 #include <queue>
 #include <unordered_map>
 #include <functional>
+#include "ns3/fanet-plr.h"
 
 namespace ns3
 {
@@ -17,6 +18,8 @@ namespace ns3
         public:
             FANETApplication();
             virtual ~FANETApplication();
+
+            std::unique_ptr<PLRManager> m_plrManager;
 
             /**
              * @brief Sets the destination IPv4 address.
@@ -94,12 +97,6 @@ namespace ns3
             virtual void EnableInfoLog();
             virtual void EnableDebugLog();
 
-            void ScheduleRequestPLR(double time, Ipv4Address destAddress);
-
-            void StartPLRTest(double startTime, uint32_t nodeId,Ipv4Address destAddress, uint32_t pktsToSend, double interval);
-
-            void SetupPLR(uint32_t nNodes);
-
         protected:
             /**
              * @brief Starts the application.
@@ -144,6 +141,8 @@ namespace ns3
             std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>, Address)>> requestServiceHandlers;
             /// @brief unordered map to store response service-handler key-value pairs
             std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>, Address)>> responseServiceHandlers;     
+
+            
 
             /**
              * @brief Processes a received Hello packet.
@@ -194,26 +193,7 @@ namespace ns3
              */
             void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet, Address from);
 
-            void HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet, Address from);
-
-            void SendPLRPacket(uint32_t nodeId, Ipv4Address destAddress, uint32_t pktsToSend, double interval);
-
-            double GetPLR(uint32_t nodeId);
-
-            void HandlePLRRequest(FANETHeader* header, Ptr<Packet> packet, Address from);
-
-            void HandlePLRResponse(FANETHeader* header, Ptr<Packet> packet, Address from);
-
-            void SendPLRResponse(uint32_t nodeId, Ipv4Address destAddress);
-
-            void SendPLRRequest(uint32_t nodeId, Ipv4Address destAddress);
-
-        private:
-            std::vector<uint32_t> m_sequenceNumberPLR;
-            std::vector<uint32_t> m_expectedSeqPLR;
-            std::vector<uint32_t> m_receivedPacketsPLR;
-            std::vector<uint32_t> m_lostPacketsPLR;
-            std::vector<uint32_t> m_packetsSentPLR;
+            
             
     };
 }

@@ -28,6 +28,7 @@ build_lib(
     helper/FANETAppHelper.h
     applications/fanet-application.h
     applications/fanet-communication.h
+    applications/fanet-plr.h
     applications/add-client-server/add-server.h
     applications/add-client-server/add-client.h
     applications/cluster-node-app/cluster-node-app.h

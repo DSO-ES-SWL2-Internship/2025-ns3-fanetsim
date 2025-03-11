@@ -182,13 +182,14 @@ namespace ns3
                     InstallApplication<ClusterNodeApp>(
                         this->fanet->clusters[i].Get(j), 0.0, simDuration,
                         [this, i](Ptr<ClusterNodeApp> app) {
-                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
-                            app->SetupPLR(this->fanet->allNodes.GetN());
-                            app->StartPLRTest(0.5, this->fanet->clusters[1].Get(2)->GetId(), 
-                                this->ipv4->clustersInterfaces[1].GetAddress(2), 20, 0.5);
 
-                            app->StartPLRTest(0.5, this->fanet->clusters[0].Get(1)->GetId(), 
-                                this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);                               
+                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                            
+                            app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
+                            app->m_plrManager->StartPLRp2p(app, 0.5, this->fanet->clusters[1].Get(2)->GetId(), 
+                                this->ipv4->clustersInterfaces[1].GetAddress(2), 20, 0.5);      
+                            app->m_plrManager->StartPLRp2p(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
+                                this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
                             app->EnableInfoLog();
                         }
                     );                    
@@ -199,7 +200,8 @@ namespace ns3
                         this->fanet->clusters[i].Get(j), 0.0, simDuration,
                         [this, i](Ptr<ClusterNodeApp> app) {
                             app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
-                            app->SetupPLR(this->fanet->allNodes.GetN());
+                            //app->SetupPLR(this->fanet->allNodes.GetN());
+                            app->m_plrManager->Setup(this->fanet->allNodes.GetN());   
                             app->EnableInfoLog();
                         }
                     );

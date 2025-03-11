@@ -5,7 +5,7 @@ namespace ns3
 {
     NS_LOG_COMPONENT_DEFINE("FANETCommunication");
 
-    int FANETCommunication::SendPacket(FANETApplication* app, const Ptr<Packet> packet, Ipv4Address destAddr)
+    int FANETCommunication::SendPacket(Ptr<FANETApplication> app, Ptr<Packet> packet, Ipv4Address destAddr)
     {
         if (!app->GetSocket())
         {
@@ -26,7 +26,7 @@ namespace ns3
         return sentBytes;
     }
 
-    void FANETCommunication::ReceivePacket(FANETApplication* app, Ptr<Socket> socket)
+    void FANETCommunication::ReceivePacket(Ptr<FANETApplication> app, Ptr<Socket> socket)
     {
         std::queue<Ptr<Packet>>& packetQueue = app->GetPacketQueue();
         std::queue<Address>& addressQueue = app->GetAddressQueue();

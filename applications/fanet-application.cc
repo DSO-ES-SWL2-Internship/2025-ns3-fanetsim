@@ -7,9 +7,11 @@ namespace ns3
     NS_LOG_COMPONENT_DEFINE("FANETApplication");
 
     FANETApplication::FANETApplication()
-        : m_socket(nullptr), 
+        : m_plrManager(std::make_unique<PLRManager>()),
+        m_socket(nullptr), 
         m_destAddr(Ipv4Address("0.0.0.0")), 
         m_port(8080)
+        
     {}
 
 
@@ -117,8 +119,8 @@ namespace ns3
 
     void FANETApplication::RegisterHandlers()
     {
-        dataServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { HandlePLRPacket(header, packet, from); };
-        requestServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { HandlePLRRequest(header, packet, from ); };
-        responseServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { HandlePLRResponse(header, packet, from ); };
+        dataServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { m_plrManager->HandleData(this, header, packet, from); };
+        requestServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { m_plrManager->HandleRequest(this, header, packet, from ); };
+        responseServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { m_plrManager->HandleResponse(this, header, packet, from ); };
     }
 }
