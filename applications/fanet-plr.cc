@@ -28,7 +28,7 @@ namespace ns3
         m_packetsSentPLR.assign(nNodes, 0);
     }
 
-    void PLRManager::StartPLRp2p(Ptr<FANETApplication> app,double startTime, uint32_t nodeId, Ipv4Address destAddress, uint32_t pktsToSend, double interval)
+    void PLRManager::StartP2PTest(Ptr<FANETApplication> app,double startTime, uint32_t nodeId, Ipv4Address destAddress, uint32_t pktsToSend, double interval)
     {
         Simulator::Schedule(Seconds(startTime), &PLRManager::SendData, this, app, nodeId, destAddress, pktsToSend, interval);
     }

@@ -15,7 +15,11 @@ namespace ns3
 
             void Setup(uint32_t nNodes);
 
-            void StartPLRp2p(Ptr<FANETApplication> app, double startTime, uint32_t nodeId, Ipv4Address destAddress, uint32_t pktsToSend, double interval);
+            void StartP2PTest(Ptr<FANETApplication> app, double startTime, uint32_t nodeId, Ipv4Address destAddress, uint32_t pktsToSend, double interval);
+
+            void StartClusterTest(Ptr<FANETApplication> app, double startTime, NodeContainer cluster, Ipv4InterfaceContainer clusterInterface, uint32_t pktsToSend, double interval);
+
+            void StartFANETTest();
             
             void HandleData(Ptr<FANETApplication> app, FANETHeader* header, Ptr<Packet> packet, Address from);
             void HandleRequest(Ptr<FANETApplication> app, FANETHeader* header, Ptr<Packet> packet, Address from);
