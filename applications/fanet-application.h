@@ -206,8 +206,10 @@ namespace ns3
 
             void SendPLRResponse(Ipv4Address destAddress);
 
+            void SendPLRRequest(Ipv4Address destAddress);
+
         private:
-            uint32_t m_packetSizePLR;
+            
             uint32_t m_sequenceNumberPLR;
             uint32_t m_expectedSeqPLR;
             uint32_t m_receivedPacketsPLR;
