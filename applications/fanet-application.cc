@@ -9,12 +9,7 @@ namespace ns3
     FANETApplication::FANETApplication()
         : m_socket(nullptr), 
         m_destAddr(Ipv4Address("0.0.0.0")), 
-        m_port(8080),
-        m_sequenceNumberPLR(0),
-        m_expectedSeqPLR(0),
-        m_receivedPacketsPLR(0),
-        m_lostPacketsPLR(0),
-        m_packetsSentPLR(0)
+        m_port(8080)
     {}
 
 

@@ -183,7 +183,12 @@ namespace ns3
                         this->fanet->clusters[i].Get(j), 0.0, simDuration,
                         [this, i](Ptr<ClusterNodeApp> app) {
                             app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
-                            app->SchedulePLR(0.5, this->ipv4->clustersInterfaces[1].GetAddress(2), 20, 0.5);
+                            app->SetupPLR(this->fanet->allNodes.GetN());
+                            app->StartPLRTest(0.5, this->fanet->clusters[1].Get(2)->GetId(), 
+                                this->ipv4->clustersInterfaces[1].GetAddress(2), 20, 0.5);
+
+                            app->StartPLRTest(0.5, this->fanet->clusters[0].Get(1)->GetId(), 
+                                this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);                               
                             app->EnableInfoLog();
                         }
                     );                    
@@ -194,6 +199,7 @@ namespace ns3
                         this->fanet->clusters[i].Get(j), 0.0, simDuration,
                         [this, i](Ptr<ClusterNodeApp> app) {
                             app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                            app->SetupPLR(this->fanet->allNodes.GetN());
                             app->EnableInfoLog();
                         }
                     );

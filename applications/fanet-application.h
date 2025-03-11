@@ -96,9 +96,9 @@ namespace ns3
 
             void ScheduleRequestPLR(double time, Ipv4Address destAddress);
 
-            void SchedulePLR(double time, Ipv4Address destAddress, uint32_t pktsToSend, double interval);
+            void StartPLRTest(double startTime, uint32_t nodeId,Ipv4Address destAddress, uint32_t pktsToSend, double interval);
 
-            
+            void SetupPLR(uint32_t nNodes);
 
         protected:
             /**
@@ -196,25 +196,24 @@ namespace ns3
 
             void HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet, Address from);
 
-            void SendPLRPacket(Ipv4Address destAddress, uint32_t pktsToSend, double interval);
+            void SendPLRPacket(uint32_t nodeId, Ipv4Address destAddress, uint32_t pktsToSend, double interval);
 
-            double GetPLR();
+            double GetPLR(uint32_t nodeId);
 
             void HandlePLRRequest(FANETHeader* header, Ptr<Packet> packet, Address from);
 
             void HandlePLRResponse(FANETHeader* header, Ptr<Packet> packet, Address from);
 
-            void SendPLRResponse(Ipv4Address destAddress);
+            void SendPLRResponse(uint32_t nodeId, Ipv4Address destAddress);
 
-            void SendPLRRequest(Ipv4Address destAddress);
+            void SendPLRRequest(uint32_t nodeId, Ipv4Address destAddress);
 
         private:
-            
-            uint32_t m_sequenceNumberPLR;
-            uint32_t m_expectedSeqPLR;
-            uint32_t m_receivedPacketsPLR;
-            uint32_t m_lostPacketsPLR;
-            uint32_t m_packetsSentPLR;
+            std::vector<uint32_t> m_sequenceNumberPLR;
+            std::vector<uint32_t> m_expectedSeqPLR;
+            std::vector<uint32_t> m_receivedPacketsPLR;
+            std::vector<uint32_t> m_lostPacketsPLR;
+            std::vector<uint32_t> m_packetsSentPLR;
             
     };
 }
