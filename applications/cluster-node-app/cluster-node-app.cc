@@ -69,7 +69,7 @@ namespace ns3
     {
         FANETApplication::RegisterHandlers();
 
-        helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandleCHPromo(header, packet); };
+        helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from ) { HandleCHPromo(header, packet, from); };
     }
 
     void ClusterNodeApp::EnableInfoLog()

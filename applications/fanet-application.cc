@@ -52,16 +52,16 @@ namespace ns3
         switch (header.GetType())
         {
             case HELLO:
-                ProcessHelloPacket(&header, packet);
+                ProcessHelloPacket(&header, packet, addr);
                 break;
             case DATA:
-                ProcessDataPacket(&header, packet);
+                ProcessDataPacket(&header, packet, addr);
                 break;
             case REQUEST:
-                ProcessRequestPacket(&header, packet);
+                ProcessRequestPacket(&header, packet, addr);
                 break;
             case RESPONSE:
-                ProcessResponsePacket(&header, packet);
+                ProcessResponsePacket(&header, packet, addr);
                 break;
             default:
                 NS_LOG_WARN("Unknown packet type received!");
@@ -73,37 +73,37 @@ namespace ns3
         }
     }
 
-    void FANETApplication::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet) {
+    void FANETApplication::ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet, Address from) {
         auto it = helloServiceHandlers.find(header->GetService());
         if (it != helloServiceHandlers.end()) {
-            it->second(header, packet);  
+            it->second(header, packet, from);  
         } else {
             NS_LOG_DEBUG("No Hello handler registered for service type: " << header->GetService());
         }
     }
 
-    void FANETApplication::ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet) {
+    void FANETApplication::ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet, Address from) {
         auto it = dataServiceHandlers.find(header->GetService());
         if (it != dataServiceHandlers.end()) {
-            it->second(header, packet);
+            it->second(header, packet, from);
         } else {
             NS_LOG_DEBUG("No Data handler registered for service type: " << header->GetService());
         }
     }
 
-    void FANETApplication::ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet) {
+    void FANETApplication::ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet, Address from) {
         auto it = requestServiceHandlers.find(header->GetService());
         if (it != requestServiceHandlers.end()) {
-            it->second(header, packet);
+            it->second(header, packet, from);
         } else {
             NS_LOG_DEBUG("No Request handler registered for service type: " << header->GetService());
         }
     }
 
-    void FANETApplication::ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet) {
+    void FANETApplication::ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet, Address from) {
         auto it = responseServiceHandlers.find(header->GetService());
         if (it != responseServiceHandlers.end()) {
-            it->second(header, packet);
+            it->second(header, packet, from);
         } else {
             NS_LOG_DEBUG("No Response handler registered for service type: " << header->GetService());
         }
@@ -123,6 +123,8 @@ namespace ns3
 
     void FANETApplication::RegisterHandlers()
     {
-        dataServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet) { HandlePLRPacket(header, packet); };
+        dataServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { HandlePLRPacket(header, packet, from); };
+        requestServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { HandlePLRRequest(header, packet, from ); };
+        responseServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { HandlePLRResponse(header, packet, from ); };
     }
 }

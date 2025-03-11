@@ -74,7 +74,7 @@ namespace ns3
 
             void RegisterHandlers() override;
 
-            void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet);
+            void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet, Address from);
 
     };
 }

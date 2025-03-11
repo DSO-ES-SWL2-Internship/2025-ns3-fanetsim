@@ -94,11 +94,11 @@ namespace ns3
             virtual void EnableInfoLog();
             virtual void EnableDebugLog();
 
-            double GetPLR();
+            void ScheduleRequestPLR(double time, Ipv4Address destAddress);
 
             void SchedulePLR(double time, Ipv4Address destAddress, uint32_t pktsToSend, double interval);
 
-            void SendPLRPacket(Ipv4Address destAddress, uint32_t pktsToSend, double interval);
+            
 
         protected:
             /**
@@ -137,13 +137,13 @@ namespace ns3
             /// @brief  Queue to store sender addresses associated with received packets
             std::queue<Address> m_addressQueue;
             /// @brief unordered map to store hello service-handler key-value pairs
-            std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> helloServiceHandlers;
+            std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>, Address)>> helloServiceHandlers;
             /// @brief unordered map to store data service-handler key-value pairs
-            std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> dataServiceHandlers;
+            std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>, Address)>> dataServiceHandlers;
             /// @brief unordered map to store request service-handler key-value pairs
-            std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> requestServiceHandlers;
+            std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>, Address)>> requestServiceHandlers;
             /// @brief unordered map to store response service-handler key-value pairs
-            std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>)>> responseServiceHandlers;     
+            std::unordered_map<int, std::function<void(FANETHeader*, Ptr<Packet>, Address)>> responseServiceHandlers;     
 
             /**
              * @brief Processes a received Hello packet.
@@ -155,7 +155,7 @@ namespace ns3
              * @param header Pointer to the FANETHeader containing packet metadata.
              * @param packet Pointer to the received packet.
              */
-            void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet);
+            void ProcessHelloPacket(FANETHeader* header, Ptr<Packet> packet, Address from);
 
             /**
              * @brief Processes a received Data packet.
@@ -167,7 +167,7 @@ namespace ns3
              * @param header Pointer to the FANETHeader containing packet metadata.
              * @param packet Pointer to the received packet.
              */
-            void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet);
+            void ProcessDataPacket(FANETHeader* header, Ptr<Packet> packet, Address from);
 
 
             /**
@@ -180,7 +180,7 @@ namespace ns3
              * @param header Pointer to the FANETHeader containing packet metadata.
              * @param packet Pointer to the received packet.
              */
-            void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet);
+            void ProcessRequestPacket(FANETHeader* header, Ptr<Packet> packet, Address from);
 
             /**
              * @brief Processes a received Response packet.
@@ -192,9 +192,19 @@ namespace ns3
              * @param header Pointer to the FANETHeader containing packet metadata.
              * @param packet Pointer to the received packet.
              */
-            void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet);
+            void ProcessResponsePacket(FANETHeader* header, Ptr<Packet> packet, Address from);
 
-            void HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet);
+            void HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet, Address from);
+
+            void SendPLRPacket(Ipv4Address destAddress, uint32_t pktsToSend, double interval);
+
+            double GetPLR();
+
+            void HandlePLRRequest(FANETHeader* header, Ptr<Packet> packet, Address from);
+
+            void HandlePLRResponse(FANETHeader* header, Ptr<Packet> packet, Address from);
+
+            void SendPLRResponse(Ipv4Address destAddress);
 
         private:
             uint32_t m_packetSizePLR;

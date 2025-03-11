@@ -57,7 +57,7 @@ namespace ns3
     }
 
 
-    void ClusterNodeApp::HandleCHPromo(FANETHeader* header, Ptr<Packet> packet)
+    void ClusterNodeApp::HandleCHPromo(FANETHeader* header, Ptr<Packet> packet, Address from)
     {
         uint8_t buffer[128] = {0};
         packet->CopyData(buffer, packet->GetSize());

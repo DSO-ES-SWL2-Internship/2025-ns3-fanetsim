@@ -4,7 +4,7 @@ namespace ns3
 {
     NS_LOG_COMPONENT_DEFINE("GdtChPromo");
 
-    void GDTApp::HandleCHPromo(FANETHeader* header, Ptr<Packet> packet)
+    void GDTApp::HandleCHPromo(FANETHeader* header, Ptr<Packet> packet, Address from)
     {
         uint8_t buffer[128] = {0};
         packet->CopyData(buffer, packet->GetSize());

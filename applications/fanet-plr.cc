@@ -43,7 +43,7 @@ namespace ns3
         Simulator::Schedule(Seconds(time), &FANETApplication::SendPLRPacket, this, destAddress, pktsToSend, interval);
     }
 
-    void FANETApplication::HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet)
+    void FANETApplication::HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet, Address from)
     {
         uint32_t seqNum;
         packet->CopyData((uint8_t*) &seqNum, sizeof(uint32_t));
@@ -55,6 +55,44 @@ namespace ns3
         m_expectedSeqPLR = seqNum + 1;
 
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
-            << GetNode()->GetId() << " received PLR from " << header->GetNodeId() << " . Current PLR: " << GetPLR() << "%");
+            << GetNode()->GetId() << " received PLR packet from " << header->GetNodeId() << " . Current PLR: " << GetPLR() << "%");
+    }
+
+    void FANETApplication::ScheduleRequestPLR(double time, Ipv4Address destAddress)
+    {
+        Simulator::Schedule(Seconds(time), &FANETApplication::SendPLRResponse, this, destAddress);
+    }
+
+    void FANETApplication::HandlePLRRequest(FANETHeader* header, Ptr<Packet> packet, Address from)
+    {
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
+            << "s, Node " << GetNode()->GetId() 
+            << " received PLR request from " << from);
+        Ipv4Address senderIp = InetSocketAddress::ConvertFrom(from).GetIpv4();
+        SendPLRResponse(senderIp);
+    }
+
+    void FANETApplication::HandlePLRResponse(FANETHeader* header, Ptr<Packet> packet, Address from)
+    {
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
+            << GetNode()->GetId() << " received PLR from Node " << header->GetNodeId() << ". PLR: " << GetPLR() << "%");
+    }
+
+    void FANETApplication::SendPLRResponse(Ipv4Address destAddress)
+    {
+        FANETHeader header;
+        header.SetType(RESPONSE);
+        header.SetService(PLR);
+        header.SetClusterId(9999);
+        header.SetNodeId(GetNode()->GetId());
+
+        double plr = GetPLR();
+        Ptr<Packet> packet = Create<Packet>((uint8_t*) &plr, sizeof(double));
+        packet->AddHeader(header);
+        
+        FANETCommunication::SendPacket(this, packet, destAddress);
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
+            << "s, Node " << GetNode()->GetId() 
+            << " sent PLR response to " << destAddress);
     }
 }
