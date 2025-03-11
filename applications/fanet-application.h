@@ -94,9 +94,11 @@ namespace ns3
             virtual void EnableInfoLog();
             virtual void EnableDebugLog();
 
-            void SetupPLRSender(Ipv4Address address, double interval);
             double GetPLR();
-            void SendPLRPacket();
+
+            void SchedulePLR(double time, Ipv4Address destAddress, uint32_t pktsToSend, double interval);
+
+            void SendPLRPacket(Ipv4Address destAddress, uint32_t pktsToSend, double interval);
 
         protected:
             /**
@@ -194,17 +196,13 @@ namespace ns3
 
             void HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet);
 
-            void CheckForPLRTimeout();
-            void StartPLRTimeoutCheck();
-
         private:
             uint32_t m_packetSizePLR;
             uint32_t m_sequenceNumberPLR;
             uint32_t m_expectedSeqPLR;
             uint32_t m_receivedPacketsPLR;
             uint32_t m_lostPacketsPLR;
-            Ipv4Address m_destAddrPLR;
-            double m_intervalPLR;
+            uint32_t m_packetsSentPLR;
             
     };
 }

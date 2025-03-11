@@ -6,34 +6,41 @@ namespace ns3
 {
     NS_LOG_COMPONENT_DEFINE("FANETPlr");
 
-    void FANETApplication::SetupPLRSender(Ipv4Address address, double interval)
-    {
-        m_destAddrPLR = address;
-        m_intervalPLR = interval;
-        m_sequenceNumberPLR = 0;
-    }
-
     double FANETApplication::GetPLR() { return (double) m_lostPacketsPLR / (m_receivedPacketsPLR + m_lostPacketsPLR); }
 
-    void FANETApplication::SendPLRPacket()
+    void FANETApplication::SendPLRPacket(Ipv4Address destAddress, uint32_t pktsToSend, double interval)
     {
-        FANETHeader header;
-        header.SetType(DATA);
-        header.SetService(PLR);
-        header.SetClusterId(9999);
-        header.SetNodeId(GetNode()->GetId());
+        if (m_packetsSentPLR < pktsToSend)
+        {
+            FANETHeader header;
+            header.SetType(DATA);
+            header.SetService(PLR);
+            header.SetClusterId(9999);
+            header.SetNodeId(GetNode()->GetId());
 
-        Ptr<Packet> packet = Create<Packet>((uint8_t*) &m_sequenceNumberPLR, sizeof(uint32_t));
-        packet->AddHeader(header);
-        //packet->CopyData((uint8_t*) &m_sequenceNumberPLR, sizeof(uint32_t));
-        
-        FANETCommunication::SendPacket(this, packet, m_destAddrPLR);
-        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
-            << GetNode()->GetId() << " sent PLR packet to destination (Seq No. = " 
-            << m_sequenceNumberPLR << "): " << m_destAddrPLR);
-        m_sequenceNumberPLR++;
+            Ptr<Packet> packet = Create<Packet>((uint8_t*) &m_sequenceNumberPLR, sizeof(uint32_t));
+            packet->AddHeader(header);
+            
+            FANETCommunication::SendPacket(this, packet, destAddress);
+            NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
+                << GetNode()->GetId() << " sent PLR packet to destination (Seq No. = " 
+                << m_sequenceNumberPLR << "): " << destAddress);
 
-        Simulator::Schedule(Seconds(m_intervalPLR), &FANETApplication::SendPLRPacket, this);
+            m_sequenceNumberPLR++;
+            m_packetsSentPLR++;
+
+            Simulator::Schedule(Seconds(interval), &FANETApplication::SendPLRPacket, this, destAddress, pktsToSend, interval);
+        } 
+        else 
+        {
+            m_packetsSentPLR = 0;
+            NS_LOG_DEBUG("All PLR packets have been sent");
+        }
+    }
+
+    void FANETApplication::SchedulePLR(double time, Ipv4Address destAddress, uint32_t pktsToSend, double interval)
+    {
+        Simulator::Schedule(Seconds(time), &FANETApplication::SendPLRPacket, this, destAddress, pktsToSend, interval);
     }
 
     void FANETApplication::HandlePLRPacket(FANETHeader* header, Ptr<Packet> packet)

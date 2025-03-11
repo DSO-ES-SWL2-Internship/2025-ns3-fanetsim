@@ -15,8 +15,8 @@ namespace ns3
         m_expectedSeqPLR(0),
         m_receivedPacketsPLR(0),
         m_lostPacketsPLR(0),
-        m_destAddrPLR(Ipv4Address("0.0.0.0")),
-        m_intervalPLR(0.0) {}
+        m_packetsSentPLR(0)
+    {}
 
 
     FANETApplication::~FANETApplication(){}
