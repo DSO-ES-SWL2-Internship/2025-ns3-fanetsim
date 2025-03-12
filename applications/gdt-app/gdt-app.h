@@ -56,16 +56,6 @@ namespace ns3
              */
             virtual void DoInitialize() override;
 
-            /**
-             * @brief Callback function to handle incoming packets
-             * 
-             * This functions triggers when packet is received, storing it in the queue
-             * for further processing
-             * 
-             * @param socket Socket that received the packet
-             */
-            void HandleRead(Ptr<Socket> socket);
-
             void RegisterHandlers() override;
 
             void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet, Address from);

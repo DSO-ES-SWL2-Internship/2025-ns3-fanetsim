@@ -72,12 +72,6 @@ namespace ns3
              */
             virtual void DoInitialize() override;
 
-            /**
-             * @brief Handles the messages sent to the node
-             * @param socket socket receiving the data
-             */
-            void HandleRead(Ptr<Socket> socket);
-
             void SendNotifyGdtMessage();
 
             void RegisterHandlers() override;

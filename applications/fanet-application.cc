@@ -1,6 +1,7 @@
 #include "fanet-application.h"
 #include "ns3/core-module.h"
 #include "ns3/log.h"
+#include "ns3/fanet-communication.h"
 
 namespace ns3 
 {
@@ -122,5 +123,10 @@ namespace ns3
         dataServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { m_plrManager->HandleData(this, header, packet, from); };
         requestServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { m_plrManager->HandleRequest(this, header, packet, from ); };
         responseServiceHandlers[PLR] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { m_plrManager->HandleResponse(this, header, packet, from ); };
+    }
+
+    void FANETApplication::HandleRead(Ptr<Socket> socket)
+    {
+        FANETCommunication::ReceivePacket(this, socket);
     }
 }

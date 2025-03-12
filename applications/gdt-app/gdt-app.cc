@@ -1,4 +1,5 @@
 #include "gdt-app.h"
+#include "ns3/fanet-communication.h"
 
 namespace ns3 
 {
@@ -50,23 +51,6 @@ namespace ns3
         }
 
         Application::DoInitialize();
-    }
-
-    void GDTApp::HandleRead(Ptr<Socket> socket)
-    {
-        Ptr<Packet> packet;
-        Address from;
-
-        while ((packet = socket->RecvFrom(from)))
-        {
-            m_packetQueue.push(packet);
-            m_addressQueue.push(from);
-        }
-
-        if (!m_packetQueue.empty())
-        {
-            Simulator::ScheduleNow(&GDTApp::ProcessNextPacket, this);
-        }
     }
 
     void GDTApp::RegisterHandlers()

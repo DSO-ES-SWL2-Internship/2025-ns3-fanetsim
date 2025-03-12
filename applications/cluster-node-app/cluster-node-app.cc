@@ -59,14 +59,6 @@ namespace ns3
         Application::DoInitialize();
     }
 
-
-
-    void ClusterNodeApp::HandleRead(Ptr<Socket> socket)
-    {
-        FANETCommunication::ReceivePacket(this, socket);
-    }
-
-
     void ClusterNodeApp::RegisterHandlers() 
     {
         FANETApplication::RegisterHandlers();
