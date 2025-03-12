@@ -42,15 +42,10 @@ namespace ns3
     {
         if (!m_socket)
         {
-            m_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
-            InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
-            m_socket->Bind(local);
-            m_socket->SetRecvCallback(MakeCallback(&GDTApp::HandleRead, this));
-            m_socket->SetAttribute("RcvBufSize", UintegerValue(65536));
             RegisterHandlers();
         }
 
-        Application::DoInitialize();
+        FANETApplication::DoInitialize();
     }
 
     void GDTApp::RegisterHandlers()

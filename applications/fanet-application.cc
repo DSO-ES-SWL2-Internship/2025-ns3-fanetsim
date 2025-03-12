@@ -129,4 +129,18 @@ namespace ns3
     {
         FANETCommunication::ReceivePacket(this, socket);
     }
+
+    void FANETApplication::DoInitialize()
+    {
+        if (!m_socket)
+        {
+            m_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+            InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
+            m_socket->Bind(local);
+            m_socket->SetRecvCallback(MakeCallback(&FANETApplication::HandleRead, this));
+            m_socket->SetAttribute("RcvBufSize", UintegerValue(65536));
+        }
+
+        Application::DoInitialize();
+    }
 }

@@ -48,15 +48,10 @@ namespace ns3
     {
         if (!m_socket)
         {
-            m_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
-            InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
-            m_socket->Bind(local);
-            m_socket->SetRecvCallback(MakeCallback(&ClusterNodeApp::HandleRead, this));
-
             RegisterHandlers();
         }
 
-        Application::DoInitialize();
+        FANETApplication::DoInitialize();
     }
 
     void ClusterNodeApp::RegisterHandlers() 
