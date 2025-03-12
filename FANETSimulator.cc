@@ -164,32 +164,37 @@ namespace ns3
 
         this->SetRoutingProtocol(AODV);
 
-        this->AssignAddress("10.1.1.0", "255.255.255.0");
+        this->AssignAddress("10.1.0.0", "255.255.255.0");
 
 
         InstallApplication<GDTApp>(
             this->fanet->GDTNode.Get(0), 0.0, simDuration,
-            [](Ptr<GDTApp> app) {app->SetPort(8080);},
-            [](Ptr<GDTApp> app) {app->EnableInfoLog();}
+            [this](Ptr<GDTApp> app) {
+                app->SetPort(8080);
+                app->EnableInfoLog();
+                app->m_plrManager->Setup(this->fanet->allNodes.GetN());
+            }          
         );
         
         for (size_t i = 0; i < this->fanet->clusters.size(); i++)
         {
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
             {
-                if (i == 0 && j == 2)
+                if (i == 1 && j == 2)
                 {
                     InstallApplication<ClusterNodeApp>(
                         this->fanet->clusters[i].Get(j), 0.0, simDuration,
                         [this, i](Ptr<ClusterNodeApp> app) {
 
-                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
                             
                             app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
-                            app->m_plrManager->StartPLRp2p(app, 0.5, this->fanet->clusters[1].Get(2)->GetId(), 
-                                this->ipv4->clustersInterfaces[1].GetAddress(2), 20, 0.5);      
-                            app->m_plrManager->StartPLRp2p(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
-                                this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
+                            app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[1].Get(2)->GetId(), 
+                                app->GetClusterBroadcastIP(), 20, 0.5);      
+                                NS_LOG_UNCOND(app->GetClusterBaseIP());
+                                NS_LOG_UNCOND(this->ipv4->GetBroadcastIP(this->ipv4->clustersBaseIP[0]));
+                            // app->m_plrManager->StartP2PTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
+                            //     this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
                             app->EnableInfoLog();
                         }
                     );                    
@@ -199,7 +204,7 @@ namespace ns3
                     InstallApplication<ClusterNodeApp>(
                         this->fanet->clusters[i].Get(j), 0.0, simDuration,
                         [this, i](Ptr<ClusterNodeApp> app) {
-                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i);
+                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
                             //app->SetupPLR(this->fanet->allNodes.GetN());
                             app->m_plrManager->Setup(this->fanet->allNodes.GetN());   
                             app->EnableInfoLog();

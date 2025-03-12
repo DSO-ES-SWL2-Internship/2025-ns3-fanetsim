@@ -14,6 +14,7 @@ namespace ns3
         }
 
         Ptr<Socket> socket = app->GetSocket();
+        socket->SetAllowBroadcast(true);
         socket->Connect(InetSocketAddress(destAddr, app->GetPort()));
 
         int sentBytes = socket->Send(packet);

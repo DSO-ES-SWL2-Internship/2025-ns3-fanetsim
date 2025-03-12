@@ -6,7 +6,8 @@ namespace ns3
     NS_LOG_COMPONENT_DEFINE("ClusterNodeApp");
 
     ClusterNodeApp::ClusterNodeApp()
-        : m_isClusterHead(false)
+        : m_isClusterHead(false),
+        m_clusterBaseIP("0.0.0.0")
     {
 
     }
@@ -20,11 +21,12 @@ namespace ns3
         }
     }
 
-    void ClusterNodeApp::SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex)
+    void ClusterNodeApp::SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex, Ipv4Address clusterBaseIP)
     {
         m_destAddr = gdtIp;
         m_port = port;
         m_clusterIndex = clusterIndex;
+        m_clusterBaseIP = clusterBaseIP;
     }
 
     void ClusterNodeApp::StartApplication()
@@ -85,4 +87,11 @@ namespace ns3
         LogComponentEnable("ClusterNodeApp", LOG_LEVEL_DEBUG);
         LogComponentEnable("ClusterNodeCHPromo", LOG_LEVEL_DEBUG);
     }
+
+    uint32_t ClusterNodeApp::GetClusterIndex() { return m_clusterIndex; }
+
+    Ipv4Address ClusterNodeApp::GetClusterBaseIP() { return  m_clusterBaseIP; }
+
+    Ipv4Address ClusterNodeApp::GetClusterBroadcastIP() { return Ipv4Address( m_clusterBaseIP.Get() | 0x000000FF); }
+
 }

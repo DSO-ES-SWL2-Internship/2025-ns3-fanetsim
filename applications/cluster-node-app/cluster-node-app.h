@@ -28,7 +28,7 @@ namespace ns3
              * @param port The port number used for communication
              * @param clusterIndex The index of the cluster
              */
-            void SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex);
+            void SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex, Ipv4Address clusterBaseIP);
 
             /**
              * @brief Schedules the message to notify the GDT of the promotion to CH
@@ -40,6 +40,12 @@ namespace ns3
             /// @brief Enable NS_LOG_DEBUG for this component
             void EnableDebugLog() override;
 
+            uint32_t GetClusterIndex();
+
+            Ipv4Address GetClusterBaseIP();
+
+            Ipv4Address GetClusterBroadcastIP();
+
         private:
             /// @brief Flag indication if the node is a cluster head
             bool m_isClusterHead;
@@ -47,6 +53,8 @@ namespace ns3
             EventId m_sendEvent; 
             /// @brief Cluster index the node belongs to
             uint32_t m_clusterIndex;
+
+            Ipv4Address m_clusterBaseIP;
 
             /// @brief Starts the application
             virtual void StartApplication() override;
@@ -75,6 +83,8 @@ namespace ns3
             void RegisterHandlers() override;
 
             void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet, Address from);
+
+
 
     };
 }

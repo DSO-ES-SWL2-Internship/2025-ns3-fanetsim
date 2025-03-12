@@ -33,6 +33,8 @@ namespace ns3
             Ipv4InterfaceContainer GDTInterface;
             /// @brief Vector containing the Interface container of each cluster
             std::vector<Ipv4InterfaceContainer> clustersInterfaces;
+            /// @brief Vector containing the base IP of each cluster
+            std::vector<Ipv4Address> clustersBaseIP;
             /// @brief Interfaces of the links between cluster nodes and gdt. Outer vecter being the clusters, inner vector being the links of each cluster node to the gdt
             std::vector<std::vector<Ipv4InterfaceContainer>> clustersLinkInterfaces;
             /// @brief Interface details of CH-GDT links
@@ -75,6 +77,12 @@ namespace ns3
              * @return The base network address.
              */
             static Ipv4Address GetBaseAddress(Ipv4Address ip);
+
+            void StoreClusterBaseIP(Ipv4Address addr);
+
+            Ipv4Address GetClusterBaseIP(uint32_t clusterIndex);
+
+            Ipv4Address GetBroadcastIP(Ipv4Address addr);
         };
 }
 

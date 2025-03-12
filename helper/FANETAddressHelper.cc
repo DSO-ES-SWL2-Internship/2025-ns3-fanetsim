@@ -68,6 +68,7 @@ namespace ns3
             ipv4.SetBase(network, mask);
             Ipv4InterfaceContainer clusterInterface = ipv4.Assign(clustersDevices[i]);
             clustersInterfaces.push_back(clusterInterface);
+            StoreClusterBaseIP(network);
             IncrementNetwork();
             
             // For each nodes in the cluster create the interface between the GDT and cluster node devices and disable them
@@ -105,6 +106,16 @@ namespace ns3
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     }
 
+    void FANETAddressHelper::StoreClusterBaseIP(Ipv4Address addr)
+    {
+        clustersBaseIP.push_back(addr);
+    }
+
+    Ipv4Address FANETAddressHelper::GetClusterBaseIP(uint32_t clusterIndex)
+    {
+        return clustersBaseIP[clusterIndex];
+    }
+
     Ipv4Address FANETAddressHelper::GetBaseAddress(Ipv4Address ip)
     {
         uint32_t ipInt = ip.Get(); // Convert IP to integer
@@ -113,5 +124,11 @@ namespace ns3
         uint32_t baseIPInt = ipInt & 0xFFFFFF00; 
 
         return Ipv4Address(baseIPInt); // Convert back to Ipv4Address
+    }
+
+    Ipv4Address FANETAddressHelper::GetBroadcastIP(Ipv4Address addr)
+    {
+
+        { return Ipv4Address( addr.Get() | 0x000000FF); }
     }
 }
