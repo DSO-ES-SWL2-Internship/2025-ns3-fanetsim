@@ -190,9 +190,7 @@ namespace ns3
                             
                             app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
                             app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[1].Get(2)->GetId(), 
-                                app->GetClusterBroadcastIP(), 20, 0.5);      
-                                NS_LOG_UNCOND(app->GetClusterBaseIP());
-                                NS_LOG_UNCOND(this->ipv4->GetBroadcastIP(this->ipv4->clustersBaseIP[0]));
+                                Ipv4Address("224.0.0.1"), 20, 0.5);      
                             // app->m_plrManager->StartP2PTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
                             //     this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
                             app->EnableInfoLog();

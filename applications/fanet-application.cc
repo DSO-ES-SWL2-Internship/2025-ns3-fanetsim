@@ -137,8 +137,21 @@ namespace ns3
             m_socket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
             InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
             m_socket->Bind(local);
+            m_socket->SetAllowBroadcast(true);
             m_socket->SetRecvCallback(MakeCallback(&FANETApplication::HandleRead, this));
             m_socket->SetAttribute("RcvBufSize", UintegerValue(65536));
+
+            Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket> (m_socket);
+            if (udpSocket)
+            {
+                Ipv4Address multicastGroup("224.0.0.1");
+                udpSocket->MulticastJoinGroup(1, multicastGroup);
+            }
+            else
+            {
+                NS_LOG_UNCOND("FML");
+            }
+
         }
 
         Application::DoInitialize();
