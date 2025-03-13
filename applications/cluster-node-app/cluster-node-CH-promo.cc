@@ -68,6 +68,7 @@ namespace ns3
         if (msg == "BECOME_CH")
         {
             NotifyGDT(true);
+            m_isClusterHead = true;
         }
         else if (msg == "STOP_CH")
         {
@@ -75,4 +76,6 @@ namespace ns3
             m_isClusterHead = false;
         }
     }
+
+    bool ClusterNodeApp::GetCHStatus() { return m_isClusterHead; }
 }

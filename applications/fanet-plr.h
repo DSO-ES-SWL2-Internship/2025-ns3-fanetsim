@@ -28,6 +28,9 @@ namespace ns3
             
             double GetPLR(uint32_t nodeId);
 
+            bool HasReceivedNetworkBroadcast(Ptr<FANETApplication> app, FANETHeader* header);
+            void HandleNetworkBroadcast(Ptr<FANETApplication> app, FANETHeader* header, Ptr<Packet> packet, Address from);
+
         private:
             std::vector<uint32_t> m_sequenceNumberPLR;
             std::vector<uint32_t> m_expectedSeqPLR;

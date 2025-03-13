@@ -3,6 +3,8 @@
 #include "ns3/fanet-communication.h"
 #include "ns3/simulator.h"
 #include <cstring>
+#include "ns3/gdt-app.h"
+#include "ns3/cluster-node-app.h"
 
 
 namespace ns3
@@ -35,6 +37,8 @@ namespace ns3
 
     void PLRManager::HandleData(Ptr<FANETApplication> app, FANETHeader* header, Ptr<Packet> packet, Address from)
     {
+        if (HasReceivedNetworkBroadcast(app, header)) return;
+
         uint32_t seqNum;
         packet->CopyData((uint8_t*) &seqNum, sizeof(uint32_t));
 
@@ -59,12 +63,16 @@ namespace ns3
 
 
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
-            << app->GetNode()->GetId() << " received PLR packet from " << header->GetNodeId() << " (Seq no. = " << seqNum << ") . Current PLR: " << GetPLR(nodeId) * 100 << "%");
+            << app->GetNode()->GetId() << " received PLR packet from Node " << header->GetNodeId() << " (Seq no. = " << seqNum << ") . Current PLR: " << GetPLR(nodeId) * 100 << "%");
+
+        HandleNetworkBroadcast(app, header, packet, from);
     }
 
     void PLRManager::HandleRequest(Ptr<FANETApplication> app, FANETHeader* header, Ptr<Packet> packet, Address from)
     {
-        Ipv4Address senderIp = InetSocketAddress::ConvertFrom(from).GetIpv4();
+        if (HasReceivedNetworkBroadcast(app, header)) return;
+
+        Ipv4Address senderIp = header->GetIsBroadcast() ? header->GetBroadCastFrom() : InetSocketAddress::ConvertFrom(from).GetIpv4();
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
             << "s, Node " << app->GetNode()->GetId() 
             << " received PLR request from Node " << header->GetNodeId());
@@ -86,7 +94,8 @@ namespace ns3
         FANETHeader header;
         header.SetType(REQUEST);
         header.SetService(PLR);
-        header.SetClusterId(9999);
+        if (Ptr<GDTApp> gdtapp = DynamicCast<GDTApp>(app)) header.SetClusterId(9999);
+        else if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app)) header.SetClusterId(clusterNodeApp->GetClusterIndex());
         header.SetNodeId(app->GetNode()->GetId());
 
         Ptr<Packet> packet = Create<Packet>();
@@ -107,8 +116,10 @@ namespace ns3
             FANETHeader header;
             header.SetType(DATA);
             header.SetService(PLR);
-            header.SetClusterId(9999);
+            if (Ptr<GDTApp> gdtapp = DynamicCast<GDTApp>(app)) header.SetClusterId(9999);
+            else if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app)) header.SetClusterId(clusterNodeApp->GetClusterIndex());
             header.SetNodeId(app->GetNode()->GetId());
+            if (destAddress.IsBroadcast()) header.SetIsBroadcast(true);
 
             Ptr<Packet> packet = Create<Packet>((uint8_t*) &m_sequenceNumberPLR[nodeId], sizeof(uint32_t));
             packet->AddHeader(header);
@@ -136,7 +147,8 @@ namespace ns3
         FANETHeader header;
         header.SetType(RESPONSE);
         header.SetService(PLR);
-        header.SetClusterId(9999);
+        if (Ptr<GDTApp> gdtapp = DynamicCast<GDTApp>(app)) header.SetClusterId(9999);
+        else if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app)) header.SetClusterId(clusterNodeApp->GetClusterIndex());
         header.SetNodeId(app->GetNode()->GetId());
 
         double plr = GetPLR(nodeId);
@@ -150,5 +162,41 @@ namespace ns3
     
         m_expectedSeqPLR[nodeId] = 0;
         m_lostPacketsPLR[nodeId] = 0;
+    }
+
+    bool PLRManager::HasReceivedNetworkBroadcast(Ptr<FANETApplication> app, FANETHeader* header)
+    {
+
+        // if the application is GDTApp, check if the packet have past through the gdt before
+        // if the packet have past through before perform no further actions
+        if (Ptr<GDTApp> gdtApp = DynamicCast<GDTApp>(app))
+            if (header->GetIsBroadcastForwarding()) return true;
+        // if the application is ClusterNodeApp,
+        if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app))
+            // check if this packet is forwarding a broadcast and if the sender of the broadcast came from a node in the same cluster
+            // if both conditions holds, it means that this cluster have already received the broadcast locally and do not need to receive it again
+            if (header->GetIsBroadcastForwarding() && header->GetClusterId() == clusterNodeApp->GetClusterIndex()) return true;
+
+        return false;
+    }
+
+    void PLRManager::HandleNetworkBroadcast(Ptr<FANETApplication> app, FANETHeader* header, Ptr<Packet> packet, Address from)
+    {
+        // if not a network broadcast no further action is required
+        if (!header->GetIsBroadcast()) return;
+        // if app is an GDTApp set the BroadcastFowarding flag to true
+        if (Ptr<GDTApp> gdtApp = DynamicCast<GDTApp>(app))
+        {
+            header->SetIsBroadcastForwarding(true); 
+            header->SetBroadcastFrom(InetSocketAddress::ConvertFrom(from).GetIpv4());
+        }
+            
+        // if GDTApp, it forward the broadcast to all the cluster heads by broadcasting
+        // if ClusterNodeApp and the node is a cluster head, execute the broadcast in its cluster
+        if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app))
+            if (!clusterNodeApp->GetCHStatus()) return;
+            
+        packet->AddHeader(*header);
+        FANETCommunication::SendPacket(app, packet, Ipv4Address("255.255.255.255"));
     }
 }

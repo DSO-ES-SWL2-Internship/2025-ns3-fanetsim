@@ -5,7 +5,7 @@
 #include "ns3/type-id.h"      // For defining TypeId
 #include "ns3/buffer.h"       // For serialization and deserialization
 #include "ns3/log.h"          // For NS_LOG_INFO and debugging
-
+#include "ns3/ipv4-address.h"
 
 namespace ns3
 {
@@ -41,6 +41,15 @@ namespace ns3
             void SetService(ServiceType service);
             ServiceType GetService();
 
+            void SetIsBroadcast(bool isBroadcast);
+            bool GetIsBroadcast();
+
+            void SetIsBroadcastForwarding(bool isBroadcastForwarding);
+            bool GetIsBroadcastForwarding();
+
+            void SetBroadcastFrom(Ipv4Address from);
+            Ipv4Address GetBroadCastFrom();
+
             static TypeId GetTypeId();
             virtual TypeId GetInstanceTypeId() const override;
             virtual uint32_t GetSerializedSize() const override;
@@ -53,6 +62,9 @@ namespace ns3
             uint32_t m_nodeId;
             uint32_t m_clusterId;
             ServiceType m_service;
+            bool m_isBroadcast;
+            bool m_isBroadcastForwarding;
+            Ipv4Address m_broadcastFrom;
 
     };
 }

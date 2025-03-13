@@ -46,6 +46,8 @@ namespace ns3
 
             Ipv4Address GetClusterBroadcastIP();
 
+            bool GetCHStatus();
+
         private:
             /// @brief Flag indication if the node is a cluster head
             bool m_isClusterHead;
