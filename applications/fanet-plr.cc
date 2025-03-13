@@ -72,12 +72,23 @@ namespace ns3
     {
         if (HasReceivedNetworkBroadcast(app, header)) return;
 
-        Ipv4Address senderIp = header->GetIsBroadcast() ? header->GetBroadCastFrom() : InetSocketAddress::ConvertFrom(from).GetIpv4();
+        Ipv4Address senderIp;
+        if (header->GetIsBroadcast())
+        {
+            if (!header->GetIsBroadcastForwarding())
+                senderIp = InetSocketAddress::ConvertFrom(from).GetIpv4();
+            else senderIp = header->GetBroadCastFrom();
+        }
+        else
+            senderIp = InetSocketAddress::ConvertFrom(from).GetIpv4();
+        
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() 
             << "s, Node " << app->GetNode()->GetId() 
             << " received PLR request from Node " << header->GetNodeId());
         
         SendResponse(app, header->GetNodeId(), senderIp);
+
+        HandleNetworkBroadcast(app, header, packet, from);
     }
 
     void PLRManager::HandleResponse(Ptr<FANETApplication> app, FANETHeader* header, Ptr<Packet> packet, Address from)
@@ -97,6 +108,7 @@ namespace ns3
         if (Ptr<GDTApp> gdtapp = DynamicCast<GDTApp>(app)) header.SetClusterId(9999);
         else if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app)) header.SetClusterId(clusterNodeApp->GetClusterIndex());
         header.SetNodeId(app->GetNode()->GetId());
+        if (destAddress.IsBroadcast()) header.SetIsBroadcast(true);
 
         Ptr<Packet> packet = Create<Packet>();
         packet->AddHeader(header);
@@ -166,7 +178,6 @@ namespace ns3
 
     bool PLRManager::HasReceivedNetworkBroadcast(Ptr<FANETApplication> app, FANETHeader* header)
     {
-
         // if the application is GDTApp, check if the packet have past through the gdt before
         // if the packet have past through before perform no further actions
         if (Ptr<GDTApp> gdtApp = DynamicCast<GDTApp>(app))

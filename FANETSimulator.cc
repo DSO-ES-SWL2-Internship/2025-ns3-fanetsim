@@ -189,10 +189,10 @@ namespace ns3
                             app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
                             
                             app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
-                            app->m_plrManager->StartTest(app, 3, this->fanet->clusters[1].Get(2)->GetId(), 
-                                Ipv4Address("255.255.255.255"), 5, 1);      
-                            // app->m_plrManager->StartP2PTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
-                            //     this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
+                            app->m_plrManager->StartTest(app, 3, this->fanet->clusters[2].Get(2)->GetId(), 
+                                "255.255.255.255", 20, 0.5);      
+                            // app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
+                            //      this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
                             app->EnableInfoLog();
                         }
                     );                    
