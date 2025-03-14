@@ -184,9 +184,12 @@ namespace ns3
             if (header->GetIsBroadcastForwarding()) return true;
         // if the application is ClusterNodeApp,
         if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app))
+        {
             // check if this packet is forwarding a broadcast and if the sender of the broadcast came from a node in the same cluster
             // if both conditions holds, it means that this cluster have already received the broadcast locally and do not need to receive it again
             if (header->GetIsBroadcastForwarding() && header->GetClusterId() == clusterNodeApp->GetClusterIndex()) return true;
+        }
+
 
         return false;
     }
@@ -204,9 +207,17 @@ namespace ns3
             
         // if GDTApp, it forward the broadcast to all the cluster heads by broadcasting
         // if ClusterNodeApp and the node is a cluster head, execute the broadcast in its cluster
-        if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app))
+        if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app)){
             if (!clusterNodeApp->GetCHStatus()) return;
-            
+            else 
+            {
+                if (!header->GetIsBroadcastForwarding())
+                {
+                    header->SetIsBroadcastForwarding(true);
+                    header->SetBroadcastFrom(InetSocketAddress::ConvertFrom(from).GetIpv4());
+                }
+            }
+        }
         packet->AddHeader(*header);
         FANETCommunication::SendPacket(app, packet, Ipv4Address("255.255.255.255"));
     }
