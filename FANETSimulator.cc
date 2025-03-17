@@ -11,6 +11,38 @@ namespace ns3
 
     NS_LOG_COMPONENT_DEFINE("FANETSimulator");
 
+    TypeId FANETSimulator::GetTypeId()
+    {
+        static TypeId tid = 
+            TypeId("ns3::FANETSimulator")
+                .SetParent<ns3::Object>()
+                .AddConstructor<FANETSimulator>()
+                .AddAttribute(  "nClusters",
+                                "The number of clusters in the FANET Network",
+                                UintegerValue(1),
+                                MakeUintegerAccessor(&FANETSimulator::nClusters),
+                                MakeUintegerChecker<uint32_t>())
+                .AddAttribute(  "cycleDuration",
+                                "Period of each cycle",
+                                UintegerValue(200),
+                                MakeUintegerAccessor(&FANETSimulator::cycleDuration),
+                                MakeUintegerChecker<uint32_t>())
+                .AddAttribute(  "filename",
+                                "Output .xml file name for NetAnim",
+                                StringValue("animation.xml"),
+                                MakeStringAccessor(&FANETSimulator::fileName),
+                                MakeStringChecker())
+
+                .AddAttribute(  "simulationDuration",
+                                "Duration of simulation",
+                                DoubleValue(0.0),
+                                MakeDoubleAccessor(&FANETSimulator::simDuration),
+                                MakeDoubleChecker<double>());
+                                
+
+        return tid;
+    }
+
     FANETSimulator::FANETSimulator()
     {
 
@@ -139,22 +171,17 @@ namespace ns3
     }
 
 
-    void FANETSimulator::RunSimulation(std::string fileName)
+    void FANETSimulator::RunSimulation()
     {
-        NS_LOG_INFO("Setting XML output file to: " << this->fileName);
-        this->fileName = fileName;
-
-        
-
         ns3::PacketMetadata::Enable();
 
-        this->GetNClusters();
+        //this->GetNClusters();
 
         this->GetNClusterNodes();
 
-        this->GetCycleDuration();
+        //this->GetCycleDuration();
 
-        this->GetSimulationDuration();
+        //this->GetSimulationDuration();
 
         this->CreateNetwork();
 
@@ -173,7 +200,7 @@ namespace ns3
                 app->SetPort(8080);
                 app->EnableInfoLog();
                 app->m_plrManager->Setup(this->fanet->allNodes.GetN());
-                app->m_plrManager->StartTest(app, 3, 0, "255.255.255.255", 20, 0.5);
+                //app->m_plrManager->StartTest(app, 3, 0, "255.255.255.255", 20, 0.5);
             }          
         );
         
@@ -190,8 +217,8 @@ namespace ns3
                             app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
                             
                             app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
-                            // app->m_plrManager->StartTest(app, 3, this->fanet->clusters[2].Get(2)->GetId(), 
-                            //     "255.255.255.255", 20, 0.5);      
+                            app->m_plrManager->StartTest(app, 3, this->fanet->clusters[2].Get(2)->GetId(), 
+                                 NETWORK_BROADCAST, 20, 0.5);      
                             // app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
                             //      this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
                             app->EnableInfoLog();

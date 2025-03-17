@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <vector>
 
+#define NETWORK_BROADCAST Ipv4Address("255.255.255.255")
+
 namespace ns3
 {
     /**

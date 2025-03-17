@@ -30,7 +30,7 @@ namespace ns3
 
     std::queue<Ptr<Packet>>& FANETApplication::GetPacketQueue() { return m_packetQueue; }
 
-    std::queue<Address>& FANETApplication::GetAddressQueue() { return m_addressQueue;}
+    std::queue<Address>& FANETApplication::GetAddressQueue() { return m_addressQueue; }
 
     void FANETApplication::ProcessNextPacket()
     {
@@ -140,18 +140,6 @@ namespace ns3
             m_socket->SetAllowBroadcast(true);
             m_socket->SetRecvCallback(MakeCallback(&FANETApplication::HandleRead, this));
             m_socket->SetAttribute("RcvBufSize", UintegerValue(65536));
-
-            Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket> (m_socket);
-            if (udpSocket)
-            {
-                Ipv4Address multicastGroup("224.0.0.1");
-                udpSocket->MulticastJoinGroup(1, multicastGroup);
-            }
-            else
-            {
-                NS_LOG_UNCOND("FML");
-            }
-
         }
 
         Application::DoInitialize();

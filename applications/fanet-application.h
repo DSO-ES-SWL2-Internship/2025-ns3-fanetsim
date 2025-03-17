@@ -16,6 +16,9 @@ namespace ns3
     class FANETApplication : public Application  // Inherit from ns3::Application
     {
         public:
+
+            //static TypeId GetTypeId();
+
             FANETApplication();
             virtual ~FANETApplication();
 

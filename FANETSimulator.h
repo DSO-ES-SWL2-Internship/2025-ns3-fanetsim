@@ -6,7 +6,7 @@
 
 namespace ns3 
 {
-    class FANETSimulator
+    class FANETSimulator : public Object
     {
         private:
 
@@ -23,6 +23,8 @@ namespace ns3
 
             /// @brief Duration of each cycle in TDMA
             uint32_t cycleDuration;
+
+            double simDuration;
 
             // Helper functions
 
@@ -43,8 +45,6 @@ namespace ns3
 
             /// @brief Pointer to the FANET animation helper for visualization.
             FANETAnimationHelper *anim;
-
-            double simDuration;
 
             // Methods
             
@@ -76,7 +76,7 @@ namespace ns3
             void SetUpNetAnim();
 
         public:
-
+            static TypeId GetTypeId();
             /// @brief Create a FANET Simulator
             FANETSimulator();
             /// @brief Destroy the FANET Simulator
@@ -87,7 +87,7 @@ namespace ns3
              * 
              * @param fileName Name of output file neccessary for NetAnim
              */
-            void RunSimulation(std::string fileName = "animation.xml");
+            void RunSimulation();
 
     };
 }
