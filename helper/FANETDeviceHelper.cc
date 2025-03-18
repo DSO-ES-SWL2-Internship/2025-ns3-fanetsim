@@ -265,7 +265,7 @@ namespace ns3
     }
 
 
-    void FANETDeviceHelper::AssignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, Ptr<FANETAnimationHelper> anim)
+    void FANETDeviceHelper::AssignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, FANETAnimationHelper* anim)
     {
         for (size_t i = 0; i < fanet->clusters.size(); i++)
         {
@@ -315,7 +315,7 @@ namespace ns3
         Simulator::Schedule(Seconds(5.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);
     }
 
-    void FANETDeviceHelper::ReassignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, Ptr<FANETAnimationHelper> anim)
+    void FANETDeviceHelper::ReassignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, FANETAnimationHelper* anim)
     {
 
         for (size_t i = 0; i < fanet->clusters.size(); i++)

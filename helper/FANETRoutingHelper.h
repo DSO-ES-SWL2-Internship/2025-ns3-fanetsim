@@ -28,6 +28,8 @@ namespace ns3
             /// @brief List of routing protocols for the network.
             Ipv4ListRoutingHelper list;
 
+            RoutingProtocol m_protocol;
+
             /**
              * @brief Installs the internet stack with the selected routing helper on all nodes.
              * @param nodes The container of nodes to install the stack on.
@@ -59,6 +61,10 @@ namespace ns3
              */
             void SetDSDV(NodeContainer nodes);
             //void SetDSR(NodeContainer nodes);
+
+            RoutingProtocol GetRoutingProtocol();
+
+            void InstallRoutingProtocol(NodeContainer nodes);
     };
 }
 

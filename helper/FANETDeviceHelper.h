@@ -91,7 +91,7 @@ namespace ns3
          * @param ipv4 Pointer to the FANET address helper.
          * @param anim Pointer to the FANET animation helper.
          */
-        void AssignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, Ptr<FANETAnimationHelper> anim);
+        void AssignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, FANETAnimationHelper* anim);
 
         /**
          * @brief Reassigns cluster heads dynamically.
@@ -99,7 +99,7 @@ namespace ns3
          * @param ipv4 Pointer to the FANET address helper.
          * @param anim Pointer to the FANET animation helper.
          */
-        void ReassignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, Ptr<FANETAnimationHelper> anim);
+        void ReassignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, FANETAnimationHelper* anim);
 
         /**
          * @brief Notifies a change in cluster head status.

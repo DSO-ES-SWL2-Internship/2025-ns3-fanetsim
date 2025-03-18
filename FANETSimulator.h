@@ -51,8 +51,8 @@ namespace ns3
             void CreateNetwork();
             void InstallDevices();
             void SetMobility();
-            void SetRoutingProtocol(RoutingProtocol protocol);
-            void AssignAddress();
+            void SetRoutingProtocol();
+            void AssignAddress(Ipv4Address network, Ipv4Mask mask);
             void SetUpNetAnim();
 
         public:
@@ -69,16 +69,16 @@ namespace ns3
             Ptr<FANETDeviceHelper> fanetDevices;
 
             /// @brief Helper for handling FANET node mobility.
-            Ptr<FANETMobilityHelper> mobility;
+            FANETMobilityHelper* mobility;
 
             /// @brief Helper for setting up FANET routing protocols.
             Ptr<FANETRoutingHelper> router;
 
             /// @brief Helper for managing FANET IPv4 addressing.
-            Ptr<FANETAddressHelper> ipv4;
+            FANETAddressHelper* ipv4;
 
             /// @brief Pointer to the FANET animation helper for visualization.
-            Ptr<FANETAnimationHelper> anim;
+            FANETAnimationHelper *anim;
 
             void Setup();
 

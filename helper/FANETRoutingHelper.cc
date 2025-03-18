@@ -3,6 +3,7 @@
 #include "ns3/dsdv-module.h"
 #include "ns3/olsr-module.h"
 #include "ns3/dsr-module.h"
+#include "ns3/ff-mac-common.h"
 
 namespace ns3
 {
@@ -14,7 +15,17 @@ namespace ns3
         static TypeId tid =
             TypeId("ns3::FANETRoutingHelper")
                 .SetParent<ns3::Object>()
-                .AddConstructor<FANETRoutingHelper>();
+                .AddConstructor<FANETRoutingHelper>()
+                .AddAttribute(  "routingProtocol",
+                "Set routing protocol used by the fanet",
+                EnumValue(AODV),
+                MakeEnumAccessor(&FANETRoutingHelper::m_protocol),
+                MakeEnumChecker(
+                    AODV, "AODV",
+                    OLSR, "OLSR",
+                    DSDV, "DSDV",
+                    DSR,  "DSR"
+                ));
 
         return tid;
     }
@@ -68,4 +79,33 @@ namespace ns3
     //     this->list.Add(dsr, 100);
     //     InstallInternetStackToAllNodes(nodes);
     // }
+
+    RoutingProtocol FANETRoutingHelper::GetRoutingProtocol() { return m_protocol; }
+
+    void FANETRoutingHelper::InstallRoutingProtocol(NodeContainer nodes)
+    {
+        switch (GetRoutingProtocol())
+        {
+            case AODV: {
+                // TODO: add functionality to include all the different settings for AODV
+                SetAODV(nodes);
+                break;
+            }
+
+            case OLSR: {
+                SetOLSR(nodes);
+                break;
+            }
+
+            case DSDV: {
+                SetDSDV(nodes);
+                break;
+            }
+
+            default: {
+                NS_LOG_UNCOND("Invalid Routing Protocol");
+                exit(FAILURE);
+            }
+        }
+    }
 }
