@@ -9,7 +9,6 @@ namespace ns3
 
     TypeId FANETDeviceHelper::GetTypeId()
     {
-        NS_LOG_UNCOND("hello");
         static TypeId tid = 
             TypeId("ns3::FANETDeviceHelper")
                 .SetParent<ns3::Object>()

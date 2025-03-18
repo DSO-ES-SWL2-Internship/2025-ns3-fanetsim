@@ -54,7 +54,7 @@ namespace ns3
             void InstallDevices();
             void SetMobility();
             void SetRoutingProtocol();
-            void AssignAddress(Ipv4Address network, Ipv4Mask mask);
+            void AssignAddress();
             void SetUpNetAnim();
 
         public:

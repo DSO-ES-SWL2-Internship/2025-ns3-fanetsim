@@ -146,7 +146,7 @@ namespace ns3
 
     }
 
-    void FANETSimulator::AssignAddress(Ipv4Address network, Ipv4Mask mask)
+    void FANETSimulator::AssignAddress()
     {
         this->ipv4->SetBases(this->fanetDevices->GDTDevice,  this->fanetDevices->clustersDevices, this->fanetDevices->clustersLinkDevices);
     }
@@ -162,6 +162,7 @@ namespace ns3
         std::stringstream ss(nClusterNodesString);
         uint32_t value;
         while (ss >> value) nClusterNodes.push_back(value);
+
     }
 
 
@@ -185,7 +186,7 @@ namespace ns3
 
         this->SetRoutingProtocol();
 
-        this->AssignAddress("10.1.0.0", "255.255.255.0");
+        this->AssignAddress();
 
 
         InstallApplication<GDTApp>(
@@ -211,7 +212,7 @@ namespace ns3
                             app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
                             
                             app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
-                            app->m_plrManager->StartTest(app, 3, this->fanet->clusters[2].Get(2)->GetId(), 
+                            app->m_plrManager->StartTest(app, 3, this->fanet->clusters[1].Get(2)->GetId(), 
                                  NETWORK_BROADCAST, 20, 0.5);      
                             // app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
                             //      this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       

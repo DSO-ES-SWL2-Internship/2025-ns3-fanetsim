@@ -24,6 +24,7 @@ namespace ns3
     void ClusterNodeApp::SetUp(Ipv4Address gdtIp, uint16_t port, uint32_t clusterIndex, Ipv4Address clusterBaseIP)
     {
         m_destAddr = gdtIp;
+        m_gdtIp = gdtIp;
         m_port = port;
         m_clusterIndex = clusterIndex;
         m_clusterBaseIP = clusterBaseIP;
@@ -81,4 +82,5 @@ namespace ns3
 
     Ipv4Address ClusterNodeApp::GetClusterBroadcastIP() { return Ipv4Address( m_clusterBaseIP.Get() | 0x000000FF); }
 
+    Ipv4Address ClusterNodeApp::GetGdtIp() { return m_gdtIp; }
 }

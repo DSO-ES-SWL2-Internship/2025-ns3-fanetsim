@@ -46,6 +46,8 @@ namespace ns3
 
             Ipv4Address GetClusterBroadcastIP();
 
+            Ipv4Address GetGdtIp();
+
             bool GetCHStatus();
 
         private:
@@ -57,6 +59,8 @@ namespace ns3
             uint32_t m_clusterIndex;
 
             Ipv4Address m_clusterBaseIP;
+
+            Ipv4Address m_gdtIp;
 
             /// @brief Starts the application
             virtual void StartApplication() override;

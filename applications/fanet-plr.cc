@@ -49,9 +49,10 @@ namespace ns3
         {
             m_lostPacketsPLR[nodeId] += (seqNum - m_expectedSeqPLR[nodeId]);
             m_receivedPacketsPLR[nodeId]++;
+            m_expectedSeqPLR[nodeId] = seqNum + 1;
         } 
         // handling for incorrect sequence of plr packets e.g. receive seq 2->3->4->1
-        // if this occured, it means that the other node has scheduled a new PLR test
+        //if this occured, it means that the other node has scheduled a new PLR test
         else 
         {
             NS_LOG_INFO("New PLR test detected. Resetting counters.");
@@ -59,7 +60,7 @@ namespace ns3
             m_receivedPacketsPLR[nodeId] = 1;  // Start counting received packets
         }
             
-        m_expectedSeqPLR[nodeId] = seqNum + 1;
+        
 
 
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
@@ -203,6 +204,7 @@ namespace ns3
         {
             header->SetIsBroadcastForwarding(true); 
             header->SetBroadcastFrom(InetSocketAddress::ConvertFrom(from).GetIpv4());
+            //NS_LOG_UNCOND("Broacasting...");
         }
             
         // if GDTApp, it forward the broadcast to all the cluster heads by broadcasting
@@ -213,8 +215,11 @@ namespace ns3
             {
                 if (!header->GetIsBroadcastForwarding())
                 {
-                    header->SetIsBroadcastForwarding(true);
+                    //header->SetIsBroadcastForwarding(true);
                     header->SetBroadcastFrom(InetSocketAddress::ConvertFrom(from).GetIpv4());
+                    packet->AddHeader(*header);
+                    FANETCommunication::SendPacket(app, packet, clusterNodeApp->GetGdtIp());
+                    return;
                 }
             }
         }
