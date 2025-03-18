@@ -18,6 +18,8 @@ namespace ns3
             /// @brief Number of cluster nodes in each cluster.
             std::vector<uint32_t> nClusterNodes;
 
+            std::string nClusterNodesString;
+
             /// @brief File name for NetAnim to run on.
             std::string fileName;
 
@@ -79,6 +81,8 @@ namespace ns3
 
             /// @brief Pointer to the FANET animation helper for visualization.
             FANETAnimationHelper *anim;
+
+            void ParseClusterNodesString();
 
             void Setup();
 

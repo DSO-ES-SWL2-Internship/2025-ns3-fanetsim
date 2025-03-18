@@ -19,9 +19,14 @@ namespace ns3
                 .AddConstructor<FANETSimulator>()
                 .AddAttribute(  "nClusters",
                                 "The number of clusters in the FANET Network",
-                                UintegerValue(1),
+                                UintegerValue(3),
                                 MakeUintegerAccessor(&FANETSimulator::nClusters),
                                 MakeUintegerChecker<uint32_t>())
+                .AddAttribute(  "nClusterNodes",
+                                "Space-separated list of number of nodes in each cluster: 'x1 y1 z1 x2 y2 z2 ...'",
+                                StringValue("3 3 3"),
+                                MakeStringAccessor(&FANETSimulator::nClusterNodesString),
+                                MakeStringChecker())
                 .AddAttribute(  "cycleDuration",
                                 "Period of each cycle",
                                 UintegerValue(200),
@@ -152,6 +157,13 @@ namespace ns3
         anim->SetMaxPktsPerTraceFile(5000000);
     }
 
+    void FANETSimulator::ParseClusterNodesString()
+    {
+        std::stringstream ss(nClusterNodesString);
+        uint32_t value;
+        while (ss >> value) nClusterNodes.push_back(value);
+    }
+
 
     void FANETSimulator::RunSimulation()
     {
@@ -159,7 +171,7 @@ namespace ns3
 
         //this->GetNClusters();
 
-        this->GetNClusterNodes();
+        //this->GetNClusterNodes();
 
         //this->GetCycleDuration();
 
