@@ -9,6 +9,16 @@ namespace ns3
 
     NS_LOG_COMPONENT_DEFINE("FANETRoutingHelper");
 
+    TypeId FANETRoutingHelper::GetTypeId()
+    {
+        static TypeId tid =
+            TypeId("ns3::FANETRoutingHelper")
+                .SetParent<ns3::Object>()
+                .AddConstructor<FANETRoutingHelper>();
+
+        return tid;
+    }
+
     FANETRoutingHelper::FANETRoutingHelper(){
 
     }

@@ -16,7 +16,7 @@ namespace ns3
      * @class FANETAddressHelper
      * @brief Manages the allocation of IP addresses for FANET networks.
      */
-    class FANETAddressHelper {
+    class FANETAddressHelper : public Object {
         private:
             /// @brief Base network address
             Ipv4Address network;
@@ -56,7 +56,9 @@ namespace ns3
             /**
              * @brief Destructor 
              * */          
-            ~FANETAddressHelper();                                             
+            ~FANETAddressHelper();                       
+
+            static TypeId GetTypeId();                      
 
             /**
              * @brief Initialize the network base address and subnet mask

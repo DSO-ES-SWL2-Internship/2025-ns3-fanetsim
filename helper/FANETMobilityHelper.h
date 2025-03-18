@@ -13,7 +13,7 @@ namespace ns3
      * @class FANETMobilityHelper
      * @brief Provides mobility configuration for FANET nodes.
      */
-    class FANETMobilityHelper {
+    class FANETMobilityHelper : public Object {
         public:
             /**
              * @brief Constructs a FANETMobilityHelper object.
@@ -23,7 +23,9 @@ namespace ns3
             /**
              * @brief Destroys the FANETMobilityHelper object.
              */                                                                                                   
-            ~FANETMobilityHelper();        
+            ~FANETMobilityHelper();       
+
+            static  TypeId GetTypeId();
 
             /**
              * @brief Sets the Ground Data Terminal (GDT) node at a fixed position.
@@ -35,7 +37,7 @@ namespace ns3
              * @brief Applies mobility settings to the FANET nodes in a wireless topology.
              * @param fanet A pointer to the FANETTopologyHelper object containing node groups.
              */                                                                                                                                                
-            void ApplyMobilityWireless(FANETTopologyHelper* fanet);
+            void ApplyMobilityWireless(Ptr<FANETTopologyHelper> fanet);
 
             /**
              * @brief Finds and returns the closest node to a given target node.

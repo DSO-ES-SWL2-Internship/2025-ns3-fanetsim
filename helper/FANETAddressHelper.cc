@@ -23,6 +23,16 @@ namespace ns3
 
     }
 
+    TypeId FANETAddressHelper::GetTypeId()
+    {
+        static TypeId tid =
+            TypeId("ns3::FANETAddressHelper")
+                .SetParent<ns3::Object>()
+                .AddConstructor<FANETAddressHelper>();
+
+        return tid;
+    }
+
     void FANETAddressHelper::IncrementNetwork(){
         uint32_t address = network.Get();
 

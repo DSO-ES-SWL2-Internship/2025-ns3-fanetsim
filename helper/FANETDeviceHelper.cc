@@ -7,6 +7,84 @@ namespace ns3
 {
     NS_LOG_COMPONENT_DEFINE("FANETDeviceHelper");
 
+    TypeId FANETDeviceHelper::GetTypeId()
+    {
+        NS_LOG_UNCOND("hello");
+        static TypeId tid = 
+            TypeId("ns3::FANETDeviceHelper")
+                .SetParent<ns3::Object>()
+                .AddConstructor<FANETDeviceHelper>()
+                .AddAttribute(  "clusterWifiStandard",
+                                "Wifi standard to use for clusters",
+                                EnumValue(WIFI_STANDARD_80211b),
+                                MakeEnumAccessor(&FANETDeviceHelper::clusterWifiStandard),
+                                MakeEnumChecker(
+                                    WIFI_STANDARD_UNSPECIFIED, "WIFI_STANDARD_UNSPECIFIED",
+                                    WIFI_STANDARD_80211a, "WIFI_STANDARD_80211A",
+                                    WIFI_STANDARD_80211b, "WIFI_STANDARD_80211B",
+                                    WIFI_STANDARD_80211g, "WIFI_STANDARD_80211G",
+                                    WIFI_STANDARD_80211p, "WIFI_STANDARD_80211P",
+                                    WIFI_STANDARD_80211n, "WIFI_STANDARD_80211N",
+                                    WIFI_STANDARD_80211ac, "WIFI_STANDARD_80211AC",
+                                    WIFI_STANDARD_80211ad, "WIFI_STANDARD_80211AD",
+                                    WIFI_STANDARD_80211ax, "WIFI_STANDARD_80211AX",
+                                    WIFI_STANDARD_80211be, "WIFI_STANDARD_80211BE"
+                                ))
+                .AddAttribute(  "clusterWifiChannelPropagationDelay",
+                                "Propagation delay model of cluster wifi",
+                                StringValue("ns3::ConstantSpeedPropagationDelayModel"),
+                                MakeStringAccessor(&FANETDeviceHelper::clusterWifiChannelPropagationDelay),
+                                MakeStringChecker()
+                                )
+                .AddAttribute(  "clusterPropagationLossModel",
+                                "Propagation loss model of cluster wifi",
+                                StringValue("ns3::FriisPropagationLossModel"),
+                                MakeStringAccessor(&FANETDeviceHelper::clusterPropagationLossModel),
+                                MakeStringChecker()
+                                )
+                .AddAttribute(  "clusterMacType",
+                                "MAC type of the cluster",
+                                StringValue("ns3::TdmaWifiMac"),
+                                MakeStringAccessor(&FANETDeviceHelper::clusterMacType),
+                                MakeStringChecker()
+                                )      
+                .AddAttribute(  "linkWifiStandard",
+                                "Wifi standard to use for links",
+                                EnumValue(WIFI_STANDARD_80211b),
+                                MakeEnumAccessor(&FANETDeviceHelper::linkWifiStandard),
+                                MakeEnumChecker(
+                                    WIFI_STANDARD_UNSPECIFIED, "WIFI_STANDARD_UNSPECIFIED",
+                                    WIFI_STANDARD_80211a, "WIFI_STANDARD_80211A",
+                                    WIFI_STANDARD_80211b, "WIFI_STANDARD_80211B",
+                                    WIFI_STANDARD_80211g, "WIFI_STANDARD_80211G",
+                                    WIFI_STANDARD_80211p, "WIFI_STANDARD_80211P",
+                                    WIFI_STANDARD_80211n, "WIFI_STANDARD_80211N",
+                                    WIFI_STANDARD_80211ac, "WIFI_STANDARD_80211AC",
+                                    WIFI_STANDARD_80211ad, "WIFI_STANDARD_80211AD",
+                                    WIFI_STANDARD_80211ax, "WIFI_STANDARD_80211AX",
+                                    WIFI_STANDARD_80211be, "WIFI_STANDARD_80211BE"
+                                ))
+                .AddAttribute(  "linkWifiChannelPropagationDelay",
+                                "Propagation delay model of link wifi",
+                                StringValue("ns3::ConstantSpeedPropagationDelayModel"),
+                                MakeStringAccessor(&FANETDeviceHelper::linkWifiChannelPropagationDelay),
+                                MakeStringChecker()
+                                )
+                .AddAttribute(  "linkPropagationLossModel",
+                                "Propagation loss model of link wifi",
+                                StringValue("ns3::FriisPropagationLossModel"),
+                                MakeStringAccessor(&FANETDeviceHelper::linkPropagationLossModel),
+                                MakeStringChecker()
+                                )
+                .AddAttribute(  "linkMacType",
+                                "MAC type of the link",
+                                StringValue("ns3::TdmaWifiMac"),
+                                MakeStringAccessor(&FANETDeviceHelper::linkMacType),
+                                MakeStringChecker()
+                                );               
+        return tid;
+    }
+
     // Constructor
     FANETDeviceHelper::FANETDeviceHelper() {
     }
@@ -99,9 +177,9 @@ namespace ns3
     }
 
     // Create the link for nodes to the GDT to prepare for dynamic assignment of CH during the simulation
-    void FANETDeviceHelper::SetUpLinksWifi(FANETTopologyHelper* fanet) {
+    void FANETDeviceHelper::SetUpLinksWifi(Ptr<FANETTopologyHelper> fanet) {
         // Ensure the WiFi standard is set
-        wifi.SetStandard(clusterWifiStandard);
+        wifi.SetStandard(linkWifiStandard);
         //wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
 
         for (size_t i = 0; i < fanet->clusters.size(); i++){
@@ -118,10 +196,10 @@ namespace ns3
                 
                 // Create a separate WiFi channel for the link between cluster node and GDT 
                 YansWifiChannelHelper wifiChannelLink;
-                if (!clusterWifiChannelPropagationDelay.empty()) {
+                if (!linkWifiChannelPropagationDelay.empty()) {
                     wifiChannelLink.SetPropagationDelay(clusterWifiChannelPropagationDelay);
                 }
-                if (!clusterPropagationLossModel.empty()) {
+                if (!linkPropagationLossModel.empty()) {
                     wifiChannelLink.AddPropagationLoss(clusterPropagationLossModel);
                 }
 
@@ -135,7 +213,7 @@ namespace ns3
 
                 // Configure the MAC layer for AdHoc (for both GDT and CH)
                 WifiMacHelper wifiMacAdHoc;
-                wifiMacAdHoc.SetType(clusterMacType, "Ssid", SsidValue(Ssid(ssid)));
+                wifiMacAdHoc.SetType(linkMacType, "Ssid", SsidValue(Ssid(ssid)));
 
                 // Install the WiFi device on the GDT node (AdHoc mode)
                 NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyLink, wifiMacAdHoc, fanet->GDTNode.Get(0));  
@@ -187,7 +265,7 @@ namespace ns3
     }
 
 
-    void FANETDeviceHelper::AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim)
+    void FANETDeviceHelper::AssignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, Ptr<FANETAnimationHelper> anim)
     {
         for (size_t i = 0; i < fanet->clusters.size(); i++)
         {
@@ -237,7 +315,7 @@ namespace ns3
         Simulator::Schedule(Seconds(5.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);
     }
 
-    void FANETDeviceHelper::ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim)
+    void FANETDeviceHelper::ReassignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, Ptr<FANETAnimationHelper> anim)
     {
 
         for (size_t i = 0; i < fanet->clusters.size(); i++)

@@ -12,7 +12,7 @@
 namespace ns3 
 {
     class FANETMobilityHelper;
-    class FANETTopologyHelper
+    class FANETTopologyHelper : public Object
     {
         private:
 
@@ -64,7 +64,9 @@ namespace ns3
             FANETTopologyHelper(uint32_t nClusters, std::vector<uint32_t> nClusterNodes);
 
             /// @brief FANETTopologyHelper Destructor
-            ~FANETTopologyHelper();                                                     
+            ~FANETTopologyHelper();                     
+
+            static TypeId GetTypeId();                                
 
             void CreateFANET(uint32_t nClusters, std::vector<uint32_t> nClusterNodes);                                                         //done
     };

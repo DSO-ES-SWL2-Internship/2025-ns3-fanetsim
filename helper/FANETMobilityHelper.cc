@@ -6,6 +6,15 @@ namespace ns3
 
     NS_LOG_COMPONENT_DEFINE("FANETMobilityHelper");
 
+    TypeId FANETMobilityHelper::GetTypeId()
+    { 
+        static TypeId tid =
+            TypeId("ns3::FANETMobilityHelper")
+                .SetParent<ns3::Object>()
+                .AddConstructor<FANETMobilityHelper>();
+        return tid;
+    }
+
     // Constructor
     FANETMobilityHelper::FANETMobilityHelper() {}
 
@@ -90,7 +99,7 @@ namespace ns3
     //     SetClusterHeadMobility(fanet->clusterHeadNodes, 0.0, 0.0, fanet->clusters.size(), radius);
     // }
 
-    void FANETMobilityHelper::ApplyMobilityWireless(FANETTopologyHelper* fanet) {
+    void FANETMobilityHelper::ApplyMobilityWireless(Ptr<FANETTopologyHelper> fanet) {
         NodeContainer singleCH;
         SetGDTMobility(fanet->GDTNode);
 

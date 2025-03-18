@@ -18,7 +18,7 @@ namespace ns3
      * @class FANETDeviceHelper
      * @brief Helper class for setting up FANET network devices.
      */
-    class FANETDeviceHelper {
+    class FANETDeviceHelper : public Object {
     private:
         WifiStandard clusterWifiStandard = WIFI_STANDARD_80211b; /**< WiFi standard used for clusters. */
         std::string clusterWifiChannelPropagationDelay; /**< Propagation delay model for cluster WiFi channels. */
@@ -37,6 +37,8 @@ namespace ns3
         std::vector<NetDeviceContainer> clustersDevices; /**< Containers for cluster devices. */
         std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices; /**< Containers for cluster link devices. */
         std::vector<std::vector<Ptr<NetDevice>>> linksDevices; /**< Pointers to link devices. */
+
+        static TypeId GetTypeId();
 
         /**
          * @brief Constructor for FANETDeviceHelper.
@@ -74,7 +76,7 @@ namespace ns3
          * @brief Sets up WiFi links between clusters.
          * @param fanet A pointer to the FANETTopologyHelper instance.
          */
-        void SetUpLinksWifi(FANETTopologyHelper* fanet);
+        void SetUpLinksWifi(Ptr<FANETTopologyHelper> fanet);
 
         /**
          * @brief Assigns TDMA slots to nodes.
@@ -89,7 +91,7 @@ namespace ns3
          * @param ipv4 Pointer to the FANET address helper.
          * @param anim Pointer to the FANET animation helper.
          */
-        void AssignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
+        void AssignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, Ptr<FANETAnimationHelper> anim);
 
         /**
          * @brief Reassigns cluster heads dynamically.
@@ -97,7 +99,7 @@ namespace ns3
          * @param ipv4 Pointer to the FANET address helper.
          * @param anim Pointer to the FANET animation helper.
          */
-        void ReassignClusterHeads(FANETTopologyHelper* fanet, FANETAddressHelper* ipv4, FANETAnimationHelper* anim);
+        void ReassignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, Ptr<FANETAnimationHelper> anim);
 
         /**
          * @brief Notifies a change in cluster head status.

@@ -50,7 +50,17 @@ namespace ns3
 
     FANETSimulator::~FANETSimulator()
     {
-        delete this->mobility;
+    }
+
+    void FANETSimulator::Setup()
+    {
+        this->fanet = CreateObject<FANETTopologyHelper>(this->nClusters, this->nClusterNodes);
+        this->mobility = CreateObject<FANETMobilityHelper>();
+        this->fanetDevices = CreateObject<FANETDeviceHelper>();
+        this->router = CreateObject<FANETRoutingHelper>();
+        this->ipv4 = CreateObject<FANETAddressHelper>("10.1.0.0", "255.255.255.0");
+        this->anim = CreateObject<FANETAnimationHelper>(this->fileName);
+
     }
 
     void FANETSimulator::GetNClusters()
@@ -109,21 +119,21 @@ namespace ns3
 
     void FANETSimulator::CreateNetwork()
     {
-        this->fanet = new FANETTopologyHelper(this->nClusters, this->nClusterNodes);
+        
         //this->mobility = new FANETMobilityHelper();
         this->fanet->CreateFANET(this->nClusters, this->nClusterNodes);
     }
 
     void FANETSimulator::SetMobility()
     {
-        this->mobility = new FANETMobilityHelper();
+        mobility->SetGDTMobility(this->fanet->GDTNode);
         mobility->ApplyMobilityWireless(this->fanet);
     }
 
     void FANETSimulator::InstallDevices()
     {
-        this->fanetDevices = new FANETDeviceHelper();
-        this->fanetDevices->TdmaWifi();
+        
+        //this->fanetDevices->TdmaWifi();
         this->fanetDevices->SetupGDTWifi(this->fanet->GDTNode);
         this->fanetDevices->SetupClustersWifi(this->fanet->clusters);
         this->fanetDevices->SetUpLinksWifi(this->fanet);
@@ -132,7 +142,7 @@ namespace ns3
 
     void FANETSimulator::SetRoutingProtocol(RoutingProtocol protocol)
     {
-        this->router = new FANETRoutingHelper();
+        
         switch (protocol)
         {
             case AODV: {
@@ -158,16 +168,14 @@ namespace ns3
         }
     }
 
-    void FANETSimulator::AssignAddress(Ipv4Address network, Ipv4Mask mask)
+    void FANETSimulator::AssignAddress()
     {
-        this->ipv4 = new FANETAddressHelper(network, mask);
         this->ipv4->SetBases(this->fanetDevices->GDTDevice,  this->fanetDevices->clustersDevices, this->fanetDevices->clustersLinkDevices);
     }
 
     void FANETSimulator::SetUpNetAnim()
     {
-        this->anim = new FANETAnimationHelper(this->fileName);
-        anim->SetMaxPktsPerTraceFile(5000000);
+        anim->interface->SetMaxPktsPerTraceFile(5000000);
     }
 
 
@@ -191,7 +199,7 @@ namespace ns3
 
         this->SetRoutingProtocol(AODV);
 
-        this->AssignAddress("10.1.0.0", "255.255.255.0");
+        this->AssignAddress();
 
 
         InstallApplication<GDTApp>(

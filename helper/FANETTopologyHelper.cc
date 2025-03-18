@@ -22,6 +22,16 @@ namespace ns3
     {
     }
 
+    TypeId FANETTopologyHelper::GetTypeId()
+    {
+        static TypeId tid =
+            TypeId("ns3::FANETTopologyHelper")
+                .SetParent<ns3::Object>()
+                .AddConstructor<FANETTopologyHelper>();
+        
+        return tid;
+    }
+
     NodeContainer FANETTopologyHelper::CreateCluster(uint32_t nClusterMems)
     {
         NodeContainer cluster;

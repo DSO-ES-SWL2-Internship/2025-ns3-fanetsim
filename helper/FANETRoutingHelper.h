@@ -21,7 +21,7 @@ namespace ns3
      * @class FANETRoutingHelper
      * @brief Provides helper functions to configure routing protocols in FANET networks.
      */
-    class FANETRoutingHelper {
+    class FANETRoutingHelper : public Object {
         private:
             /// @brief Internet stack helper for protocol installation.
             InternetStackHelper internet;
@@ -37,6 +37,8 @@ namespace ns3
         public:
             FANETRoutingHelper();
             ~FANETRoutingHelper();
+
+            static TypeId GetTypeId();
 
             // Methods to set the routing protocol used
             /**

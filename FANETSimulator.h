@@ -26,26 +26,6 @@ namespace ns3
 
             double simDuration;
 
-            // Helper functions
-
-            /// @brief Helper for managing FANET topology.
-            FANETTopologyHelper* fanet;
-
-            /// @brief Helper for configuring FANET devices.
-            FANETDeviceHelper* fanetDevices;
-
-            /// @brief Helper for handling FANET node mobility.
-            FANETMobilityHelper* mobility;
-
-            /// @brief Helper for setting up FANET routing protocols.
-            FANETRoutingHelper* router;
-
-            /// @brief Helper for managing FANET IPv4 addressing.
-            FANETAddressHelper* ipv4;
-
-            /// @brief Pointer to the FANET animation helper for visualization.
-            FANETAnimationHelper *anim;
-
             // Methods
             
             /// @brief Obtain from user, the number of clusters to simulate
@@ -72,7 +52,7 @@ namespace ns3
             void InstallDevices();
             void SetMobility();
             void SetRoutingProtocol(RoutingProtocol protocol);
-            void AssignAddress(Ipv4Address network, Ipv4Mask mask);
+            void AssignAddress();
             void SetUpNetAnim();
 
         public:
@@ -81,6 +61,26 @@ namespace ns3
             FANETSimulator();
             /// @brief Destroy the FANET Simulator
             ~FANETSimulator();
+
+            /// @brief Helper for managing FANET topology.
+            Ptr<FANETTopologyHelper> fanet;
+
+            /// @brief Helper for configuring FANET devices.
+            Ptr<FANETDeviceHelper> fanetDevices;
+
+            /// @brief Helper for handling FANET node mobility.
+            Ptr<FANETMobilityHelper> mobility;
+
+            /// @brief Helper for setting up FANET routing protocols.
+            Ptr<FANETRoutingHelper> router;
+
+            /// @brief Helper for managing FANET IPv4 addressing.
+            Ptr<FANETAddressHelper> ipv4;
+
+            /// @brief Pointer to the FANET animation helper for visualization.
+            Ptr<FANETAnimationHelper> anim;
+
+            void Setup();
 
             /**
              * @brief Run basic simulation of the fanet

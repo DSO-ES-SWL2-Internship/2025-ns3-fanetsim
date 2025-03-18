@@ -13,14 +13,20 @@ namespace ns3
      * @class FANETAnimationHelper
      * @brief Helper class for animating FANET network topology using ns-3 NetAnim.
      */
-    class FANETAnimationHelper : public AnimationInterface {
+    class FANETAnimationHelper : public Object {
         private:
             /// @brief Stores RGB color values for each cluster
             std::vector<std::array<uint8_t, 3>> clustersColor;
             /// @brief Stores current cluster head nodes
             std::vector<Ptr<Node>> curCHNodes;
+
+            std::string m_filename;
             
         public:
+
+            AnimationInterface* interface;
+
+            FANETAnimationHelper();
 
             /**
              * @brief Constructor for FANETAnimationHelper.
@@ -32,6 +38,8 @@ namespace ns3
              * @brief Destructor for FANETAnimationHelper.
              */
             ~FANETAnimationHelper(); 
+
+            static TypeId GetTypeId();
             /**
              * @brief Assigns animation colors and names to the cluster nodes
              * @param clusterIndex The index of the cluster.
@@ -63,7 +71,7 @@ namespace ns3
              * @brief Animates the entire FANET topology.
              * @param fanet Pointer to the FANETTopologyHelper object containing network topology details.
              */
-            void AnimateFANET(FANETTopologyHelper* fanet);
+            void AnimateFANET(Ptr<FANETTopologyHelper> fanet);
     };
 }
 
