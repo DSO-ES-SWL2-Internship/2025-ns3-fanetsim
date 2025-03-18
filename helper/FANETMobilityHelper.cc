@@ -38,26 +38,6 @@ namespace ns3
     }
 
 
-    // // Set fixed positions for cluster heads in a circular layout around GDT
-    // void FANETMobilityHelper::SetClusterHeadMobility(NodeContainer& clusterHeads, double x, double y, uint32_t nClusterHeads, double radius) {
-    //     Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
-
-    //     // Calculate positions for each cluster head in a circular layout
-    //     for (uint32_t i = 0; i < nClusterHeads; ++i) {
-    //         double angle = 2 * M_PI * i / nClusterHeads; // Evenly distribute cluster heads
-    //         double clusterX = x + radius * cos(angle);   // X position based on angle
-    //         double clusterY = y + radius * sin(angle);   // Y position based on angle
-
-    //         positionAlloc->Add(Vector(clusterX, clusterY, 0.0)); // Set position
-    //     }
-
-    //     // Assign the position allocator to the mobility model
-    //     mobility.SetPositionAllocator(positionAlloc);
-    //     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel"); // Fixed position
-    //     mobility.Install(clusterHeads);
-    // }
-
-
     // Set random mobility for cluster members within a sector around their CH
     void FANETMobilityHelper::SetClusterMemberMobility(NodeContainer& clusterMembers, double xCenter, double yCenter) {
             // mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel", 

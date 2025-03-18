@@ -28,7 +28,17 @@ namespace ns3
         static TypeId tid =
             TypeId("ns3::FANETAddressHelper")
                 .SetParent<ns3::Object>()
-                .AddConstructor<FANETAddressHelper>();
+                .AddConstructor<FANETAddressHelper>()
+                .AddAttribute(  "baseNetworkAddress",
+                                "Base Network Address for the simulator to set the IP for the entire fanet",
+                                Ipv4AddressValue(Ipv4Address("0.0.0.0")),
+                                MakeIpv4AddressAccessor(&FANETAddressHelper::network),
+                                MakeIpv4AddressChecker())
+                .AddAttribute(  "baseSubnetMask",
+                                "Subnet mask to be used for the network",
+                                Ipv4MaskValue(Ipv4Mask("255.255.255.255")),
+                                MakeIpv4MaskAccessor(&FANETAddressHelper::mask),
+                                MakeIpv4MaskChecker());
 
         return tid;
     }

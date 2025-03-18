@@ -57,6 +57,7 @@ namespace ns3
         this->fanet = CreateObject<FANETTopologyHelper>(nClusters, nClusterNodes);
         this->fanetDevices = CreateObject<FANETDeviceHelper>();
         this->router = CreateObject<FANETRoutingHelper>();
+        this->ipv4 = CreateObject<FANETAddressHelper>();
     }
 
     void FANETSimulator::GetNClusters()
@@ -142,7 +143,6 @@ namespace ns3
 
     void FANETSimulator::AssignAddress(Ipv4Address network, Ipv4Mask mask)
     {
-        this->ipv4 = new FANETAddressHelper(network, mask);
         this->ipv4->SetBases(this->fanetDevices->GDTDevice,  this->fanetDevices->clustersDevices, this->fanetDevices->clustersLinkDevices);
     }
 

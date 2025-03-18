@@ -75,7 +75,7 @@ namespace ns3
             Ptr<FANETRoutingHelper> router;
 
             /// @brief Helper for managing FANET IPv4 addressing.
-            FANETAddressHelper* ipv4;
+            Ptr<FANETAddressHelper> ipv4;
 
             /// @brief Pointer to the FANET animation helper for visualization.
             FANETAnimationHelper *anim;
