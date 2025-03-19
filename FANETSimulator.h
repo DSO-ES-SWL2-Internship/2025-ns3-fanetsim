@@ -28,6 +28,25 @@ namespace ns3
 
             double simDuration;
 
+            std::unordered_map<std::string, WifiStandard> wifiStandardMap = {
+                {"WIFI_STANDARD_80211a", WIFI_STANDARD_80211a},
+                {"WIFI_STANDARD_80211b", WIFI_STANDARD_80211b},
+                {"WIFI_STANDARD_80211g", WIFI_STANDARD_80211g},
+                {"WIFI_STANDARD_80211p", WIFI_STANDARD_80211p},
+                {"WIFI_STANDARD_80211n", WIFI_STANDARD_80211n},
+                {"WIFI_STANDARD_80211ac", WIFI_STANDARD_80211ac},
+                {"WIFI_STANDARD_80211ax", WIFI_STANDARD_80211ax},
+                {"WIFI_STANDARD_80211ad", WIFI_STANDARD_80211ad},
+                {"WIFI_STANDARD_80211be", WIFI_STANDARD_80211be}
+            };
+
+            std::unordered_map<std::string, RoutingProtocol> routingProtocolMap = {
+                {"AODV", AODV},
+                {"OLSR", OLSR},
+                {"DSDV", DSDV},
+                {"DSR", DSR}
+            };
+
             // Methods
             
             /// @brief Obtain from user, the number of clusters to simulate
@@ -92,6 +111,8 @@ namespace ns3
              * @param fileName Name of output file neccessary for NetAnim
              */
             void RunSimulation();
+
+            void SetupSimulation(std::string jsonFilePath);
 
     };
 }

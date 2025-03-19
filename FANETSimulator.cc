@@ -5,11 +5,14 @@
 #include "ns3/cluster-node-app.h"
 #include "ns3/gdt-app.h"
 #include "ns3/FANETAppHelper.h"
+#include "ns3/json.hpp"
 
 namespace ns3 
 {
 
     NS_LOG_COMPONENT_DEFINE("FANETSimulator");
+
+    using json = nlohmann::json;
 
     TypeId FANETSimulator::GetTypeId()
     {
@@ -299,6 +302,34 @@ namespace ns3
         Simulator::Stop(Seconds(simDuration));
         Simulator::Run();
         Simulator::Destroy();
+    }
 
+    void FANETSimulator::SetupSimulation(std::string jsonFilePath)
+    {
+        std::ifstream file(jsonFilePath);
+        json config;
+        file >> config;
+
+        Setup();
+        SetAttribute("nClusters", UintegerValue(config["nClusters"]));
+        SetAttribute("nClusterNodes", StringValue(config["nClusterNodes"].get<std::string>()));
+        ParseClusterNodesString();
+        SetAttribute("cycleDuration", UintegerValue(config["cycleDuration"]));
+        SetAttribute("filename", StringValue(config["filename"].get<std::string>()));
+        SetAttribute("simulationDuration", DoubleValue(config["simulationDuration"]));
+ 
+        fanetDevices->SetAttribute("clusterWifiStandard", EnumValue(wifiStandardMap[config["fanetDevices"]["clusterWifiStandard"].get<std::string>()]));
+        fanetDevices->SetAttribute("clusterWifiChannelPropagationDelay", StringValue(config["fanetDevices"]["clusterWifiChannelPropagationDelay"].get<std::string>()));
+        fanetDevices->SetAttribute("clusterPropagationLossModel", StringValue(config["fanetDevices"]["clusterPropagationLossModel"].get<std::string>()));
+        fanetDevices->SetAttribute("clusterMacType", StringValue(config["fanetDevices"]["clusterMacType"].get<std::string>()));
+        fanetDevices->SetAttribute("linkWifiStandard", EnumValue(wifiStandardMap[config["fanetDevices"]["linkWifiStandard"].get<std::string>()]));
+        fanetDevices->SetAttribute("linkWifiChannelPropagationDelay", StringValue(config["fanetDevices"]["linkWifiChannelPropagationDelay"].get<std::string>()));
+        fanetDevices->SetAttribute("linkPropagationLossModel", StringValue(config["fanetDevices"]["linkPropagationLossModel"].get<std::string>()));
+        fanetDevices->SetAttribute("linkMacType", StringValue(config["fanetDevices"]["linkMacType"].get<std::string>()));
+
+        router->SetAttribute("routingProtocol", EnumValue(routingProtocolMap[config["router"]["routingProtocol"].get<std::string>()]));
+        
+        ipv4->SetAttribute("baseNetworkAddress", Ipv4AddressValue(Ipv4Address(config["ipv4"]["baseNetworkAddress"].get<std::string>().c_str())));
+        ipv4->SetAttribute("baseSubnetMask", Ipv4MaskValue(Ipv4Mask(config["ipv4"]["baseSubnetMask"].get<std::string>().c_str())));
     }
 }

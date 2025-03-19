@@ -35,6 +35,7 @@ build_lib(
     applications/gdt-app/gdt-app.h
     FANETHeader.h
     FANETSimulator.h
+    json.hpp
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}
                     ${libcore}
