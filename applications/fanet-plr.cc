@@ -53,12 +53,12 @@ namespace ns3
         } 
         // handling for incorrect sequence of plr packets e.g. receive seq 2->3->4->1
         //if this occured, it means that the other node has scheduled a new PLR test
-        else 
-        {
-            NS_LOG_INFO("New PLR test detected. Resetting counters.");
-            m_lostPacketsPLR[nodeId] = seqNum == 0 ? 0 : seqNum;  //reset and account for the packets that could have been lost at the start of new test
-            m_receivedPacketsPLR[nodeId] = 1;  // Start counting received packets
-        }
+        // else 
+        // {
+        //     NS_LOG_INFO("New PLR test detected. Resetting counters.");
+        //     m_lostPacketsPLR[nodeId] = seqNum == 0 ? 0 : seqNum;  //reset and account for the packets that could have been lost at the start of new test
+        //     m_receivedPacketsPLR[nodeId] = 1;  // Start counting received packets
+        // }
             
         
 
@@ -109,7 +109,12 @@ namespace ns3
         if (Ptr<GDTApp> gdtapp = DynamicCast<GDTApp>(app)) header.SetClusterId(9999);
         else if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app)) header.SetClusterId(clusterNodeApp->GetClusterIndex());
         header.SetNodeId(app->GetNode()->GetId());
-        if (destAddress.IsBroadcast()) header.SetIsBroadcast(true);
+        if (destAddress.IsBroadcast()) {
+            header.SetIsBroadcast(true);
+            Ptr<Ipv4> ipv4 = app->GetNode()->GetObject<Ipv4>();
+            header.SetBroadcastFrom(ipv4->GetAddress(1, 0).GetLocal());
+            if (Ptr<GDTApp> gdtApp = DynamicCast<GDTApp>(app)) header.SetIsBroadcastForwarding(true);
+        }
 
         Ptr<Packet> packet = Create<Packet>();
         packet->AddHeader(header);
@@ -132,7 +137,13 @@ namespace ns3
             if (Ptr<GDTApp> gdtapp = DynamicCast<GDTApp>(app)) header.SetClusterId(9999);
             else if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app)) header.SetClusterId(clusterNodeApp->GetClusterIndex());
             header.SetNodeId(app->GetNode()->GetId());
-            if (destAddress.IsBroadcast()) header.SetIsBroadcast(true);
+            header.SetNodeId(app->GetNode()->GetId());
+            if (destAddress.IsBroadcast()) {
+                header.SetIsBroadcast(true);
+                Ptr<Ipv4> ipv4 = app->GetNode()->GetObject<Ipv4>();
+                header.SetBroadcastFrom(ipv4->GetAddress(1, 0).GetLocal());
+                if (Ptr<GDTApp> gdtApp = DynamicCast<GDTApp>(app)) header.SetIsBroadcastForwarding(true);
+            }
 
             Ptr<Packet> packet = Create<Packet>((uint8_t*) &m_sequenceNumberPLR[nodeId], sizeof(uint32_t));
             packet->AddHeader(header);
@@ -182,7 +193,7 @@ namespace ns3
         // if the application is GDTApp, check if the packet have past through the gdt before
         // if the packet have past through before perform no further actions
         if (Ptr<GDTApp> gdtApp = DynamicCast<GDTApp>(app))
-            if (header->GetIsBroadcastForwarding()) return true;
+            if (header->GetIsBroadcastForwarding() && header->GetClusterId() == 9999) return true;
         // if the application is ClusterNodeApp,
         if (Ptr<ClusterNodeApp> clusterNodeApp = DynamicCast<ClusterNodeApp>(app))
         {
@@ -203,7 +214,7 @@ namespace ns3
         if (Ptr<GDTApp> gdtApp = DynamicCast<GDTApp>(app))
         {
             header->SetIsBroadcastForwarding(true); 
-            header->SetBroadcastFrom(InetSocketAddress::ConvertFrom(from).GetIpv4());
+            //header->SetBroadcastFrom(InetSocketAddress::ConvertFrom(from).GetIpv4());
             //NS_LOG_UNCOND("Broacasting...");
         }
             
@@ -216,7 +227,7 @@ namespace ns3
                 if (!header->GetIsBroadcastForwarding())
                 {
                     //header->SetIsBroadcastForwarding(true);
-                    header->SetBroadcastFrom(InetSocketAddress::ConvertFrom(from).GetIpv4());
+                    //header->SetBroadcastFrom(InetSocketAddress::ConvertFrom(from).GetIpv4());
                     packet->AddHeader(*header);
                     FANETCommunication::SendPacket(app, packet, clusterNodeApp->GetGdtIp());
                     return;
