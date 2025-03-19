@@ -216,13 +216,32 @@ namespace ns3
                             
                             app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
                             app->m_plrManager->StartTest(app, 3, this->fanet->clusters[1].Get(2)->GetId(), 
+                                 app->GetClusterBroadcastIP(), 20, 0.5);      
+                            // app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
+                            //      this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
+                            app->EnableInfoLog();
+                            NS_LOG_UNCOND(app->GetNode()->GetId());
+                        }
+                    );                    
+                } 
+                else if (i == 0 && j ==1)
+                {
+                        InstallApplication<ClusterNodeApp>(
+                        this->fanet->clusters[i].Get(j), 0.0, simDuration,
+                        [this, i](Ptr<ClusterNodeApp> app) {
+
+                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
+                            
+                            app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
+                            app->m_plrManager->StartTest(app, 3, this->fanet->clusters[0].Get(1)->GetId(), 
                                  NETWORK_BROADCAST, 20, 0.5);      
                             // app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
                             //      this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
                             app->EnableInfoLog();
+                            NS_LOG_UNCOND(app->GetNode()->GetId());
                         }
-                    );                    
-                } 
+                    );   
+                }
                 else 
                 {
                     InstallApplication<ClusterNodeApp>(

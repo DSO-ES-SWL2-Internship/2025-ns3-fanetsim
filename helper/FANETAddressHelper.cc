@@ -82,7 +82,11 @@ namespace ns3
     void FANETAddressHelper::SetBases(NetDeviceContainer GDTDevice, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices)
     {
 
-
+        // Setup the common interface on GDT that all cluster nodes can use to communicate with the GDT
+        ipv4.SetBase(network, mask);
+        IncrementNetwork();
+        this->GDTInterface = ipv4.Assign(GDTDevice);
+        
         for (size_t i = 0; i < clustersDevices.size(); i++){
             // Setup the interfaces for intra-cluster communication
             ipv4.SetBase(network, mask);
@@ -117,11 +121,6 @@ namespace ns3
             clustersLinkInterfaces.push_back(clusterLinkInterfaces);
             //IncrementNetwork();
         }
-
-        // Setup the common interface on GDT that all cluster nodes can use to communicate with the GDT
-        ipv4.SetBase(network, mask);
-        IncrementNetwork();
-        this->GDTInterface = ipv4.Assign(GDTDevice);
 
         Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     }
