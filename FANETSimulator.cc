@@ -191,14 +191,14 @@ namespace ns3
 
         this->AssignAddress();
 
-
+        // Setup application on all the nodes
         InstallApplication<GDTApp>(
             this->fanet->GDTNode.Get(0), 0.0, simDuration,
             [this](Ptr<GDTApp> app) {
                 app->SetPort(8080);
                 app->EnableInfoLog();
                 app->m_plrManager->Setup(this->fanet->allNodes.GetN());
-                app->m_plrManager->StartTest(app, 3, 0, NETWORK_BROADCAST, 20, 0.5);
+                
             }          
         );
         
@@ -206,54 +206,29 @@ namespace ns3
         {
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
             {
-                if (i == 1 && j == 2)
-                {
-                    InstallApplication<ClusterNodeApp>(
-                        this->fanet->clusters[i].Get(j), 0.0, simDuration,
-                        [this, i](Ptr<ClusterNodeApp> app) {
-
-                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
-                            
-                            app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
-                            app->m_plrManager->StartTest(app, 3, this->fanet->clusters[1].Get(2)->GetId(), 
-                                 NETWORK_BROADCAST, 20, 0.5);      
-                            // app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
-                            //      this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
-                            app->EnableInfoLog();
-                        }
-                    );                    
-                } 
-                else if (i == 0 && j ==1)
-                {
-                        InstallApplication<ClusterNodeApp>(
-                        this->fanet->clusters[i].Get(j), 0.0, simDuration,
-                        [this, i](Ptr<ClusterNodeApp> app) {
-
-                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
-                            
-                            app->m_plrManager->Setup(this->fanet->allNodes.GetN());     
-                            // app->m_plrManager->StartTest(app, 3, this->fanet->clusters[0].Get(1)->GetId(), 
-                            //      NETWORK_BROADCAST, 20, 0.5);      
-                            // app->m_plrManager->StartTest(app, 0.5, this->fanet->clusters[0].Get(1)->GetId(), 
-                            //      this->ipv4->clustersInterfaces[0].GetAddress(1), 20, 0.5);       
-                            app->EnableInfoLog();
-                        }
-                    );   
-                }
-                else 
-                {
-                    InstallApplication<ClusterNodeApp>(
-                        this->fanet->clusters[i].Get(j), 0.0, simDuration,
-                        [this, i](Ptr<ClusterNodeApp> app) {
-                            app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
-                            //app->SetupPLR(this->fanet->allNodes.GetN());
-                            app->m_plrManager->Setup(this->fanet->allNodes.GetN());   
-                            app->EnableInfoLog();
-                        }
-                    );
-                }
+                InstallApplication<ClusterNodeApp>(
+                    this->fanet->clusters[i].Get(j), 0.0, simDuration,
+                    [this, i](Ptr<ClusterNodeApp> app) {
+                        app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
+                        //app->SetupPLR(this->fanet->allNodes.GetN());
+                        app->m_plrManager->Setup(this->fanet->allNodes.GetN());   
+                        app->EnableInfoLog();
+                    }
+                ); 
             }
         }
+
+        // Starting PLR test on some nodes. Note: as of now if there is no mechanism to check what if the response packet from the query was not received.
+        Ptr<Node> node = this->fanet->GDTNode.Get(0);
+        Ptr<FANETApplication> gdtapp = DynamicCast<FANETApplication>(node->GetApplication(0));
+        if (gdtapp) gdtapp->m_plrManager->StartTest(gdtapp, 3, 0, NETWORK_BROADCAST, 20, 0.5);
+
+        node = this->fanet->clusters[2].Get(4);
+        Ptr<FANETApplication> app = DynamicCast<FANETApplication>(node->GetApplication(0));
+        if (app) app->m_plrManager->StartTest(app, 10, this->fanet->clusters[2].Get(4)->GetId(), NETWORK_BROADCAST, 20, 0.5);
+
+        // node = this->fanet->clusters[1].Get(2);
+        // Ptr<ClusterNodeApp> app = DynamicCast<ClusterNodeApp>
 
         LogComponentDisable("ClusterNodeCHPromo", LOG_LEVEL_DEBUG);
 
