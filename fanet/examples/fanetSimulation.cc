@@ -1,8 +1,8 @@
 #include "ns3/core-module.h"
 #include "ns3/applications-module.h"
-#include "fanet_utils.h"
-#include "ns3/FANETSimulator.h"
-#include "json.hpp"
+#include "ns3/json.hpp"
+// #include "ns3/fanet_utils.h"
+#include "FANETSimulator.h"
 #include "fstream"
 
 // This topology is mimicing 2 MANET clusters with its cluster head having a point to point connection with the GDT
@@ -36,7 +36,7 @@ int main (int argc, char* argv[]){
     
     Ptr<FANETSimulator> simulator = CreateObject<FANETSimulator>();
 
-    simulator->SetupSimulation("/home/ninja/Documents/Internship/tar_files/ns-allinone-3.37/ns-3.37/scratch/config.json");
+    simulator->SetupSimulation("config.json");
     simulator->RunSimulation(); 
     
 

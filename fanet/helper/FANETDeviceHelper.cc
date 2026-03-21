@@ -2,6 +2,7 @@
 #include "ns3/core-module.h"
 #include "ns3/FANETMobilityHelper.h"
 #include "ns3/FANETHeader.h"
+#include "ns3/tdma-wifi-mac.h"
 
 namespace ns3
 {
@@ -16,7 +17,7 @@ namespace ns3
                 .AddAttribute(  "clusterWifiStandard",
                                 "Wifi standard to use for clusters",
                                 EnumValue(WIFI_STANDARD_80211b),
-                                MakeEnumAccessor(&FANETDeviceHelper::clusterWifiStandard),
+                                MakeEnumAccessor<WifiStandard>(&FANETDeviceHelper::clusterWifiStandard),
                                 MakeEnumChecker(
                                     WIFI_STANDARD_UNSPECIFIED, "WIFI_STANDARD_UNSPECIFIED",
                                     WIFI_STANDARD_80211a, "WIFI_STANDARD_80211A",
@@ -50,7 +51,7 @@ namespace ns3
                 .AddAttribute(  "linkWifiStandard",
                                 "Wifi standard to use for links",
                                 EnumValue(WIFI_STANDARD_80211b),
-                                MakeEnumAccessor(&FANETDeviceHelper::linkWifiStandard),
+                                MakeEnumAccessor<WifiStandard>(&FANETDeviceHelper::linkWifiStandard),
                                 MakeEnumChecker(
                                     WIFI_STANDARD_UNSPECIFIED, "WIFI_STANDARD_UNSPECIFIED",
                                     WIFI_STANDARD_80211a, "WIFI_STANDARD_80211A",

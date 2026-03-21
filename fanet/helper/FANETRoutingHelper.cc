@@ -19,7 +19,7 @@ namespace ns3
                 .AddAttribute(  "routingProtocol",
                 "Set routing protocol used by the fanet",
                 EnumValue(AODV),
-                MakeEnumAccessor(&FANETRoutingHelper::m_protocol),
+                MakeEnumAccessor<RoutingProtocol>(&FANETRoutingHelper::m_protocol),
                 MakeEnumChecker(
                     AODV, "AODV",
                     OLSR, "OLSR",

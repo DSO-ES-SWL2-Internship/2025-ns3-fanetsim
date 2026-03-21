@@ -19,7 +19,7 @@ namespace ns3
         NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
                 << nodeId << " scheduled to sent addition question: " << num1 << " + " << num2);
 
-        double randomInterval = m_randomValue->GetValue(1.0, 5.0);
+        // double randomInterval = m_randomValue->GetValue(1.0, 5.0);
 
         // Schedule next send in exactly 5 seconds
         m_sendEvent = Simulator::Schedule(Seconds(1), &AddClient::SendPacket, this);
@@ -68,7 +68,7 @@ namespace ns3
     }
 
     void AddClient::StopApplication() {
-        if (m_sendEvent.IsRunning()) {
+        if (m_sendEvent.IsPending()) {
             Simulator::Cancel(m_sendEvent);
         }
         if (m_socket) {

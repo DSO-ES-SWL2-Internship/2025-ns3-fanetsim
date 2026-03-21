@@ -50,7 +50,7 @@ namespace ns3
         uint8_t octet1 = (address >> 24) & 0xFF;
         uint8_t octet2 = (address >> 16) & 0xFF;
         uint8_t octet3 = (address >> 8) & 0xFF;
-        uint8_t octet4 = address & 0xFF;
+        // uint8_t octet4 = address & 0xFF;
 
         // Increment the third octet
         octet3++;   

@@ -1,6 +1,6 @@
 #include "tdma-wifi-mac.h"
 
-#include "qos-txop.h"
+#include "ns3/qos-txop.h"
 
 #include "ns3/eht-capabilities.h"
 #include "ns3/he-capabilities.h"
@@ -65,8 +65,9 @@ namespace ns3
         TdmaScheduleNextSlot();
     }
 
-    void TdmaWifiMac::Enqueue(Ptr<Packet> packet, Mac48Address to)
+    void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from)
     {
+        auto packet = mpdu->GetPacket();
         NS_LOG_FUNCTION(this << packet << to);
 
         // when new packet is to be sent, check if the destination is a new location
@@ -79,7 +80,7 @@ namespace ns3
             // HE (High Efficiency)
             // EHT (Extremely High Throughput)
             // ensure that the mac layer can support different station types
-            if (GetHtSupported())
+            if (GetHtSupported(to))
             {
                 GetWifiRemoteStationManager()->AddAllSupportedMcs(to);
                 GetWifiRemoteStationManager()->AddStationHtCapabilities(
@@ -135,7 +136,7 @@ namespace ns3
             hdr.SetQosTxopLimit(0);
 
             // Fill in the QoS control field in the MAC header
-            tid = QosUtilsGetTidForPacket(packet);
+            tid = GetTid(packet, hdr);
             // Any value greater than 7 is invalid and likely indicates that
             // the packet had no QoS tag, so we revert to zero, which will
             // mean that AC_BE is used.
@@ -150,7 +151,7 @@ namespace ns3
             hdr.SetType(WIFI_MAC_DATA);
         }
 
-        if (GetHtSupported())
+        if (GetHtSupported(to))
         {
             hdr.SetNoOrder(); // explicitly set to 0 for the time being since HT control field is not
                             // yet implemented (set it to 1 when implemented)
@@ -164,7 +165,7 @@ namespace ns3
         hdr.SetDsNotTo();
 
         TdmaBufferItem item;
-        item.packet = packet;
+        item.mpdu = mpdu;
         item.hdr = hdr;
         item.to = to;
 
@@ -221,19 +222,19 @@ namespace ns3
 
             // Get the next packet and header from the buffer
             TdmaBufferItem item = m_tdmaBuffer.front();
-            Ptr<Packet> packet = item.packet;
+            Ptr<WifiMpdu> mpdu = item.mpdu;
             WifiMacHeader hdr = item.hdr;
-            Mac48Address to = item.to;
+            // Mac48Address to = item.to;
 
             // Queue the packet and header in the appropriate Txop or QosTxop
             if (GetQosSupported())
             {
-                uint8_t tid = QosUtilsGetTidForPacket(packet);
-                GetQosTxop(tid)->Queue(packet, hdr);
+                uint8_t tid = GetTid(mpdu->GetPacket(), hdr);
+                GetQosTxop(tid)->Queue(mpdu);
             }
             else
             {
-                GetTxop()->Queue(packet, hdr);
+                GetTxop()->Queue(mpdu);
             }
 
             // Remove the item from the buffer
@@ -262,7 +263,7 @@ namespace ns3
         if (GetWifiRemoteStationManager()->IsBrandNew(from))
         {
             // In ad hoc mode, we assume that every destination supports all the rates we support.
-            if (GetHtSupported())
+            if (GetHtSupported(to))
             {
                 GetWifiRemoteStationManager()->AddAllSupportedMcs(from);
                 GetWifiRemoteStationManager()->AddStationHtCapabilities(
@@ -317,5 +318,11 @@ namespace ns3
         WifiMac::Receive(mpdu, linkId);
     }
 
+    //
+    void TdmaWifiMac::DoCompleteConfig()
+    {
+        //
+    }
 }
+
 
