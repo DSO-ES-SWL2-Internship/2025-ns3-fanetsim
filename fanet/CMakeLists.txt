@@ -1,0 +1,46 @@
+build_lib(
+  LIBNAME fanet
+  SOURCE_FILES
+    helper/FANETAddressHelper.cc
+    helper/FANETAnimationHelper.cc
+    helper/FANETDeviceHelper.cc
+    helper/FANETMobilityHelper.cc
+    helper/FANETRoutingHelper.cc
+    helper/FANETTopologyHelper.cc
+    model/applications/fanet-application.cc
+    model/applications/fanet-communication.cc
+    model/applications/fanet-plr.cc
+    model/applications/add-client-server/add-server.cc
+    model/applications/add-client-server/add-client.cc
+    model/applications/cluster-node-app/cluster-node-app.cc
+    model/applications/cluster-node-app/cluster-node-CH-promo.cc
+    model/applications/gdt-app/gdt-app.cc
+    model/applications/gdt-app/gdt-CH-promo.cc
+    model/FANETHeader.cc
+    thirdparty/tdma/tdma-wifi-mac.cc
+  HEADER_FILES
+    helper/FANETAddressHelper.h
+    helper/FANETAnimationHelper.h
+    helper/FANETDeviceHelper.h
+    helper/FANETMobilityHelper.h
+    helper/FANETRoutingHelper.h
+    helper/FANETTopologyHelper.h
+    helper/FANETAppHelper.h
+    model/applications/fanet-application.h
+    model/applications/fanet-communication.h
+    model/applications/fanet-plr.h
+    model/applications/add-client-server/add-server.h
+    model/applications/add-client-server/add-client.h
+    model/applications/cluster-node-app/cluster-node-app.h
+    model/applications/gdt-app/gdt-app.h
+    model/FANETHeader.h
+    thirdparty/tdma/tdma-wifi-mac.h
+    thirdparty/json.hpp
+  LIBRARIES_TO_LINK 
+    ${libinternet}
+    ${libstats}
+    ${libcore}
+    ${libwifi}
+    ${libnetwork}
+  TEST_SOURCES
+)

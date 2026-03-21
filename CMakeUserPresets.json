@@ -1,0 +1,20 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "FanetDeveloper",
+      "cacheVariables": {
+          "NS3_OUTPUT_DIRECTORY": "${sourceDir}/../Bin",
+          "CMAKE_BUILD_TYPE": "debug",
+          "NS3_ASSERT": "ON",
+          "NS3_EXAMPLES": "ON",
+          "NS3_LOG": "ON",
+          "NS3_TESTS": "ON",
+          "NS3_SANITIZE": "ON",
+          "NS3_NETANIM" : "ON",
+          "NS3_FILTER_MODULE_EXAMPLES_AND_TESTS": "fanet",
+          "NS3_CMAKE_PRESET": "FanetDeveloper"
+      }
+    }
+  ]
+}

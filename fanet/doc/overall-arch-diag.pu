@@ -1,0 +1,22 @@
+@startuml
+node GDT0
+node CH0
+node CH1
+node CH2
+node CM0_0
+node CM0_1
+node CM1_0
+node CM1_1
+node CM1_2
+node CM2_0
+
+GDT0 == CH0
+GDT0 == CH1
+GDT0 == CH2
+CH0 == CM0_0
+CH0 == CM0_1
+CH1 == CM1_0
+CH1 == CM1_1
+CH1 == CM1_2
+CH2 == CM2_0
+@enduml

@@ -1,0 +1,20 @@
+build_lib_example(
+  NAME fanetSimulation
+  SOURCE_FILES 
+    fanetSimulation.cc
+    FANETSimulator.cc
+  HEADER_FILES
+    FANETSimulator.h
+  LIBRARIES_TO_LINK
+    ${libinternet}
+    ${libstats}
+    ${libcore}
+    ${libwifi}
+    ${libnetwork}
+    ${libaodv}
+    ${libdlsr}
+    ${libdsdv}
+    ${libolsr}
+    ${libfanet}
+    ${libnetanim}
+)
