@@ -29,7 +29,7 @@ The directory of the project is as follows:
 |l_ `Bin/`|Stores built softwares, generated headers and other assets.|
 |l_ `fanet/`|Source codes for the FANET simulation library. Developers should modify/add code within this folder. Note that this folder is included into the ns3 folder via creation of symbolic links.|
 |l_ `img/`|Images for documentation|
-|l_ `ns3/`|Not committed into the upstream repository. When the ns3 submodule is initialised in your working directory, this folder will appear and represents the last baseline NS3 library.|
+|l_ `ns3/`|Not committed into the upstream repository. When the ns3 submodule is initialised in your working directory, this folder will appear and represents the last baseline NS3 library. Note that you are not to commit changes to the ns3 superrepo. Make and commit changes only to this repository.|
 |`.gitattributes`|Controls how git handles different file types, whether to handle as text or as Large File Storage (Saves repository space!), or EOF, etc.|
 |`.gitmodules`|Declares other git repositories as submodules within this repository. This is so that you don't have to commit in the entire ns3 library.|
 |`CMakeUserPresets.json`|Extension of the provided `CMakePresets.json` within ns3. Allows us to define a configuration preset around our FANET library. Note that this folder is included into the ns3 folder via creation of symbolic links.|
@@ -66,7 +66,7 @@ More on Github Issues.
 
 ## See more
 - [Official NS3 Wiki](https://www.nsnam.org/)
-- [Git submodules] (https://www.cyberdemon.org/2024/03/20/submodules.html)
+- [Git submodules](https://www.cyberdemon.org/2024/03/20/submodules.html)
 
 ## Credits
 - First developed by Tan Ying Hao for DSO Summer 2025 Internship, under the supervision of Ng Wee Teck from ES-SWL2.
