@@ -21,7 +21,7 @@ namespace ns3
              * 
              * @param nClusterMems Number of nodes in the cluster
              */
-            NodeContainer CreateCluster(uint32_t nClusterMems);
+            NodeContainer* CreateCluster(uint32_t nClusterMems);
 
             /**
              * @brief Storing the cluster nodes in a manner that will allow for better

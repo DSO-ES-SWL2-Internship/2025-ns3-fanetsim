@@ -223,9 +223,9 @@ namespace ns3
         Ptr<FANETApplication> gdtapp = DynamicCast<FANETApplication>(node->GetApplication(0));
         if (gdtapp) gdtapp->m_plrManager->StartTest(gdtapp, 3, 0, NETWORK_BROADCAST, 20, 0.5);
 
-        node = this->fanet->clusters[2].Get(4);
+        auto& selNode = *this->fanet->clusters[0].Get(0);
         Ptr<FANETApplication> app = DynamicCast<FANETApplication>(node->GetApplication(0));
-        if (app) app->m_plrManager->StartTest(app, 10, this->fanet->clusters[2].Get(4)->GetId(), NETWORK_BROADCAST, 20, 0.5);
+        if (app) app->m_plrManager->StartTest(app, 10, selNode.GetId(), NETWORK_BROADCAST, 20, 0.5);
 
         // node = this->fanet->clusters[1].Get(2);
         // Ptr<ClusterNodeApp> app = DynamicCast<ClusterNodeApp>

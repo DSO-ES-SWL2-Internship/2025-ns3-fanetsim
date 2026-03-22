@@ -32,12 +32,12 @@ namespace ns3
         return tid;
     }
 
-    NodeContainer FANETTopologyHelper::CreateCluster(uint32_t nClusterMems)
+    NodeContainer* FANETTopologyHelper::CreateCluster(uint32_t nClusterMems)
     {
-        NodeContainer cluster;
-        cluster.Create(nClusterMems);
-        allNodes.Add(cluster);
-        return cluster;
+        NodeContainer* pCluster = new NodeContainer();
+        pCluster->Create(nClusterMems);
+        allNodes.Add(*pCluster);
+        return pCluster;
     }
 
     // void FANETTopologyHelper::StoreClusterMembers(uint32_t nClusters)
@@ -51,8 +51,12 @@ namespace ns3
     void FANETTopologyHelper::CreateClusters(uint32_t nClusters, std::vector<uint32_t> nClusterNodes)
     {
         for (uint32_t i = 0; i < nClusters; i++)
-            clusters.push_back(FANETTopologyHelper::CreateCluster(nClusterNodes[i]));
-
+        {
+            // Does copy to clusters vector, need to deallocate
+            auto* tmp = FANETTopologyHelper::CreateCluster(nClusterNodes[i]);
+            clusters.push_back(*tmp);
+            delete tmp;
+        }
         NS_LOG_INFO("Clusters Created");
     }
 
