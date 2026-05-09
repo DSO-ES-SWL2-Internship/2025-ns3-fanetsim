@@ -43,6 +43,7 @@ namespace ns3
     {
         NS_LOG_FUNCTION(this);
         UpdateSlotDuration(); // Initialize slot duration
+        SetTypeOfStation(MESH);
     }
 
     TdmaWifiMac::~TdmaWifiMac()
@@ -111,7 +112,7 @@ namespace ns3
 
         // Creating and configuring the Mac Header
 
-        WifiMacHeader hdr;
+        WifiMacHeader& hdr = mpdu->GetHeader();
 
         // If we are not a QoS STA then we definitely want to use AC_BE to
         // transmit the packet. A TID of zero will map to AC_BE (through \c
@@ -164,10 +165,13 @@ namespace ns3
         hdr.SetDsNotFrom();
         hdr.SetDsNotTo();
 
+        // Deprecated, since MPDU is supposed to contain all information
+        // Since later version of NS3
+        // TODO: Refactor for cleanliness
         TdmaBufferItem item;
         item.mpdu = mpdu;
-        item.hdr = hdr;
-        item.to = to;
+        // item.hdr = hdr;
+        // item.to = to;
 
         m_tdmaBuffer.push(item);
 
@@ -223,13 +227,13 @@ namespace ns3
             // Get the next packet and header from the buffer
             TdmaBufferItem item = m_tdmaBuffer.front();
             Ptr<WifiMpdu> mpdu = item.mpdu;
-            WifiMacHeader hdr = item.hdr;
+            // WifiMacHeader hdr = item.hdr;
             // Mac48Address to = item.to;
 
             // Queue the packet and header in the appropriate Txop or QosTxop
             if (GetQosSupported())
             {
-                uint8_t tid = GetTid(mpdu->GetPacket(), hdr);
+                uint8_t tid = GetTid(mpdu->GetPacket(), mpdu->GetHeader());
                 GetQosTxop(tid)->Queue(mpdu);
             }
             else

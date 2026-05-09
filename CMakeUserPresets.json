@@ -10,10 +10,11 @@
           "NS3_EXAMPLES": "ON",
           "NS3_LOG": "ON",
           "NS3_TESTS": "ON",
-          "NS3_SANITIZE": "ON",
+          "NS3_SANITIZE": "OFF",
           "NS3_NETANIM" : "ON",
-          "NS3_FILTER_MODULE_EXAMPLES_AND_TESTS": "fanet",
-          "NS3_CMAKE_PRESET": "FanetDeveloper"
+          "NS3_FILTER_MODULE_EXAMPLES_AND_TESTS": "fanet;netanim",
+          "NS3_CMAKE_PRESET": "FanetDeveloper",
+          "NS3_ENABLED_MODULES": "core;stats;wifi;network;internet;aodv;dlsr;dsdv;olsr;fanet;netanim"
       }
     }
   ]
