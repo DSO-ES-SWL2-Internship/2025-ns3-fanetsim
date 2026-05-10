@@ -226,7 +226,7 @@ namespace ns3
         auto& selNode = *this->fanet->clusters[0].Get(0);
         Ptr<FANETApplication> app = DynamicCast<FANETApplication>(node->GetApplication(0));
         if (app) app->m_plrManager->StartTest(app, 10, selNode.GetId(), NETWORK_BROADCAST, 20, 0.5);
-
+ 
         // node = this->fanet->clusters[1].Get(2);
         // Ptr<ClusterNodeApp> app = DynamicCast<ClusterNodeApp>
 

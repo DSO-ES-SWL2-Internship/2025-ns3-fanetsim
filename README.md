@@ -37,7 +37,7 @@ The directory of the project is as follows:
 
 ## How to run
 1. Clone the repository to a local PC.
-    - `git clone https://<username>@github.com/DSO-ES-SWL2-Internship/2025-ns3-fanetsim.git`
+    - `git clone https://<username>@github.com/DSO-ES-SWL2-Internship/2026-ns3-fanetsim2.git`
     - Enter your Personal Access Token. See [here](https://stackoverflow.com/questions/2505096/clone-a-private-repository-github) if unsure.
 1. Pull the `ns3` library as a submodule.
     - `git submodule init`
