@@ -232,7 +232,7 @@ namespace ns3
 
         LogComponentDisable("ClusterNodeCHPromo", LOG_LEVEL_DEBUG);
 
-        this->SetUpNetAnim();
+        //this->SetUpNetAnim();
 
         this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim);
 
