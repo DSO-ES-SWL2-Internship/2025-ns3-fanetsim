@@ -3,7 +3,8 @@
 
 #include "ns3/wifi-mac.h"
 #include "ns3/wifi-mac-header.h"
-
+#include <string>
+#include <vector>
 #include <queue>
 
 namespace ns3
@@ -14,6 +15,17 @@ namespace ns3
         Ptr<WifiMpdu> mpdu; // The packet to be transmitted
         WifiMacHeader hdr;  // The MAC header for the packet
         Mac48Address to;    // The destination address
+    };
+
+    struct MiniSlot {
+    bool isOccupied;
+    std::string trafficType;
+    };
+
+    struct TrafficProfile {
+    std::string type;
+    uint32_t priority;
+    double bandwidthKb;
     };
 
     class TdmaWifiMac : public WifiMac
@@ -29,7 +41,17 @@ namespace ns3
             // void Enqueue(Ptr<Packet> packet, Mac48Address to) override;
             bool CanForwardPacketsTo(Mac48Address to) const override;
 
+            // A function to receive the JSON data from the simulator
+            void SetTrafficProfiles(std::vector<TrafficProfile> profiles);
+            void AllocateMiniSlots();
+
         private:
+            std::vector<TrafficProfile> m_macTrafficProfiles;
+            std::vector<MiniSlot> m_allocationTable;
+    
+            uint32_t m_totalMiniSlots = 12; 
+            double m_kbPerMiniSlot = 0.1;   // 0.1K per slot
+        
             void TdmaScheduleNextSlot();
             void TdmaTransmit();
             void UpdateSlotDuration();

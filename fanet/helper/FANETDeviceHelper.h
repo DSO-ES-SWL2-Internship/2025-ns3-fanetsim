@@ -6,7 +6,7 @@
 #include "ns3/FANETTopologyHelper.h"
 #include "ns3/FANETAddressHelper.h"
 #include "ns3/FANETAnimationHelper.h"
-
+#include "ns3/tdma-wifi-mac.h"
 
 #include <cstdint>
 #include <vector>
@@ -37,6 +37,7 @@ namespace ns3
         std::vector<NetDeviceContainer> clustersDevices; /**< Containers for cluster devices. */
         std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices; /**< Containers for cluster link devices. */
         std::vector<std::vector<Ptr<NetDevice>>> linksDevices; /**< Pointers to link devices. */
+        std::vector<TrafficProfile> m_deviceTrafficProfiles;
 
         static TypeId GetTypeId();
 
@@ -107,6 +108,8 @@ namespace ns3
          * @param status New status of the node.
          */
         void NotifyCHStatusChange(Ptr<Node> node, std::string status);
+
+        void SetTrafficProfiles(std::vector<TrafficProfile> profiles);
     }; 
 }
 

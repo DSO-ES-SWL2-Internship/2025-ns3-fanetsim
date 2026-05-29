@@ -3,6 +3,8 @@
 
 // Helper Classes Includes
 #include "ns3/fanet-module.h"
+#include "ns3/tdma-wifi-mac.h"
+#include "ns3/FANETDeviceHelper.h"
 
 namespace ns3 
 {
@@ -82,6 +84,8 @@ namespace ns3
             FANETSimulator();
             /// @brief Destroy the FANET Simulator
             ~FANETSimulator();
+
+            std::vector<TrafficProfile> m_trafficProfiles;
 
             /// @brief Helper for managing FANET topology.
             Ptr<FANETTopologyHelper> fanet;

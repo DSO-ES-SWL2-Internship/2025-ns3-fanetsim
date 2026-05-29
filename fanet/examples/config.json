@@ -8,12 +8,17 @@
       "clusterWifiStandard": "WIFI_STANDARD_80211b",
       "clusterWifiChannelPropagationDelay": "ns3::ConstantSpeedPropagationDelayModel",
       "clusterPropagationLossModel": "ns3::FriisPropagationLossModel",
-      "clusterMacType": "ns3::TdmaWifiMac",
+      "clusterMacType": "ns3::AdhocWifiMac",
       "linkWifiStandard": "WIFI_STANDARD_80211b",
       "linkWifiChannelPropagationDelay": "ns3::ConstantSpeedPropagationDelayModel",
       "linkPropagationLossModel": "ns3::FriisPropagationLossModel",
-      "linkMacType": "ns3::TdmaWifiMac"
+      "linkMacType": "ns3::AdhocWifiMac"
     },
+  "trafficProfiles": [
+    { "type": "Cmd3", "priority": 1, "bandwidthKb": 0.6 },
+    { "type": "Status2", "priority": 2, "bandwidthKb": 0.3 },
+    { "type": "Video", "priority": 3, "bandwidthKb": 1.2 }
+  ],
     "router": {
       "routingProtocol": "AODV"
     },

@@ -43,7 +43,7 @@ namespace ns3
     {
         NS_LOG_FUNCTION(this);
         UpdateSlotDuration(); // Initialize slot duration
-        SetTypeOfStation(MESH);
+        SetTypeOfStation(ADHOC_STA);
     }
 
     TdmaWifiMac::~TdmaWifiMac()
@@ -66,13 +66,14 @@ namespace ns3
         TdmaScheduleNextSlot();
     }
 
-    void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from)
+void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from)
     {
         auto packet = mpdu->GetPacket();
         NS_LOG_FUNCTION(this << packet << to);
 
         // when new packet is to be sent, check if the destination is a new location
-        if (GetWifiRemoteStationManager()->IsBrandNew(to))
+        // FIXED: Do not register broadcast addresses as brand new unicast stations
+        if (!to.IsBroadcast() && GetWifiRemoteStationManager()->IsBrandNew(to))
         {
             // In ad hoc mode, we assume that every destination supports all the rates we support.
             // Register the station with all the different capabilities
@@ -107,7 +108,7 @@ namespace ns3
                     GetEhtCapabilities(SINGLE_LINK_OP_ID));
             }
             GetWifiRemoteStationManager()->AddAllSupportedModes(to);
-            GetWifiRemoteStationManager()->RecordDisassociated(to);
+            //GetWifiRemoteStationManager()->RecordDisassociated(to);
         }
 
         // Creating and configuring the Mac Header
@@ -164,6 +165,17 @@ namespace ns3
         hdr.SetAddr3(GetBssid(0));
         hdr.SetDsNotFrom();
         hdr.SetDsNotTo();
+
+        // FIXED: The VIP PASS for Broadcast packets (ARP, AODV RREQ, etc.)
+        // Let them bypass the TDMA buffer so routing can establish instantly!
+        if (to.IsBroadcast()) {
+            if (GetQosSupported()) {
+                GetQosTxop(tid)->Queue(mpdu);
+            } else {
+                GetTxop()->Queue(mpdu);
+            }
+            return; // Exit the function immediately, bypassing the TDMA queue
+        }
 
         // Deprecated, since MPDU is supposed to contain all information
         // Since later version of NS3
@@ -253,6 +265,59 @@ namespace ns3
         NS_LOG_DEBUG("Slot duration updated to " << m_slotDuration.As(Time::MS));
     }
 
+     // Inside tdma-wifi-mac.cc
+
+    void TdmaWifiMac::SetTrafficProfiles(std::vector<TrafficProfile> profiles) {
+        this->m_macTrafficProfiles = profiles;
+        AllocateMiniSlots(); // Re-allocate mini-slots based on the new traffic profiles
+    }
+
+    void TdmaWifiMac::AllocateMiniSlots() {
+        // 1. Reset the table to 12 empty slots
+        m_allocationTable.clear();
+        m_allocationTable.resize(m_totalMiniSlots, {false, ""});
+        
+        uint32_t slotsAvailable = m_totalMiniSlots;
+
+        // 2. Loop through the JSON profiles (already sorted highest priority first)
+        for (const auto& profile : m_macTrafficProfiles) {
+            
+            // Calculate how many mini-slots this traffic needs (e.g., 0.6K / 0.1 = 6 slots)
+            uint32_t slotsNeeded = std::ceil(profile.bandwidthKb / m_kbPerMiniSlot);
+            
+            // If we don't have enough slots left, it gets whatever is remaining (Starvation)
+            uint32_t slotsToAllocate = std::min(slotsNeeded, slotsAvailable);
+            
+            // Fill the slots in the table
+            for (uint32_t i = 0; i < slotsToAllocate; i++) {
+                // Find the next available empty slot
+                for (auto& slot : m_allocationTable) {
+                    if (!slot.isOccupied) {
+                        slot.isOccupied = true;
+                        slot.trafficType = profile.type;
+                        slotsAvailable--;
+                        break;
+                    }
+                }
+            }
+
+            // If the table is full, stop allocating! Lower priorities get dropped.
+            if (slotsAvailable == 0) {
+                NS_LOG_DEBUG("TDMA Slot Capacity Reached. Lower priorities starved.");
+                break; 
+            }
+        }
+            std::cout << "\n[TDMA VERIFICATION] Node MAC: " << GetAddress() << " allocated 12 mini-slots:" << std::endl;
+            for (uint32_t i = 0; i < m_totalMiniSlots; i++) {
+                if (m_allocationTable[i].isOccupied) {
+                    std::cout << "  Slot " << i << ": " << m_allocationTable[i].trafficType << std::endl;
+                } else {
+                    std::cout << "  Slot " << i << ": [ IDLE ]" << std::endl;
+                }
+            }
+            std::cout << "------------------------------------------------" << std::endl;
+    }
+
     // Receive MAC protocol data unit (MPDU) and extract the source and destination address
     void
     TdmaWifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId)
@@ -293,7 +358,7 @@ namespace ns3
                     GetEhtCapabilities(SINGLE_LINK_OP_ID));
             }
             GetWifiRemoteStationManager()->AddAllSupportedModes(from);
-            GetWifiRemoteStationManager()->RecordDisassociated(from);
+            //GetWifiRemoteStationManager()->RecordDisassociated(from);
         }
 
 

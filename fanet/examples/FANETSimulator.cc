@@ -137,10 +137,33 @@ namespace ns3
 
     void FANETSimulator::InstallDevices()
     {
-        this->fanetDevices->SetupGDTWifi(this->fanet->GDTNode);
+        //this->fanetDevices->SetupGDTWifi(this->fanet->GDTNode);
         this->fanetDevices->SetupClustersWifi(this->fanet->clusters);
         this->fanetDevices->SetUpLinksWifi(this->fanet);
         this->fanetDevices->AssignTdmaSlots(this->fanet->allNodes, MilliSeconds(this->cycleDuration));
+        //Print the GDT interfaces
+        Ptr<Node> gdt = this->fanet->GDTNode.Get(0);
+        std::cout << "GDT (Node " << gdt->GetId() << ") has " << gdt->GetNDevices() << " hardware interfaces." << std::endl;
+        // Loop to find cluster nodes and print their interfaces and SSIDs
+        // for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+        //     for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) 
+        //     {
+        //         Ptr<Node> clusterNode = this->fanet->clusters[i].Get(j);
+        //         std::cout << "Node " << clusterNode->GetId() << " has " << clusterNode->GetNDevices() << " interfaces. ";
+        
+        //         for (uint32_t d = 0; d < clusterNode->GetNDevices(); d++) {
+        //             Ptr<NetDevice> genericDevice = clusterNode->GetDevice(d);
+        //             Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(genericDevice);
+    
+        //             if (wifiDev) {
+        //                 std::cout << "  -> Device " << d << " is Wi-Fi. SSID: " << wifiDev->GetMac()->GetSsid() << std::endl;
+        //             } else {
+        //                 std::cout << "  -> Device " << d << " is NOT Wi-Fi (Likely Loopback)." << std::endl;
+        //             }
+        // }
+        // std::cout << std::endl;
+        //     }
+        // }
     }
 
     void FANETSimulator::SetRoutingProtocol()
@@ -168,7 +191,6 @@ namespace ns3
 
     }
 
-
     void FANETSimulator::RunSimulation()
     {
         ns3::PacketMetadata::Enable();
@@ -191,41 +213,40 @@ namespace ns3
 
         this->AssignAddress();
 
-        // Setup application on all the nodes
-        InstallApplication<GDTApp>(
-            this->fanet->GDTNode.Get(0), 0.0, simDuration,
-            [this](Ptr<GDTApp> app) {
-                app->SetPort(8080);
-                app->EnableInfoLog();
-                app->m_plrManager->Setup(this->fanet->allNodes.GetN());
-                
-            }          
-        );
+        // //Setup application on all the nodes
+        // InstallApplication<GDTApp>(
+        //     this->fanet->GDTNode.Get(0), 0.0, simDuration,
+        //     [this](Ptr<GDTApp> app) {
+        //         app->SetPort(8080);
+        //         app->EnableInfoLog();
+        //         app->m_plrManager->Setup(this->fanet->allNodes.GetN());        
+        //     }          
+        // );
         
-        for (size_t i = 0; i < this->fanet->clusters.size(); i++)
-        {
-            for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
-            {
-                InstallApplication<ClusterNodeApp>(
-                    this->fanet->clusters[i].Get(j), 0.0, simDuration,
-                    [this, i](Ptr<ClusterNodeApp> app) {
-                        app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
-                        //app->SetupPLR(this->fanet->allNodes.GetN());
-                        app->m_plrManager->Setup(this->fanet->allNodes.GetN());   
-                        app->EnableInfoLog();
-                    }
-                ); 
-            }
-        }
+        // for (size_t i = 0; i < this->fanet->clusters.size(); i++)
+        // {
+        //     for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
+        //     {
+        //         InstallApplication<ClusterNodeApp>(
+        //             this->fanet->clusters[i].Get(j), 0.0, simDuration,
+        //             [this, i](Ptr<ClusterNodeApp> app) {
+        //                 app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
+        //                 //app->SetupPLR(this->fanet->allNodes.GetN());
+        //                 app->m_plrManager->Setup(this->fanet->allNodes.GetN());   
+        //                 app->EnableInfoLog();
+        //             }
+        //         ); 
+        //     }
+        // }
 
-        // Starting PLR test on some nodes. Note: as of now if there is no mechanism to check what if the response packet from the query was not received.
-        Ptr<Node> node = this->fanet->GDTNode.Get(0);
-        Ptr<FANETApplication> gdtapp = DynamicCast<FANETApplication>(node->GetApplication(0));
-        if (gdtapp) gdtapp->m_plrManager->StartTest(gdtapp, 3, 0, NETWORK_BROADCAST, 20, 0.5);
+        // // Starting PLR test on some nodes. Note: as of now if there is no mechanism to check what if the response packet from the query was not received.
+        // Ptr<Node> node = this->fanet->GDTNode.Get(0);
+        // Ptr<FANETApplication> gdtapp = DynamicCast<FANETApplication>(node->GetApplication(0));
+        // if (gdtapp) gdtapp->m_plrManager->StartTest(gdtapp, 3, 0, NETWORK_BROADCAST, 20, 0.5);
 
-        auto& selNode = *this->fanet->clusters[0].Get(0);
-        Ptr<FANETApplication> app = DynamicCast<FANETApplication>(node->GetApplication(0));
-        if (app) app->m_plrManager->StartTest(app, 10, selNode.GetId(), NETWORK_BROADCAST, 20, 0.5);
+        // auto& selNode = *this->fanet->clusters[0].Get(0);
+        // Ptr<FANETApplication> app = DynamicCast<FANETApplication>(node->GetApplication(0));
+        // if (app) app->m_plrManager->StartTest(app, 10, selNode.GetId(), NETWORK_BROADCAST, 20, 0.5);
  
         // node = this->fanet->clusters[1].Get(2);
         // Ptr<ClusterNodeApp> app = DynamicCast<ClusterNodeApp>
@@ -234,65 +255,84 @@ namespace ns3
 
         this->SetUpNetAnim();
 
-        this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim);
+        //this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim);
+        //try to schedule the cluster head assignment a little later to ensure all the routing tables are populated and the GDT is fully aware of the cluster nodes before it tries to assign them as cluster heads.
+        Simulator::Schedule(Seconds(0.001), &FANETDeviceHelper::AssignClusterHeads, this->fanetDevices, this->fanet, this->ipv4, this->anim);
 
-        // Install UDP Echo Server on a cluster 1 node
-        // UdpEchoServerHelper echoServer(9);
-        // ApplicationContainer serverApp = echoServer.Install(this->fanet->GDTNode.Get(0));
-        // serverApp.Start(Seconds(2.0));
-        // serverApp.Stop(Seconds(20.0));
-
-        // Install UDP Echo Client on last node
+        //DYNAMICALLY FETCH THE GDT'S IP ADDRESS 
+        Ptr<Node> gcsNode = this->fanet->GDTNode.Get(0);
+        Ptr<Ipv4> gdtIpv4 = gcsNode->GetObject<Ipv4>();
+        // Interface 1 is the physical f_0 radio linking to the FANET
+        Ipv4Address gcsIp = gdtIpv4->GetAddress(1, 0).GetLocal(); 
         
-        // UdpEchoClientHelper echoClient1(this->ipv4->GDTInterface.GetAddress(0), 9);
-        // echoClient1.SetAttribute("MaxPackets", UintegerValue(5));
-        // echoClient1.SetAttribute("Interval", TimeValue(Seconds(5)));
-        // echoClient1.SetAttribute("PacketSize", UintegerValue(512));
+        std::cout << "[APPLICATION] GDT Target IP Address is: " << gcsIp << std::endl;
 
-        // ApplicationContainer clientApp1 = echoClient1.Install(this->fanet->clusters[0].Get(1));
-        // clientApp1.Start(Seconds(3.0));
-        // clientApp1.Stop(Seconds(20.0));
+        //2. SET UP THE RECEIVER ON THE GDT (Listening on port 9999) 
+        uint16_t port = 9999;
+        PacketSinkHelper sinkHelper("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), port));
+        ApplicationContainer sinkApp = sinkHelper.Install(gcsNode);
+        sinkApp.Start(Seconds(0.0));
+        sinkApp.Stop(Seconds(this->simDuration));
 
-        // UdpEchoClientHelper echoClient2(this->ipv4->GDTInterface.GetAddress(0), 9);
-        // echoClient2.SetAttribute("MaxPackets", UintegerValue(1));
-        // echoClient2.SetAttribute("Interval", TimeValue(Seconds(5)));
-        // echoClient2.SetAttribute("PacketSize", UintegerValue(512));
+        //CONFIGURE THE TRAFFIC GENERATORS (Table 1 Specs) ---
+        // VIDEO: 1.2K High Res -> 1200 bytes, 9.6Kbps | Priority 3 (DSCP 0x60)
+        OnOffHelper videoApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+        videoApp.SetConstantRate(DataRate("9.6Kbps"), 1200); 
+        videoApp.SetAttribute("Tos", UintegerValue(0x60)); 
 
-        // ApplicationContainer clientApp2 = echoClient2.Install(this->fanet->clusters[2].Get(2));
-        // clientApp2.Start(Seconds(3.0));
-        // clientApp2.Stop(Seconds(20.0));
+        // STATUS 1: 0.1K -> 100 bytes, 0.8Kbps | Priority 2 (DSCP 0x80)
+        OnOffHelper statusApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+        statusApp.SetConstantRate(DataRate("0.8Kbps"), 100); 
+        statusApp.SetAttribute("Tos", UintegerValue(0x80)); 
 
-        // Ptr<AddServer> serverApp = CreateObject<AddServer>();
-        // this->fanet->GDTNode.Get(0)->AddApplication(serverApp);
-        // serverApp->SetStartTime(Seconds(0.0));
-        // serverApp->SetStopTime(Seconds(20.0));
+        // CMD 1: 0.1K -> 100 bytes, 0.8Kbps | Priority 3 (DSCP 0x60)
+        OnOffHelper cmdApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+        cmdApp.SetConstantRate(DataRate("0.8Kbps"), 100); 
+        cmdApp.SetAttribute("Tos", UintegerValue(0x60)); 
 
-        // Ptr<AddClient> clientApp1 = CreateObject<AddClient>();
-        // clientApp1->Setup(this->ipv4->GDTInterface.GetAddress(0), 8080);
-        // this->fanet->clusters[1].Get(2)->AddApplication(clientApp1);
-        // clientApp1->SetStartTime(Seconds(3.0));
-        // clientApp1->SetStopTime(Seconds(20.0));
+        //INSTALL APPS ON EVERY DRONE IN EVERY CLUSTER ---
+        for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+            for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
+                
+                Ptr<Node> currentDrone = this->fanet->clusters[i].Get(j);
+                
+                // Stagger the start times to prevent catastrophic AODV route-request collisions
+                double staggerOffset = (i * 0.1) + (j * 0.05); 
 
-        // Ptr<AddClient> clientApp2 = CreateObject<AddClient>();
-        // clientApp2->Setup(this->ipv4->GDTInterface.GetAddress(0), 8080);
-        // this->fanet->clusters[2].Get(2)->AddApplication(clientApp2);
-        // clientApp2->SetStartTime(Seconds(3.0));
-        // clientApp2->SetStopTime(Seconds(20.0));
+                // Install Video
+                ApplicationContainer vApp = videoApp.Install(currentDrone);
+                vApp.Start(Seconds(1.0 + staggerOffset)); 
+                vApp.Stop(Seconds(this->simDuration));
 
+                // Install Status
+                ApplicationContainer sApp = statusApp.Install(currentDrone);
+                sApp.Start(Seconds(1.1 + staggerOffset));
+                sApp.Stop(Seconds(this->simDuration));
 
-        // for (uint32_t i = 1; i < fanet->allNodes.GetN(); ++i) {
-        //     Ptr<AddClient> senderApp = CreateObject<AddClient>();
-        //     senderApp->Setup(, 8080);
-        //     nodes.Get(i)->AddApplication(senderApp);
-        //     senderApp->SetStartTime(Seconds(2.0));
-        //     senderApp->SetStopTime(Seconds(20.0));
-        // }
-
+                // Install Cmd
+                ApplicationContainer cApp = cmdApp.Install(currentDrone);
+                cApp.Start(Seconds(1.2 + staggerOffset));
+                cApp.Stop(Seconds(this->simDuration));
+            }
+        }
 
         this->anim->AnimateFANET(this->fanet);
 
         Simulator::Stop(Seconds(simDuration));
         Simulator::Run();
+
+        // --- THE VERIFICATION PRINT STATEMENT: CHECKING IF THE GDT RECEIVED ANYTHING AT ALL FROM THE CLUSTER NODES ---
+        Ptr<PacketSink> sink = DynamicCast<PacketSink>(sinkApp.Get(0));
+        std::cout << "\n===============================================" << std::endl;
+        std::cout << "[VERIFICATION] GDT successfully received: " << sink->GetTotalRx() << " bytes." << std::endl;
+        std::cout << "===============================================\n" << std::endl;
+ 
+        // 1. See if the Application is successfully pushing data out
+        LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO); 
+        
+        // 2. See if AODV is desperately crying out for a route but failing
+        LogComponentEnable("AodvRoutingProtocol", LOG_LEVEL_LOGIC);     
+
         Simulator::Destroy();
     }
 
@@ -302,6 +342,24 @@ namespace ns3
         json config;
         file >> config;
 
+        //Read the Bandwidth Table from JSON
+        if (config.contains("trafficProfiles")) {
+            for (const auto& item : config["trafficProfiles"]) {
+                TrafficProfile tp;
+                tp.type = item["type"].get<std::string>();
+                tp.priority = item["priority"].get<uint32_t>();
+                tp.bandwidthKb = item["bandwidthKb"].get<double>();
+            
+                this->m_trafficProfiles.push_back(tp);
+            }
+        }
+    
+        //Sort the profiles by priority (1 comes first) so the MAC layer handles them in order
+        std::sort(this->m_trafficProfiles.begin(), this->m_trafficProfiles.end(),
+                [](const TrafficProfile& a, const TrafficProfile& b) {
+                    return a.priority < b.priority;
+                });
+        
         Setup();
         SetAttribute("nClusters", UintegerValue(config["nClusters"]));
         SetAttribute("nClusterNodes", StringValue(config["nClusterNodes"].get<std::string>()));
@@ -309,6 +367,9 @@ namespace ns3
         SetAttribute("cycleDuration", UintegerValue(config["cycleDuration"]));
         SetAttribute("filename", StringValue(config["filename"].get<std::string>()));
         SetAttribute("simulationDuration", DoubleValue(config["simulationDuration"]));
+
+        // Hand the parsed JSON data to the device builder
+        this->fanetDevices->SetTrafficProfiles(this->m_trafficProfiles); 
  
         fanetDevices->SetAttribute("clusterWifiStandard", EnumValue(wifiStandardMap[config["fanetDevices"]["clusterWifiStandard"].get<std::string>()]));
         fanetDevices->SetAttribute("clusterWifiChannelPropagationDelay", StringValue(config["fanetDevices"]["clusterWifiChannelPropagationDelay"].get<std::string>()));
