@@ -265,21 +265,20 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
         NS_LOG_DEBUG("Slot duration updated to " << m_slotDuration.As(Time::MS));
     }
 
-     // Inside tdma-wifi-mac.cc
-
+     //Inside tdma-wifi-mac.cc
     void TdmaWifiMac::SetTrafficProfiles(std::vector<TrafficProfile> profiles) {
         this->m_macTrafficProfiles = profiles;
         AllocateMiniSlots(); // Re-allocate mini-slots based on the new traffic profiles
     }
 
     void TdmaWifiMac::AllocateMiniSlots() {
-        // 1. Reset the table to 12 empty slots
+        //Reset the table to 12 empty slots
         m_allocationTable.clear();
         m_allocationTable.resize(m_totalMiniSlots, {false, ""});
         
         uint32_t slotsAvailable = m_totalMiniSlots;
 
-        // 2. Loop through the JSON profiles (already sorted highest priority first)
+        //Loop through the JSON profiles (already sorted highest priority first)
         for (const auto& profile : m_macTrafficProfiles) {
             
             // Calculate how many mini-slots this traffic needs (e.g., 0.6K / 0.1 = 6 slots)

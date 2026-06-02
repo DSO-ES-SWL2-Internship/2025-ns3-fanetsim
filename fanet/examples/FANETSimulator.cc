@@ -144,26 +144,26 @@ namespace ns3
         //Print the GDT interfaces
         Ptr<Node> gdt = this->fanet->GDTNode.Get(0);
         std::cout << "GDT (Node " << gdt->GetId() << ") has " << gdt->GetNDevices() << " hardware interfaces." << std::endl;
-        // Loop to find cluster nodes and print their interfaces and SSIDs
-        // for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
-        //     for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) 
-        //     {
-        //         Ptr<Node> clusterNode = this->fanet->clusters[i].Get(j);
-        //         std::cout << "Node " << clusterNode->GetId() << " has " << clusterNode->GetNDevices() << " interfaces. ";
+        //Loop to find cluster nodes and print their interfaces and SSIDs
+        for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+            for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) 
+            {
+                Ptr<Node> clusterNode = this->fanet->clusters[i].Get(j);
+                std::cout << "Node " << clusterNode->GetId() << " has " << clusterNode->GetNDevices() << " interfaces. ";
         
-        //         for (uint32_t d = 0; d < clusterNode->GetNDevices(); d++) {
-        //             Ptr<NetDevice> genericDevice = clusterNode->GetDevice(d);
-        //             Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(genericDevice);
+                for (uint32_t d = 0; d < clusterNode->GetNDevices(); d++) {
+                    Ptr<NetDevice> genericDevice = clusterNode->GetDevice(d);
+                    Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(genericDevice);
     
-        //             if (wifiDev) {
-        //                 std::cout << "  -> Device " << d << " is Wi-Fi. SSID: " << wifiDev->GetMac()->GetSsid() << std::endl;
-        //             } else {
-        //                 std::cout << "  -> Device " << d << " is NOT Wi-Fi (Likely Loopback)." << std::endl;
-        //             }
-        // }
-        // std::cout << std::endl;
-        //     }
-        // }
+                    if (wifiDev) {
+                        std::cout << "  -> Device " << d << " is Wi-Fi. SSID: " << wifiDev->GetMac()->GetSsid() << std::endl;
+                    } else {
+                        std::cout << "  -> Device " << d << " is NOT Wi-Fi (Likely Loopback)." << std::endl;
+                    }
+        }
+        std::cout << std::endl;
+            }
+        }
     }
 
     void FANETSimulator::SetRoutingProtocol()
@@ -194,6 +194,15 @@ namespace ns3
     void FANETSimulator::RunSimulation()
     {
         ns3::PacketMetadata::Enable();
+
+        // See if the Application is successfully pushing data out
+        LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO); 
+        
+        // See if AODV is desperately crying out for a route but failing
+        //LogComponentEnable("AodvRoutingProtocol", LOG_LEVEL_LOGIC); 
+        
+        //See if the TDMA MAC layer is properly prioritizing and scheduling packets according to the traffic profiles
+        LogComponentEnable("TdmaWifiMac", LOG_LEVEL_FUNCTION);
 
         //this->GetNClusters();
 
@@ -256,61 +265,66 @@ namespace ns3
         this->SetUpNetAnim();
 
         //this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim);
-        //try to schedule the cluster head assignment a little later to ensure all the routing tables are populated and the GDT is fully aware of the cluster nodes before it tries to assign them as cluster heads.
+        //try to schedule the cluster head assignment a little later to ensure all the routing tables are populated and 
+        //the GDT is fully aware of the cluster nodes before it tries to assign them as cluster heads.
         Simulator::Schedule(Seconds(0.001), &FANETDeviceHelper::AssignClusterHeads, this->fanetDevices, this->fanet, this->ipv4, this->anim);
 
-        //DYNAMICALLY FETCH THE GDT'S IP ADDRESS 
+        //Dynamically fetch the GDT's IP address to use as the destination for the applications instead of hardcoding it. 
+        //This also serves as a demonstration of how the GDT can be aware of the cluster nodes and their addresses right from the start, 
+        //which is crucial for the GDT to perform its management functions effectively.
         Ptr<Node> gcsNode = this->fanet->GDTNode.Get(0);
         Ptr<Ipv4> gdtIpv4 = gcsNode->GetObject<Ipv4>();
-        // Interface 1 is the physical f_0 radio linking to the FANET
+        //Interface 1 is the physical f_0 radio linking to the FANET
         Ipv4Address gcsIp = gdtIpv4->GetAddress(1, 0).GetLocal(); 
         
         std::cout << "[APPLICATION] GDT Target IP Address is: " << gcsIp << std::endl;
 
-        //2. SET UP THE RECEIVER ON THE GDT (Listening on port 9999) 
+        //Set up a PacketSink on the GDT to receive the traffic from the cluster nodes and verify that data is being received.
         uint16_t port = 9999;
         PacketSinkHelper sinkHelper("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), port));
         ApplicationContainer sinkApp = sinkHelper.Install(gcsNode);
         sinkApp.Start(Seconds(0.0));
         sinkApp.Stop(Seconds(this->simDuration));
 
-        //CONFIGURE THE TRAFFIC GENERATORS (Table 1 Specs) ---
-        // VIDEO: 1.2K High Res -> 1200 bytes, 9.6Kbps | Priority 3 (DSCP 0x60)
+        //Configure the traffic profiles for the applications based on the JSON configuration. 
+        //For simplicity, we'll just set up three types of traffic: Video, Status, and Command, each with different bandwidth requirements and priorities. 
+        //The TDMA MAC layer will use the priorities to allocate mini-slots accordingly.
+        //VIDEO: 1.2K High Res -> 1200 bytes, 9.6Kbps | Priority 3 (DSCP 0x60)
         OnOffHelper videoApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
         videoApp.SetConstantRate(DataRate("9.6Kbps"), 1200); 
         videoApp.SetAttribute("Tos", UintegerValue(0x60)); 
 
-        // STATUS 1: 0.1K -> 100 bytes, 0.8Kbps | Priority 2 (DSCP 0x80)
+        //STATUS 1: 0.1K -> 100 bytes, 0.8Kbps | Priority 2 (DSCP 0x80)
         OnOffHelper statusApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
         statusApp.SetConstantRate(DataRate("0.8Kbps"), 100); 
         statusApp.SetAttribute("Tos", UintegerValue(0x80)); 
 
-        // CMD 1: 0.1K -> 100 bytes, 0.8Kbps | Priority 3 (DSCP 0x60)
+        //CMD 1: 0.1K -> 100 bytes, 0.8Kbps | Priority 3 (DSCP 0x60)
         OnOffHelper cmdApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
         cmdApp.SetConstantRate(DataRate("0.8Kbps"), 100); 
         cmdApp.SetAttribute("Tos", UintegerValue(0x60)); 
 
-        //INSTALL APPS ON EVERY DRONE IN EVERY CLUSTER ---
+        //Isntall applications on all the cluster nodes with staggered start times to prevent collisions and ensure the GDT is ready to receive when the apps start sending
         for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
                 
-                Ptr<Node> currentDrone = this->fanet->clusters[i].Get(j);
+                Ptr<Node> currentNode = this->fanet->clusters[i].Get(j);
                 
-                // Stagger the start times to prevent catastrophic AODV route-request collisions
+                //Stagger the start times to prevent catastrophic AODV route-request collisions
                 double staggerOffset = (i * 0.1) + (j * 0.05); 
 
-                // Install Video
-                ApplicationContainer vApp = videoApp.Install(currentDrone);
+                //Install Video
+                ApplicationContainer vApp = videoApp.Install(currentNode);
                 vApp.Start(Seconds(1.0 + staggerOffset)); 
                 vApp.Stop(Seconds(this->simDuration));
 
-                // Install Status
-                ApplicationContainer sApp = statusApp.Install(currentDrone);
+                //Install Status
+                ApplicationContainer sApp = statusApp.Install(currentNode);
                 sApp.Start(Seconds(1.1 + staggerOffset));
                 sApp.Stop(Seconds(this->simDuration));
 
-                // Install Cmd
-                ApplicationContainer cApp = cmdApp.Install(currentDrone);
+                //Install Cmd
+                ApplicationContainer cApp = cmdApp.Install(currentNode);
                 cApp.Start(Seconds(1.2 + staggerOffset));
                 cApp.Stop(Seconds(this->simDuration));
             }
@@ -318,20 +332,31 @@ namespace ns3
 
         this->anim->AnimateFANET(this->fanet);
 
+        //Set up a mechanism for the GCS to send a dynamic command to a target node at runtime, 
+        //demonstrating the ability to interact with the network after it's already up and running.
+        //Force Node 1 to listen on port 9999
+        Ptr<Node> targetNode= this->fanet->clusters[0].Get(0); 
+        Ptr<Socket> cmdSocket = Socket::CreateSocket(targetNode, UdpSocketFactory::GetTypeId());
+        cmdSocket->Bind(InetSocketAddress(Ipv4Address::GetAny(), 9999));
+        cmdSocket->SetRecvCallback(MakeCallback(&FANETSimulator::DynamicCommandRxCallback, this));
+
+        //Get the IP address of that target node so the GCS knows where to aim
+        Ptr<Ipv4> ipv4 = targetNode->GetObject<Ipv4>();
+        Ipv4Address targetIp = ipv4->GetAddress(1, 0).GetLocal();
+
+        //Schedule the GCS to send a command to that node after 15 seconds of simulation time, 
+        //which should be well after the network is established and the applications are actively sending data.
+        Simulator::Schedule(Seconds(15.0), &FANETSimulator::SendDynamicCommand, this, gcsNode, targetIp);
+
         Simulator::Stop(Seconds(simDuration));
         Simulator::Run();
 
-        // --- THE VERIFICATION PRINT STATEMENT: CHECKING IF THE GDT RECEIVED ANYTHING AT ALL FROM THE CLUSTER NODES ---
+        //The verification of GDT receiving data can be done by checking the total bytes received in the sink application on the GDT node. 
+        //If it's greater than 0, it means the GDT successfully received some data from the Nodes.
         Ptr<PacketSink> sink = DynamicCast<PacketSink>(sinkApp.Get(0));
-        std::cout << "\n===============================================" << std::endl;
+        std::cout << "\n" << std::endl;
         std::cout << "[VERIFICATION] GDT successfully received: " << sink->GetTotalRx() << " bytes." << std::endl;
-        std::cout << "===============================================\n" << std::endl;
- 
-        // 1. See if the Application is successfully pushing data out
-        LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO); 
-        
-        // 2. See if AODV is desperately crying out for a route but failing
-        LogComponentEnable("AodvRoutingProtocol", LOG_LEVEL_LOGIC);     
+        std::cout << "\n" << std::endl;
 
         Simulator::Destroy();
     }
@@ -385,4 +410,56 @@ namespace ns3
         ipv4->SetAttribute("baseNetworkAddress", Ipv4AddressValue(Ipv4Address(config["ipv4"]["baseNetworkAddress"].get<std::string>().c_str())));
         ipv4->SetAttribute("baseSubnetMask", Ipv4MaskValue(Ipv4Mask(config["ipv4"]["baseSubnetMask"].get<std::string>().c_str())));
     }
-}
+
+
+    //Dynamic GCS command and MAC layer reallocation callback implementations
+    void FANETSimulator::SendDynamicCommand(Ptr<Node> gcsNode, Ipv4Address targetNodeIp)
+    {
+        std::cout << "\n" << std::endl;
+        std::cout << "[GCS COMMAND] Time: " << Simulator::Now().As(Time::S) << std::endl;
+        std::cout << "[GCS COMMAND] Transmitting 'HIGH_RES' command to Node: " << targetNodeIp << std::endl;
+        std::cout << "\n" << std::endl;
+
+        //Create a UDP Socket on the GCS
+        Ptr<Socket> socket = Socket::CreateSocket(gcsNode, UdpSocketFactory::GetTypeId());
+        
+        //onnect to the Node's special command port (Port 9999)
+        socket->Connect(InetSocketAddress(targetNodeIp, 9999));
+        
+        //Fire the packet with the command. In a real scenario, this could be a more complex packet with specific headers, but for simplicity, we're just sending a plain packet with "HIGH_RES" as its content.
+        Ptr<Packet> packet = Create<Packet>((uint8_t*)"HIGH_RES", 8);
+        socket->Send(packet);
+    }
+
+    void FANETSimulator::DynamicCommandRxCallback(Ptr<Socket> socket)
+    {
+        Ptr<Packet> packet;
+        while ((packet = socket->Recv()))
+        {
+            //The Node received the packet
+            Ptr<Node> rxNode = socket->GetNode();
+            std::cout << "\n[Node Listener] Time: " << Simulator::Now().As(Time::S) << std::endl;
+            std::cout << "[Node Listener] Node " << rxNode->GetId() << " received command! Re-allocating TDMA Slots..." << std::endl;
+
+            //Define the new, heavier Traffic Profile (Video jumps from Priority 3/4 to Priority 5 with 2.4Kbps)
+            std::vector<TrafficProfile> newHighResProfiles = {
+                {"Cmd3", 1, 0.6},
+                {"Status2", 1, 0.3},
+                {"Video_HIGH_RES", 5, 2.4} // <-- Requires more mini-slots!
+            };
+
+            //Loop through the Node's hardware to find the TdmaWifiMac chip
+            for (uint32_t i = 0; i < rxNode ->GetNDevices(); i++) {
+                Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(rxNode->GetDevice(i));
+                if (wifiDev) {
+                    Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
+                    if (tdmaMac) {
+                        //Inject the new profile. 
+                        //This will instantly trigger AllocateMiniSlots() and print the new table!
+                        tdmaMac->SetTrafficProfiles(newHighResProfiles);
+                    }
+                }
+            }
+        }
+    }
+}   

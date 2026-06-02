@@ -77,6 +77,8 @@ namespace ns3
             void SetRoutingProtocol();
             void AssignAddress();
             void SetUpNetAnim();
+            void SendDynamicCommand(Ptr<Node> gcsNode, Ipv4Address targetNodeIp); // Method to send a dynamic command from the GCS to a specific drone
+            void DynamicCommandRxCallback(Ptr<Socket> socket); // Callback method to handle the reception of a dynamic command at the drone
 
         public:
             static TypeId GetTypeId();
