@@ -8,6 +8,12 @@
 
 namespace ns3 
 {
+    struct TrafficWindow {
+        double startTime; // Time to start the profile
+        double endTime;   // Time to end the profile
+        std::vector<TrafficProfile> profiles; // Traffic profiles to apply during this duration
+    };
+    
     class FANETSimulator : public Object
     {
         private:
@@ -29,6 +35,7 @@ namespace ns3
             uint32_t cycleDuration;
 
             double simDuration;
+            double m_updateTime;
 
             std::unordered_map<std::string, WifiStandard> wifiStandardMap = {
                 {"WIFI_STANDARD_80211a", WIFI_STANDARD_80211a},
@@ -79,6 +86,7 @@ namespace ns3
             void SetUpNetAnim();
             void SendDynamicCommand(Ptr<Node> gcsNode, Ipv4Address targetNodeIp); // Method to send a dynamic command from the GCS to a specific drone
             void DynamicCommandRxCallback(Ptr<Socket> socket); // Callback method to handle the reception of a dynamic command at the drone
+            void ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::string stageName);
 
         public:
             static TypeId GetTypeId();
@@ -88,6 +96,8 @@ namespace ns3
             ~FANETSimulator();
 
             std::vector<TrafficProfile> m_trafficProfiles;
+            std::vector<TrafficProfile> m_updateProfiles;
+            std::vector<TrafficWindow> m_scheduledtrafficWindows;
 
             /// @brief Helper for managing FANET topology.
             Ptr<FANETTopologyHelper> fanet;

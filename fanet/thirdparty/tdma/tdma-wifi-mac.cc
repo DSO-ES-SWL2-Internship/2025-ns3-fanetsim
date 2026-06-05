@@ -268,7 +268,7 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
      //Inside tdma-wifi-mac.cc
     void TdmaWifiMac::SetTrafficProfiles(std::vector<TrafficProfile> profiles) {
         this->m_macTrafficProfiles = profiles;
-        AllocateMiniSlots(); // Re-allocate mini-slots based on the new traffic profiles
+        this->AllocateMiniSlots(); // Re-allocate mini-slots based on the new traffic profiles
     }
 
     void TdmaWifiMac::AllocateMiniSlots() {
@@ -281,13 +281,13 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
         //Loop through the JSON profiles (already sorted highest priority first)
         for (const auto& profile : m_macTrafficProfiles) {
             
-            // Calculate how many mini-slots this traffic needs (e.g., 0.6K / 0.1 = 6 slots)
+            //Calculate how many mini-slots this traffic needs (e.g., 0.6K / 0.1 = 6 slots)
             uint32_t slotsNeeded = std::ceil(profile.bandwidthKb / m_kbPerMiniSlot);
             
-            // If we don't have enough slots left, it gets whatever is remaining (Starvation)
+            //If we don't have enough slots left, it gets whatever is remaining (e.g., if only 4 slots left but needs 6, it gets 4 and is marked as partially allocated)
             uint32_t slotsToAllocate = std::min(slotsNeeded, slotsAvailable);
             
-            // Fill the slots in the table
+            //Fill the slots in the table accordingly with the traffic type and mark them as occupied
             for (uint32_t i = 0; i < slotsToAllocate; i++) {
                 // Find the next available empty slot
                 for (auto& slot : m_allocationTable) {
@@ -300,7 +300,7 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
                 }
             }
 
-            // If the table is full, stop allocating! Lower priorities get dropped.
+            // If the table is full, stop allocating. Lower priorities get dropped.
             if (slotsAvailable == 0) {
                 NS_LOG_DEBUG("TDMA Slot Capacity Reached. Lower priorities starved.");
                 break; 
@@ -314,7 +314,7 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
                     std::cout << "  Slot " << i << ": [ IDLE ]" << std::endl;
                 }
             }
-            std::cout << "------------------------------------------------" << std::endl;
+            std::cout << "\n" << std::endl;
     }
 
     // Receive MAC protocol data unit (MPDU) and extract the source and destination address

@@ -149,7 +149,7 @@ namespace ns3
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) 
             {
                 Ptr<Node> clusterNode = this->fanet->clusters[i].Get(j);
-                std::cout << "Node " << clusterNode->GetId() << " has " << clusterNode->GetNDevices() << " interfaces. ";
+                std::cout << "\n[CLUSTER NODE VERIFICATION] Node: " << clusterNode->GetId() << " has " << clusterNode->GetNDevices() << " interfaces. ";
         
                 for (uint32_t d = 0; d < clusterNode->GetNDevices(); d++) {
                     Ptr<NetDevice> genericDevice = clusterNode->GetDevice(d);
@@ -157,6 +157,10 @@ namespace ns3
     
                     if (wifiDev) {
                         std::cout << "  -> Device " << d << " is Wi-Fi. SSID: " << wifiDev->GetMac()->GetSsid() << std::endl;
+                        Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
+                        if (tdmaMac) {
+                            tdmaMac->SetTrafficProfiles(this->m_trafficProfiles);
+                        }
                     } else {
                         std::cout << "  -> Device " << d << " is NOT Wi-Fi (Likely Loopback)." << std::endl;
                     }
@@ -196,13 +200,13 @@ namespace ns3
         ns3::PacketMetadata::Enable();
 
         // See if the Application is successfully pushing data out
-        LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO); 
+        //LogComponentEnable("UdpSocketImpl", LOG_LEVEL_INFO); 
         
         // See if AODV is desperately crying out for a route but failing
         //LogComponentEnable("AodvRoutingProtocol", LOG_LEVEL_LOGIC); 
         
         //See if the TDMA MAC layer is properly prioritizing and scheduling packets according to the traffic profiles
-        LogComponentEnable("TdmaWifiMac", LOG_LEVEL_FUNCTION);
+        //LogComponentEnable("TdmaWifiMac", LOG_LEVEL_FUNCTION);
 
         //this->GetNClusters();
 
@@ -221,41 +225,6 @@ namespace ns3
         this->SetRoutingProtocol();
 
         this->AssignAddress();
-
-        // //Setup application on all the nodes
-        // InstallApplication<GDTApp>(
-        //     this->fanet->GDTNode.Get(0), 0.0, simDuration,
-        //     [this](Ptr<GDTApp> app) {
-        //         app->SetPort(8080);
-        //         app->EnableInfoLog();
-        //         app->m_plrManager->Setup(this->fanet->allNodes.GetN());        
-        //     }          
-        // );
-        
-        // for (size_t i = 0; i < this->fanet->clusters.size(); i++)
-        // {
-        //     for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
-        //     {
-        //         InstallApplication<ClusterNodeApp>(
-        //             this->fanet->clusters[i].Get(j), 0.0, simDuration,
-        //             [this, i](Ptr<ClusterNodeApp> app) {
-        //                 app->SetUp(this->ipv4->GDTInterface.GetAddress(0), 8080, i, this->ipv4->GetClusterBaseIP(i));
-        //                 //app->SetupPLR(this->fanet->allNodes.GetN());
-        //                 app->m_plrManager->Setup(this->fanet->allNodes.GetN());   
-        //                 app->EnableInfoLog();
-        //             }
-        //         ); 
-        //     }
-        // }
-
-        // // Starting PLR test on some nodes. Note: as of now if there is no mechanism to check what if the response packet from the query was not received.
-        // Ptr<Node> node = this->fanet->GDTNode.Get(0);
-        // Ptr<FANETApplication> gdtapp = DynamicCast<FANETApplication>(node->GetApplication(0));
-        // if (gdtapp) gdtapp->m_plrManager->StartTest(gdtapp, 3, 0, NETWORK_BROADCAST, 20, 0.5);
-
-        // auto& selNode = *this->fanet->clusters[0].Get(0);
-        // Ptr<FANETApplication> app = DynamicCast<FANETApplication>(node->GetApplication(0));
-        // if (app) app->m_plrManager->StartTest(app, 10, selNode.GetId(), NETWORK_BROADCAST, 20, 0.5);
  
         // node = this->fanet->clusters[1].Get(2);
         // Ptr<ClusterNodeApp> app = DynamicCast<ClusterNodeApp>
@@ -287,7 +256,7 @@ namespace ns3
         sinkApp.Stop(Seconds(this->simDuration));
 
         //Configure the traffic profiles for the applications based on the JSON configuration. 
-        //For simplicity, we'll just set up three types of traffic: Video, Status, and Command, each with different bandwidth requirements and priorities. 
+        //For simplicity, just set up three types of traffic: Video, Status, and Command, each with different bandwidth requirements and priorities. 
         //The TDMA MAC layer will use the priorities to allocate mini-slots accordingly.
         //VIDEO: 1.2K High Res -> 1200 bytes, 9.6Kbps | Priority 3 (DSCP 0x60)
         OnOffHelper videoApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
@@ -330,6 +299,21 @@ namespace ns3
             }
         }
 
+        //Schedule the dynamic update of traffic profiles based on the JSON configuration.
+        for (const auto& block : this->m_scheduledtrafficWindows) 
+        {
+            // Schedule the activation of this specific profile block
+            Simulator::Schedule(Seconds(block.startTime), 
+                                &FANETSimulator::ExecuteProfileSwap, this, 
+                                block.profiles, "ACTIVATING UPDATE PROFILE WINDOW");
+
+            // Schedule the automatic tear-down to revert back to baseline trafficProfiles
+            Simulator::Schedule(Seconds(block.endTime), 
+                                &FANETSimulator::ExecuteProfileSwap, this, 
+                                this->m_trafficProfiles, "WINDOW ENDED - REVERTING TO BASELINE");
+
+        }
+    
         this->anim->AnimateFANET(this->fanet);
 
         //Set up a mechanism for the GCS to send a dynamic command to a target node at runtime, 
@@ -346,7 +330,7 @@ namespace ns3
 
         //Schedule the GCS to send a command to that node after 15 seconds of simulation time, 
         //which should be well after the network is established and the applications are actively sending data.
-        Simulator::Schedule(Seconds(15.0), &FANETSimulator::SendDynamicCommand, this, gcsNode, targetIp);
+        Simulator::Schedule(Seconds(this->m_updateTime), &FANETSimulator::SendDynamicCommand, this, gcsNode, targetIp);
 
         Simulator::Stop(Seconds(simDuration));
         Simulator::Run();
@@ -385,6 +369,49 @@ namespace ns3
                     return a.priority < b.priority;
                 });
         
+        this->m_scheduledtrafficWindows.clear(); //clear existing blocks
+
+        //Read update profile from json
+        if (config.contains("updateProfiles")) {
+            for (const auto& block : config["updateProfiles"]) {
+                TrafficWindow tw;
+                tw.startTime = block["startTime"].get<double>();
+                tw.endTime = block["endTime"].get<double>();
+                
+                //Parse the traffic profiles for this update block
+                for (const auto& item : block["profiles"]) {
+                    TrafficProfile tp;
+                    tp.type = item["type"].get<std::string>();
+                    tp.priority = item["priority"].get<uint32_t>();
+                    tp.bandwidthKb = item["bandwidthKb"].get<double>();
+                    tw.profiles.push_back(tp);
+                    this->m_updateProfiles.push_back(tp);
+                }
+
+                //Sort the profiles within this block by priority
+                std::sort(tw.profiles.begin(), tw.profiles.end(),
+                    [](const TrafficProfile& a, const TrafficProfile& b) {
+                        return a.priority < b.priority;
+                    });
+
+                //Add this block to the list of update profiles
+                this->m_scheduledtrafficWindows.push_back(tw);
+            }
+        }
+    
+        //Sort the update profiles by priority
+        std::sort(this->m_updateProfiles.begin(), this->m_updateProfiles.end(),
+                [](const TrafficProfile& a, const TrafficProfile& b) {
+                    return a.priority < b.priority;
+                });
+
+        // Read dynamic injection time from json (default set to 15s if not provided)
+        if (config.contains("updateTime")) {
+            this->m_updateTime = config["updateTime"].get<double>();
+        } else {
+            this->m_updateTime = 15.0; 
+        }
+
         Setup();
         SetAttribute("nClusters", UintegerValue(config["nClusters"]));
         SetAttribute("nClusterNodes", StringValue(config["nClusterNodes"].get<std::string>()));
@@ -423,7 +450,7 @@ namespace ns3
         //Create a UDP Socket on the GCS
         Ptr<Socket> socket = Socket::CreateSocket(gcsNode, UdpSocketFactory::GetTypeId());
         
-        //onnect to the Node's special command port (Port 9999)
+        //Connect to the Node's special command port (Port 9999)
         socket->Connect(InetSocketAddress(targetNodeIp, 9999));
         
         //Fire the packet with the command. In a real scenario, this could be a more complex packet with specific headers, but for simplicity, we're just sending a plain packet with "HIGH_RES" as its content.
@@ -438,15 +465,11 @@ namespace ns3
         {
             //The Node received the packet
             Ptr<Node> rxNode = socket->GetNode();
-            std::cout << "\n[Node Listener] Time: " << Simulator::Now().As(Time::S) << std::endl;
-            std::cout << "[Node Listener] Node " << rxNode->GetId() << " received command! Re-allocating TDMA Slots..." << std::endl;
+            std::cout << "\n[NODE LISTENER] Time: " << Simulator::Now().As(Time::S) << std::endl;
+            std::cout << "[NODE LISTENER] Node " << rxNode->GetId() << " received command, re-allocating TDMA Slots..." << std::endl;
 
-            //Define the new, heavier Traffic Profile (Video jumps from Priority 3/4 to Priority 5 with 2.4Kbps)
-            std::vector<TrafficProfile> newHighResProfiles = {
-                {"Cmd3", 1, 0.6},
-                {"Status2", 1, 0.3},
-                {"Video_HIGH_RES", 5, 2.4} // <-- Requires more mini-slots!
-            };
+            //Define new traffic profiles
+            std::vector<TrafficProfile> runtimeProfiles = this->m_updateProfiles;
 
             //Loop through the Node's hardware to find the TdmaWifiMac chip
             for (uint32_t i = 0; i < rxNode ->GetNDevices(); i++) {
@@ -455,8 +478,33 @@ namespace ns3
                     Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
                     if (tdmaMac) {
                         //Inject the new profile. 
-                        //This will instantly trigger AllocateMiniSlots() and print the new table!
-                        tdmaMac->SetTrafficProfiles(newHighResProfiles);
+                        //This will instantly trigger AllocateMiniSlots() and print the new table
+                        tdmaMac->SetTrafficProfiles(runtimeProfiles);
+                    }
+                }
+            }
+        }
+    }
+
+    void FANETSimulator::ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::string stageName)
+    {
+        NS_LOG_UNCOND("\n");
+        NS_LOG_UNCOND(" [CLOCK OVERRIDE - TIME: " << Simulator::Now().As(Time::S) << "s]");
+        NS_LOG_UNCOND(" EVENT TYPE: " << stageName);
+        NS_LOG_UNCOND("\n");
+
+        //Loop through the entire FANET cluster topology
+        for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+            for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
+                Ptr<Node> node = this->fanet->clusters[i].Get(j);
+                
+                for (uint32_t d = 0; d < node->GetNDevices(); d++) {
+                    Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(node->GetDevice(d));
+                    if (wifiDev) {
+                        Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
+                        if (tdmaMac) {
+                            tdmaMac->SetTrafficProfiles(profilesToApply);
+                        }
                     }
                 }
             }
