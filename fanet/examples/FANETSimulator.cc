@@ -144,30 +144,6 @@ namespace ns3
         //Print the GDT interfaces
         Ptr<Node> gdt = this->fanet->GDTNode.Get(0);
         std::cout << "GDT (Node " << gdt->GetId() << ") has " << gdt->GetNDevices() << " hardware interfaces." << std::endl;
-        //Loop to find cluster nodes and print their interfaces and SSIDs
-        for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
-            for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) 
-            {
-                Ptr<Node> clusterNode = this->fanet->clusters[i].Get(j);
-                std::cout << "\n[CLUSTER NODE VERIFICATION] Node: " << clusterNode->GetId() << " has " << clusterNode->GetNDevices() << " interfaces. ";
-        
-                for (uint32_t d = 0; d < clusterNode->GetNDevices(); d++) {
-                    Ptr<NetDevice> genericDevice = clusterNode->GetDevice(d);
-                    Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(genericDevice);
-    
-                    if (wifiDev) {
-                        std::cout << "  -> Device " << d << " is Wi-Fi. SSID: " << wifiDev->GetMac()->GetSsid() << std::endl;
-                        Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
-                        if (tdmaMac) {
-                            tdmaMac->SetTrafficProfiles(this->m_trafficProfiles);
-                        }
-                    } else {
-                        std::cout << "  -> Device " << d << " is NOT Wi-Fi (Likely Loopback)." << std::endl;
-                    }
-        }
-        std::cout << std::endl;
-            }
-        }
     }
 
     void FANETSimulator::SetRoutingProtocol()
@@ -233,10 +209,12 @@ namespace ns3
 
         this->SetUpNetAnim();
 
-        //this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim);
-        //try to schedule the cluster head assignment a little later to ensure all the routing tables are populated and 
-        //the GDT is fully aware of the cluster nodes before it tries to assign them as cluster heads.
+        //Schedule the cluster head assignment to run shortly after the simulation starts 
+        //to ensure all devices are installed and ready, but before the applications start sending data, 
+        //so that the cluster heads are properly assigned and can manage the TDMA scheduling from the get-go.
         Simulator::Schedule(Seconds(0.001), &FANETDeviceHelper::AssignClusterHeads, this->fanetDevices, this->fanet, this->ipv4, this->anim);
+        //Schedule the periodic topology sync to run every 2ms to print the TDMA grid map of each node and verify that the mini-slot allocations are correct and updating as expected based on the traffic profiles.
+        Simulator::Schedule(Seconds(0.002), &FANETSimulator::PeriodicTopologySync, this);
 
         //Dynamically fetch the GDT's IP address to use as the destination for the applications instead of hardcoding it. 
         //This also serves as a demonstration of how the GDT can be aware of the cluster nodes and their addresses right from the start, 
@@ -436,8 +414,9 @@ namespace ns3
         
         ipv4->SetAttribute("baseNetworkAddress", Ipv4AddressValue(Ipv4Address(config["ipv4"]["baseNetworkAddress"].get<std::string>().c_str())));
         ipv4->SetAttribute("baseSubnetMask", Ipv4MaskValue(Ipv4Mask(config["ipv4"]["baseSubnetMask"].get<std::string>().c_str())));
-    }
 
+        this->m_currentActiveProfiles = this->m_trafficProfiles; //Initialize the current active profiles to the baseline profiles at the start of the simulation
+    }
 
     //Dynamic GCS command and MAC layer reallocation callback implementations
     void FANETSimulator::SendDynamicCommand(Ptr<Node> gcsNode, Ipv4Address targetNodeIp)
@@ -458,28 +437,67 @@ namespace ns3
         socket->Send(packet);
     }
 
+    //This callback is triggered when the target node receives the command from the GCS. It should then re-allocate the TDMA slots according to the new traffic profile requirements. For demonstration, let's assume that receiving the "HIGH_RES" command means we need to prioritize video traffic and allocate more bandwidth to it.
     void FANETSimulator::DynamicCommandRxCallback(Ptr<Socket> socket)
     {
         Ptr<Packet> packet;
         while ((packet = socket->Recv()))
         {
-            //The Node received the packet
             Ptr<Node> rxNode = socket->GetNode();
+            uint32_t rxNodeId = rxNode->GetId();
+
             std::cout << "\n[NODE LISTENER] Time: " << Simulator::Now().As(Time::S) << std::endl;
-            std::cout << "[NODE LISTENER] Node " << rxNode->GetId() << " received command, re-allocating TDMA Slots..." << std::endl;
+            std::cout << "[NODE LISTENER] Node " << rxNodeId << " received command, re-allocating TDMA Slots..." << std::endl;
 
-            //Define new traffic profiles
+            //determine if this node is a cluster head to know whether it should apply the profile update to its inter-cluster link (if it's a CH) or not (if it's a plain member)
+            bool isClusterHead = false;
+            for (size_t c = 0; c < this->fanet->CHNodes.size(); c++) {
+                if (this->fanet->CHNodes[c] != nullptr && this->fanet->CHNodes[c]->GetId() == rxNodeId) {
+                    isClusterHead = true;
+                    break;
+                }
+            }
+
             std::vector<TrafficProfile> runtimeProfiles = this->m_updateProfiles;
+            
+            //If this node is a cluster head, we need to scale the bandwidth of the incoming profiles by the number of nodes in its cluster to ensure it has enough mini-slots allocated to handle the aggregated traffic of its members. So we need to determine how many nodes are in this cluster.
+            uint32_t clusterSize = 0;
+            for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+                for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
+                    if (this->fanet->clusters[i].Get(j)->GetId() == rxNodeId) {
+                        clusterSize = this->fanet->clusters[i].GetN();
+                        break;
+                    }
+                }
+                if (clusterSize > 0) break;
+            }
 
-            //Loop through the Node's hardware to find the TdmaWifiMac chip
-            for (uint32_t i = 0; i < rxNode ->GetNDevices(); i++) {
+            //loop through this node's devices to find the inter-cluster Wi-Fi interface and update its traffic profiles according to whether this node is a cluster head or not. Cluster heads get the scaled profile, plain members get an empty profile to maintain their dormant link.
+            for (uint32_t i = 0; i < rxNode->GetNDevices(); i++) {
                 Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(rxNode->GetDevice(i));
                 if (wifiDev) {
                     Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
                     if (tdmaMac) {
-                        //Inject the new profile. 
-                        //This will instantly trigger AllocateMiniSlots() and print the new table
-                        tdmaMac->SetTrafficProfiles(runtimeProfiles);
+                        std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
+                        bool isInterCluster = (ssid.find("InterCluster") != std::string::npos);
+
+                        if (isInterCluster) {
+                            if (isClusterHead) {
+                                std::vector<TrafficProfile> aggregatedProfiles;
+                                for (const auto& baseProfile : runtimeProfiles) {
+                                    TrafficProfile clusterDemand = baseProfile;
+                                    clusterDemand.bandwidthKb = baseProfile.bandwidthKb * clusterSize; 
+                                    aggregatedProfiles.push_back(clusterDemand);
+                                }
+                                tdmaMac->SetTrafficProfiles(aggregatedProfiles);
+                            } else {
+                                // GATED: Non-cluster heads maintain a completely empty allocation table
+                                std::vector<TrafficProfile> emptyProfile;
+                                tdmaMac->SetTrafficProfiles(emptyProfile);
+                            }
+                        } else {
+                            tdmaMac->SetTrafficProfiles(runtimeProfiles);
+                        }
                     }
                 }
             }
@@ -488,26 +506,142 @@ namespace ns3
 
     void FANETSimulator::ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::string stageName)
     {
-        NS_LOG_UNCOND("\n");
-        NS_LOG_UNCOND(" [CLOCK OVERRIDE - TIME: " << Simulator::Now().As(Time::S) << "s]");
-        NS_LOG_UNCOND(" EVENT TYPE: " << stageName);
-        NS_LOG_UNCOND("\n");
+        this->m_currentActiveProfiles = profilesToApply;//Update the current active profiles for logging purposes
+        
+        NS_LOG_UNCOND("\n [CLOCK OVERRIDE - TIME: " << Simulator::Now().As(Time::S) << "s] EVENT: " << stageName);
 
-        //Loop through the entire FANET cluster topology
         for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
-            for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
+            //Dynamically get the number of nodes in this specific cluster
+            uint32_t clusterSize = this->fanet->clusters[i].GetN();
+
+            for (uint32_t j = 0; j < clusterSize; j++) {
                 Ptr<Node> node = this->fanet->clusters[i].Get(j);
+                uint32_t nodeId = node->GetId();
+
+                //Check if this node is currently elected as a Cluster Head
+                bool isClusterHead = false;
+                for (size_t c = 0; c < this->fanet->CHNodes.size(); c++) {
+                    if (this->fanet->CHNodes[c] != nullptr && this->fanet->CHNodes[c]->GetId() == nodeId) {
+                        isClusterHead = true;
+                        break;
+                    }
+                }
                 
                 for (uint32_t d = 0; d < node->GetNDevices(); d++) {
                     Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(node->GetDevice(d));
                     if (wifiDev) {
                         Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
                         if (tdmaMac) {
-                            tdmaMac->SetTrafficProfiles(profilesToApply);
+                            std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
+                            bool isInterCluster = (ssid.find("InterCluster") != std::string::npos);
+
+                            if (isInterCluster) {
+                                if (isClusterHead) {
+                                    //Scale baseline traffic by cluster member count
+                                    std::vector<TrafficProfile> aggregatedProfiles;
+                                    for (const auto& baseProfile : profilesToApply) {
+                                        TrafficProfile clusterDemand = baseProfile;
+                                        clusterDemand.bandwidthKb = baseProfile.bandwidthKb * clusterSize; 
+                                        aggregatedProfiles.push_back(clusterDemand);
+                                    }
+                                    //Hand the multiplied profile to the 0.2K slot calculator
+                                    tdmaMac->SetTrafficProfiles(aggregatedProfiles);
+                                } else {
+                                    //Plain members maintain a dormant, quiet inter-cluster link
+                                    std::vector<TrafficProfile> emptyProfile;
+                                    tdmaMac->SetTrafficProfiles(emptyProfile);
+                                }
+                            } else {
+                                //Intra-cluster links always receive the un-scaled baseline profile
+                                tdmaMac->SetTrafficProfiles(profilesToApply);
+                            }
+                            
+                            PrintTdmaGridMap(node, wifiDev, tdmaMac);
                         }
                     }
                 }
             }
         }
     }
-}   
+
+    //Method to periodically synchronize the topology and print the TDMA grid map for each node, demonstrating how the MAC layer adapts to any changes in the network over time (e.g., nodes moving, cluster head changes, etc.)
+    void FANETSimulator::PeriodicTopologySync()
+    {
+        // Re-trigger the profile swap loop to apply rules to any newly promoted/demoted nodes
+        ExecuteProfileSwap(this->m_currentActiveProfiles, "PERIODIC TOPOLOGY HARDWARE SYNC");
+
+        // Reschedule the synchronization to execute 5 seconds from now
+        Simulator::Schedule(Seconds(5.0), &FANETSimulator::PeriodicTopologySync, this);
+    }
+
+    //Enhanced logging function to visualize the TDMA slot allocation in a grid format, along with the node's role and current traffic profile.
+    void FANETSimulator::PrintTdmaGridMap(Ptr<Node> node, Ptr<WifiNetDevice> wifiDev, Ptr<TdmaWifiMac> tdmaMac)
+    {
+        uint32_t nodeId = node->GetId();
+        std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
+        std::string simTime = std::to_string((uint32_t)Simulator::Now().GetSeconds()) + "s";
+        
+        std::stringstream macSs;
+        macSs << wifiDev->GetMac()->GetAddress();
+        std::string macAddr = macSs.str();
+
+        //Check if this specific node is an active Cluster Head
+        bool isClusterHead = false;
+        for (uint32_t i = 0; i < this->fanet->CHNodes.size(); i++) {
+            if (this->fanet->CHNodes[i] != nullptr && this->fanet->CHNodes[i]->GetId() == nodeId) {
+                isClusterHead = true;
+                break;
+            }
+        }
+
+        bool isInterCluster = (ssid.find("InterCluster") != std::string::npos);
+        bool isDormant = isInterCluster && !isClusterHead; 
+
+        //Build Header String
+        std::stringstream headerSs;
+        if (isDormant) {
+            headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId 
+                    << "  |  MAC: " << macAddr 
+                    << "  |  SSID: SSID=[" << ssid << "] | Sim Time: " << simTime;
+        } else {
+            headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId 
+                    << "  |  SSID: " << ssid << "  | Time: " << simTime;
+        }
+        std::string headerContent = headerSs.str();
+
+        //Build Grid Map Row
+        std::stringstream gridSs;
+        gridSs << "GRID MAP | ";
+
+        if (isDormant) {
+            gridSs << "[ --- DORMANT INTERFACE (WAITING FOR PROMOTION) --- ]";
+        } else {
+            for (uint32_t i = 0; i < 12; i++) {
+                std::string slotName = tdmaMac->GetSlotTrafficType(i); 
+                
+                if (slotName == "Status1")              gridSs << "[STA1 ] ";
+                else if (slotName == "Status2")         gridSs << "[STA2 ] ";
+                else if (slotName == "Cmd1")            gridSs << "[CMD1 ] ";
+                else if (slotName == "Cmd2")            gridSs << "[CMD2 ] ";
+                else if (slotName == "Cmd3")            gridSs << "[CMD3 ] ";
+                else if (slotName == "Video_LOW_RES")   gridSs << "[V-LOW] ";
+                else if (slotName == "Video_HIGH_RES")  gridSs << "[V-HI ] ";
+                else                                    gridSs << "[IDLE ] ";
+            }
+            gridSs << "...";
+        }
+        std::string gridContent = gridSs.str();
+
+        size_t internalWidth = std::max(headerContent.length(), gridContent.length()) + 2;
+
+        //Render box
+        std::cout << "+" << std::string(internalWidth, '-') << "+" << std::endl;
+        std::cout << "| " << headerContent << std::string(internalWidth - headerContent.length() - 1, ' ') << "|" << std::endl;
+        std::cout << "+" << std::string(internalWidth, '-') << "+" << std::endl;
+        std::cout << "| " << gridContent << std::string(internalWidth - gridContent.length() - 1, ' ') << "|" << std::endl;
+        std::cout << "+" << std::string(internalWidth, '-') << "+" << std::endl;
+        std::cout << std::endl;
+    }  
+}
+
+     

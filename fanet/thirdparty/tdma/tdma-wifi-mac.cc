@@ -29,7 +29,15 @@ namespace ns3
                                 .AddAttribute("CycleDuration", "Duration of one TDMA cycle",
                                             TimeValue(MilliSeconds(400)), // Example: 400ms cycle
                                             MakeTimeAccessor(&TdmaWifiMac::m_cycleDuration),
-                                            MakeTimeChecker());
+                                            MakeTimeChecker())
+                                .AddAttribute("TotalMiniSlots", "Total mini-slots in the frame format",
+                                          UintegerValue(12),
+                                          MakeUintegerAccessor(&TdmaWifiMac::m_totalMiniSlots),
+                                          MakeUintegerChecker<uint32_t>())
+                                .AddAttribute("KbPerMiniSlot", "Bandwidth weight per mini-slot unit",
+                                          DoubleValue(0.1),
+                                          MakeDoubleAccessor(&TdmaWifiMac::m_kbPerMiniSlot),
+                                          MakeDoubleChecker<double>());
         return tid;
     }
 
@@ -51,6 +59,7 @@ namespace ns3
         NS_LOG_FUNCTION(this);
     }
 
+    // This method calculates the duration of each slot based on the total cycle duration and the number of slots.
     void TdmaWifiMac::SetTdmaParameters(uint32_t numSlots, Time cycleDuration, uint32_t assignedSlot)
     {
         m_numSlots = numSlots;
@@ -59,6 +68,7 @@ namespace ns3
         UpdateSlotDuration(); // Recalculate slot duration
     }
 
+    // This method updates the slot duration whenever the number of slots or cycle duration changes.
     void TdmaWifiMac::StartTdma()
     {
         NS_LOG_FUNCTION(this);
@@ -66,7 +76,8 @@ namespace ns3
         TdmaScheduleNextSlot();
     }
 
-void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from)
+    // This method calculates the duration of each slot based on the total cycle duration and the number of slots.
+    void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from)
     {
         auto packet = mpdu->GetPacket();
         NS_LOG_FUNCTION(this << packet << to);
@@ -200,6 +211,7 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
         return true;
     }
 
+    // This method schedules the next slot in the TDMA cycle and checks if it's the node's assigned slot to transmit.
     void TdmaWifiMac::TdmaScheduleNextSlot()
     {
         NS_LOG_FUNCTION(this);
@@ -220,6 +232,8 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
         m_currentSlot = (m_currentSlot + 1) % m_numSlots;
     }
 
+    // This method transmits all packets in the buffer during the node's assigned slot.
+    // It checks for slot overruns to ensure that the node does not exceed its allocated time.
     void TdmaWifiMac::TdmaTransmit()
     {
         NS_LOG_FUNCTION(this);
@@ -258,6 +272,7 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
         }
     }
 
+    // This method updates the slot duration whenever the number of slots or cycle duration changes.
     void TdmaWifiMac::UpdateSlotDuration()
     {
         NS_LOG_FUNCTION(this);
@@ -265,12 +280,15 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
         NS_LOG_DEBUG("Slot duration updated to " << m_slotDuration.As(Time::MS));
     }
 
-     //Inside tdma-wifi-mac.cc
+     // This method is called when a packet is received. 
+     //It extracts the source and destination addresses and processes the packet accordingly.
     void TdmaWifiMac::SetTrafficProfiles(std::vector<TrafficProfile> profiles) {
         this->m_macTrafficProfiles = profiles;
         this->AllocateMiniSlots(); // Re-allocate mini-slots based on the new traffic profiles
     }
 
+    // This method is called when a packet is received.
+    // It extracts the source and destination addresses and processes the packet accordingly.
     void TdmaWifiMac::AllocateMiniSlots() {
         //Reset the table to 12 empty slots
         m_allocationTable.clear();
@@ -306,15 +324,15 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
                 break; 
             }
         }
-            std::cout << "\n[TDMA VERIFICATION] Node MAC: " << GetAddress() << " allocated 12 mini-slots:" << std::endl;
-            for (uint32_t i = 0; i < m_totalMiniSlots; i++) {
-                if (m_allocationTable[i].isOccupied) {
-                    std::cout << "  Slot " << i << ": " << m_allocationTable[i].trafficType << std::endl;
-                } else {
-                    std::cout << "  Slot " << i << ": [ IDLE ]" << std::endl;
-                }
-            }
-            std::cout << "\n" << std::endl;
+            // std::cout << "\n[TDMA VERIFICATION] Node MAC: " << GetAddress() << " allocated 12 mini-slots:" << std::endl;
+            // for (uint32_t i = 0; i < m_totalMiniSlots; i++) {
+            //     if (m_allocationTable[i].isOccupied) {
+            //         std::cout << "  Slot " << i << ": " << m_allocationTable[i].trafficType << std::endl;
+            //     } else {
+            //         std::cout << "  Slot " << i << ": [ IDLE ]" << std::endl;
+            //     }
+            // }
+            // std::cout << "\n" << std::endl;
     }
 
     // Receive MAC protocol data unit (MPDU) and extract the source and destination address
@@ -390,6 +408,20 @@ void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from
     void TdmaWifiMac::DoCompleteConfig()
     {
         //
+    }
+
+    // This method returns the traffic type allocated to a specific slot ID. 
+    //If the slot is not occupied, it returns "IDLE".
+    std::string TdmaWifiMac::GetSlotTrafficType(uint32_t slotId) const
+    {
+        // Safety check to avoid out-of-bounds crashes
+        if (slotId >= m_allocationTable.size()) 
+        {
+            return "IDLE";
+        }
+        
+        // Return the traffic type if occupied, otherwise return "IDLE"
+        return m_allocationTable[slotId].isOccupied ? m_allocationTable[slotId].trafficType : "IDLE";
     }
 }
 

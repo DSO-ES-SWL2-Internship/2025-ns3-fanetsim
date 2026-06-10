@@ -45,12 +45,12 @@ namespace ns3
             void SetTrafficProfiles(std::vector<TrafficProfile> profiles);
             void AllocateMiniSlots();
 
+            std::string GetSlotTrafficType(uint32_t slotId) const;  
+            
+
         private:
             std::vector<TrafficProfile> m_macTrafficProfiles;
             std::vector<MiniSlot> m_allocationTable;
-    
-            uint32_t m_totalMiniSlots = 12; 
-            double m_kbPerMiniSlot = 0.1;   // 0.1K per slot
         
             void TdmaScheduleNextSlot();
             void TdmaTransmit();
@@ -65,6 +65,8 @@ namespace ns3
             uint32_t m_currentSlot;       // Current slot in the TDMA cycle
             EventId m_tdmaEvent;          // Event for scheduling the next slot
             bool m_isMySlot;              // Flag to indicate if it's the node's slot
+            uint32_t m_totalMiniSlots;   
+            double m_kbPerMiniSlot;
 
             std::queue<TdmaBufferItem> m_tdmaBuffer;
     };

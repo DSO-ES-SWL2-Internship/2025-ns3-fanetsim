@@ -169,7 +169,10 @@ namespace ns3
 
             // Configure the MAC layer for AdHoc (for both GDT and CH)
             WifiMacHelper wifiMacCM;
-            wifiMacCM.SetType(clusterMacType, "Ssid", SsidValue(Ssid(ssid)));
+            wifiMacCM.SetType(clusterMacType, 
+                  "Ssid", SsidValue(Ssid(ssid)),
+                  "TotalMiniSlots", UintegerValue(12),
+                  "KbPerMiniSlot", DoubleValue(0.1));
 
             // Install WiFi devices on nodes in the current cluster
             NetDeviceContainer clusterDevices = localWifiIntra.Install(wifiPhyCluster, wifiMacCM, clusters[i]);
@@ -273,7 +276,10 @@ namespace ns3
 
         // Configure 1 common MAC and SSID for the Inter-cluster network
         WifiMacHelper wifiMacInter;
-        wifiMacInter.SetType(linkMacType, "Ssid", SsidValue(Ssid("InterCluster_f0")));
+        wifiMacInter.SetType(linkMacType, 
+                     "Ssid", SsidValue(Ssid("InterCluster_f0")),
+                     "TotalMiniSlots", UintegerValue(12),
+                     "KbPerMiniSlot", DoubleValue(0.2));
 
         // Install this f0 radio on the GDT
         NetDeviceContainer gdtInterDevice = localWifiInter.Install(wifiPhyInter, wifiMacInter, fanet->GDTNode.Get(0));    
@@ -287,22 +293,6 @@ namespace ns3
         
             // Install on the whole cluster at once
             NetDeviceContainer clusterInterDevices = localWifiInter.Install(wifiPhyInter, wifiMacInter, fanet->clusters[i]);
-        
-            for (uint32_t j = 0; j < clusterInterDevices.GetN(); j++) {
-    
-                // Grab the generic device
-                Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(clusterInterDevices.Get(j));
-                
-                if (wifiDev) {
-                    // Cast the generic MAC into our custom TdmaWifiMac
-                    Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
-                    
-                    if (tdmaMac) {
-                        // Inject the JSON profiles directly into the hardware's memory!
-                        tdmaMac->SetTrafficProfiles(this->m_deviceTrafficProfiles);
-                    }
-                }
-            }
 
             // Create an inner vector to satisfy the 2D requirement of clustersLinkDevices
             std::vector<NetDeviceContainer> innerVector;

@@ -87,6 +87,10 @@ namespace ns3
             void SendDynamicCommand(Ptr<Node> gcsNode, Ipv4Address targetNodeIp); // Method to send a dynamic command from the GCS to a specific drone
             void DynamicCommandRxCallback(Ptr<Socket> socket); // Callback method to handle the reception of a dynamic command at the drone
             void ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::string stageName);
+            void PrintTdmaGridMap(Ptr<Node> node, Ptr<WifiNetDevice> wifiDev, Ptr<TdmaWifiMac> tdmaMac);
+
+            std::vector<TrafficProfile> m_currentActiveProfiles; //To keep track of currently active profiles for logging purposes
+            void PeriodicTopologySync();//Method to periodically synchronize the topology and print the TDMA grid map for each node
 
         public:
             static TypeId GetTypeId();
