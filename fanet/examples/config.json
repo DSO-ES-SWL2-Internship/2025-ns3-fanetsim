@@ -1,6 +1,6 @@
 {
-    "nClusters": 3,
-    "nClusterNodes": "3 3 3",
+    "nClusters": 2,
+    "nClusterNodes": "3 3",
     "cycleDuration": 200,
     "filename": "hello.xml",
     "simulationDuration": 30.0,

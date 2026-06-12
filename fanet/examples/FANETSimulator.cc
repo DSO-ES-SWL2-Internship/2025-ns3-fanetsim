@@ -190,14 +190,6 @@ namespace ns3
         //See if the TDMA MAC layer is properly prioritizing and scheduling packets according to the traffic profiles
         //LogComponentEnable("TdmaWifiMac", LOG_LEVEL_FUNCTION);
 
-        //this->GetNClusters();
-
-        //this->GetNClusterNodes();
-
-        //this->GetCycleDuration();
-
-        //this->GetSimulationDuration();
-
         this->CreateNetwork();
 
         this->SetMobility();
@@ -216,10 +208,10 @@ namespace ns3
             m_intraClusterConfigs[i].trafficProfiles = this->m_trafficProfiles; 
 
             // Inter-cluster settings
-            m_interClusterConfigs[i].totalMiniSlots = 12;
-            m_interClusterConfigs[i].kbPerMiniSlot = 0.2;
+            m_interClusterConfigs[i].totalMiniSlots = 24;
+            m_interClusterConfigs[i].kbPerMiniSlot = 0.1;
         }
-        
+
         this->InstallDevices();
 
         this->SetRoutingProtocol();
@@ -640,6 +632,26 @@ namespace ns3
         macSs << wifiDev->GetMac()->GetAddress();
         std::string macAddr = macSs.str();
 
+        std::string ipAddr = "Unassigned";
+        Ptr<Ipv4> ipv4 = node->GetObject<Ipv4>();
+        
+        //
+        if (ipv4) {
+            //
+            int32_t ifIndex = ipv4->GetInterfaceForDevice(wifiDev);
+            
+            //
+            if (ifIndex >= 0 && ipv4->GetNAddresses(ifIndex) > 0) {
+                //
+                Ipv4Address localIp = ipv4->GetAddress(ifIndex, 0).GetLocal();
+                
+                //
+                std::stringstream ipSs;
+                ipSs << localIp;
+                ipAddr = ipSs.str();
+            }
+        }
+
         //Check if this specific node is an active Cluster Head
         bool isClusterHead = false;
         for (uint32_t i = 0; i < this->fanet->CHNodes.size(); i++) {
@@ -656,10 +668,12 @@ namespace ns3
         std::stringstream headerSs;
         if (isDormant) {
             headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId 
+                    << "  |  IP: " << ipAddr
                     << "  |  MAC: " << macAddr 
                     << "  |  SSID: SSID=[" << ssid << "] | Sim Time: " << simTime;
         } else {
             headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId 
+                    << "  |  IP: " << ipAddr
                     << "  |  SSID: " << ssid << "  | Time: " << simTime;
         }
         std::string headerContent = headerSs.str();
@@ -671,19 +685,20 @@ namespace ns3
         if (isDormant) {
             gridSs << "[ --- DORMANT INTERFACE (WAITING FOR PROMOTION) --- ]";
         } else {
-            for (uint32_t i = 0; i < 12; i++) {
+            //Check if we should print 24 slots or 12 slots
+            uint32_t slotsToPrint = isInterCluster ? 24 : 12;
+            for (uint32_t i=0; i < slotsToPrint; i++) {
                 std::string slotName = tdmaMac->GetSlotTrafficType(i); 
                 
-                if (slotName == "Status1")              gridSs << "[STA1 ] ";
-                else if (slotName == "Status2")         gridSs << "[STA2 ] ";
-                else if (slotName == "Cmd1")            gridSs << "[CMD1 ] ";
-                else if (slotName == "Cmd2")            gridSs << "[CMD2 ] ";
-                else if (slotName == "Cmd3")            gridSs << "[CMD3 ] ";
+                if (slotName == "Status1")              gridSs << "[STA1] ";
+                else if (slotName == "Status2")         gridSs << "[STA2] ";
+                else if (slotName == "Cmd1")            gridSs << "[CMD1] ";
+                else if (slotName == "Cmd2")            gridSs << "[CMD2] ";
+                else if (slotName == "Cmd3")            gridSs << "[CMD3] ";
                 else if (slotName == "Video_LOW_RES")   gridSs << "[V-LOW] ";
-                else if (slotName == "Video_HIGH_RES")  gridSs << "[V-HI ] ";
-                else                                    gridSs << "[IDLE ] ";
+                else if (slotName == "Video_HIGH_RES")  gridSs << "[V-HI] ";
+                else                                    gridSs << "[IDLE] ";
             }
-            gridSs << "...";
         }
         std::string gridContent = gridSs.str();
 

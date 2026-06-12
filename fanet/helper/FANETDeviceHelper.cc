@@ -272,8 +272,8 @@ namespace ns3
         WifiMacHelper wifiMacInter;
         wifiMacInter.SetType(linkMacType, 
                      "Ssid", SsidValue(Ssid("InterCluster_f0")),
-                     "TotalMiniSlots", UintegerValue(12),
-                     "KbPerMiniSlot", DoubleValue(0.2));
+                     "TotalMiniSlots", UintegerValue(24),
+                     "KbPerMiniSlot", DoubleValue(0.1));
 
         // Install this f0 radio on the GDT
         NetDeviceContainer gdtInterDevice = localWifiInter.Install(wifiPhyInter, wifiMacInter, fanet->GDTNode.Get(0));    
@@ -346,6 +346,22 @@ namespace ns3
                             tdmaMac->StartTdma();
                         }
                     }
+                }
+            }
+        }
+        //Configure the GDT's TDMA parameters and start its clock so it can start transmitting to the CHs in the inter-cluster network
+        Ptr<Node> gdtNode = fanet->GDTNode.Get(0);
+        for (uint32_t d = 0; d < gdtNode->GetNDevices(); ++d) 
+        {
+            Ptr<WifiNetDevice> wifiDevice = DynamicCast<WifiNetDevice>(gdtNode->GetDevice(d));
+            if (wifiDevice) 
+            {
+                Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDevice->GetMac());
+                if (tdmaMac) 
+                {
+                    //Give the GDT Slot 0 out of the total nodes
+                    tdmaMac->SetTdmaParameters(fanet->allNodes.GetN(), cycleDuration, gdtNode->GetId());
+                    tdmaMac->StartTdma();
                 }
             }
         }
