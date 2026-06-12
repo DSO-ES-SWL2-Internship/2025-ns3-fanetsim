@@ -17,15 +17,26 @@ namespace ns3
         Mac48Address to;    // The destination address
     };
 
-    struct MiniSlot {
-    bool isOccupied;
-    std::string trafficType;
+    /// Structure to represent a mini-slot in the TDMA schedule
+    struct MiniSlot 
+    {
+    bool isOccupied; // Indicates if the mini-slot is occupied
+    std::string trafficType; // Type of traffic assigned to this mini-slot (e.g., "video", "audio", "data")
     };
 
-    struct TrafficProfile {
+    struct TrafficProfile 
+    {
     std::string type;
-    uint32_t priority;
-    double bandwidthKb;
+    uint32_t priority; // Higher value means higher priority
+    double bandwidthKb; // Bandwidth requirement in Kb/s for this traffic type
+    };
+
+    //Configuration structure for the TDMA MAC, which can be populated from JSON data
+    struct ClusterMacConfig 
+    {
+        std::vector<TrafficProfile> trafficProfiles;
+        uint32_t totalMiniSlots = 12;
+        double kbPerMiniSlot = 0.1;
     };
 
     class TdmaWifiMac : public WifiMac
@@ -41,15 +52,15 @@ namespace ns3
             // void Enqueue(Ptr<Packet> packet, Mac48Address to) override;
             bool CanForwardPacketsTo(Mac48Address to) const override;
 
-            // A function to receive the JSON data from the simulator
-            void SetTrafficProfiles(std::vector<TrafficProfile> profiles);
             void AllocateMiniSlots();
 
             std::string GetSlotTrafficType(uint32_t slotId) const;  
-            
 
+            // Function to set the cluster configuration, which includes traffic profiles and mini-slot allocation 
+            //(to wire up the reference from the JSON data to the MAC layer))
+            void SetClusterConfig(const ClusterMacConfig* sharedConfig);
+            
         private:
-            std::vector<TrafficProfile> m_macTrafficProfiles;
             std::vector<MiniSlot> m_allocationTable;
         
             void TdmaScheduleNextSlot();
@@ -67,9 +78,9 @@ namespace ns3
             bool m_isMySlot;              // Flag to indicate if it's the node's slot
             uint32_t m_totalMiniSlots;   
             double m_kbPerMiniSlot;
+            const ClusterMacConfig* m_clusterConfig = nullptr; // Pointer to the shared cluster configuration
 
             std::queue<TdmaBufferItem> m_tdmaBuffer;
     };
-};
-
+}
 #endif

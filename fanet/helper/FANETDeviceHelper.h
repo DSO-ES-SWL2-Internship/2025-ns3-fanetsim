@@ -38,6 +38,7 @@ namespace ns3
         std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices; /**< Containers for cluster link devices. */
         std::vector<std::vector<Ptr<NetDevice>>> linksDevices; /**< Pointers to link devices. */
         std::vector<TrafficProfile> m_deviceTrafficProfiles;
+        void SetTrafficProfiles(std::vector<TrafficProfile> profiles);
 
         static TypeId GetTypeId();
 
@@ -109,7 +110,17 @@ namespace ns3
          */
         void NotifyCHStatusChange(Ptr<Node> node, std::string status);
 
-        void SetTrafficProfiles(std::vector<TrafficProfile> profiles);
+        /**
+         * @brief Assigns TDMA slots to nodes and wires up the configuration pointers.
+         * @param fanet Pointer to the FANET topology helper to access cluster/CH structures.
+         * @param cycleDuration The duration of a TDMA cycle.
+         * @param intraConfigs Reference to the vector of intra-cluster configurations.
+         * @param interConfigs Reference to the vector of inter-cluster configurations.
+         */
+        void AssignTdmaSlots(Ptr<FANETTopologyHelper> fanet, 
+                            Time cycleDuration, 
+                            std::deque<ClusterMacConfig>& intraConfigs, 
+                            std::deque<ClusterMacConfig>& interConfigs);
     }; 
 }
 

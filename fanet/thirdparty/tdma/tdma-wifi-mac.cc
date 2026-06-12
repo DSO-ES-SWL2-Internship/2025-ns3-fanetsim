@@ -68,6 +68,12 @@ namespace ns3
         UpdateSlotDuration(); // Recalculate slot duration
     }
 
+    //
+    void TdmaWifiMac::SetClusterConfig(const ClusterMacConfig* sharedConfig)
+    {
+        m_clusterConfig = sharedConfig;
+    }
+
     // This method updates the slot duration whenever the number of slots or cycle duration changes.
     void TdmaWifiMac::StartTdma()
     {
@@ -280,25 +286,25 @@ namespace ns3
         NS_LOG_DEBUG("Slot duration updated to " << m_slotDuration.As(Time::MS));
     }
 
-     // This method is called when a packet is received. 
-     //It extracts the source and destination addresses and processes the packet accordingly.
-    void TdmaWifiMac::SetTrafficProfiles(std::vector<TrafficProfile> profiles) {
-        this->m_macTrafficProfiles = profiles;
-        this->AllocateMiniSlots(); // Re-allocate mini-slots based on the new traffic profiles
-    }
-
     // This method is called when a packet is received.
     // It extracts the source and destination addresses and processes the packet accordingly.
     void TdmaWifiMac::AllocateMiniSlots() {
+        //check if the cluster configuration reference has been set before trying to allocate mini-slots
+        if (!m_clusterConfig) {
+            NS_LOG_WARN("No ClusterMacConfig reference attached yet!");
+            return;
+        }
+        
         //Reset the table to 12 empty slots
         m_allocationTable.clear();
-        m_allocationTable.resize(m_totalMiniSlots, {false, ""});
-        
-        uint32_t slotsAvailable = m_totalMiniSlots;
+        m_allocationTable.resize(m_clusterConfig->totalMiniSlots, {false, ""});
+        const std::vector<TrafficProfile> &profiles = m_clusterConfig->trafficProfiles;
+        uint32_t slotsAvailable = m_clusterConfig->totalMiniSlots;
+
 
         //Loop through the JSON profiles (already sorted highest priority first)
-        for (const auto& profile : m_macTrafficProfiles) {
-            
+        for (const auto& profile : profiles) 
+        {
             //Calculate how many mini-slots this traffic needs (e.g., 0.6K / 0.1 = 6 slots)
             uint32_t slotsNeeded = std::ceil(profile.bandwidthKb / m_kbPerMiniSlot);
             
@@ -320,19 +326,9 @@ namespace ns3
 
             // If the table is full, stop allocating. Lower priorities get dropped.
             if (slotsAvailable == 0) {
-                NS_LOG_DEBUG("TDMA Slot Capacity Reached. Lower priorities starved.");
                 break; 
             }
         }
-            // std::cout << "\n[TDMA VERIFICATION] Node MAC: " << GetAddress() << " allocated 12 mini-slots:" << std::endl;
-            // for (uint32_t i = 0; i < m_totalMiniSlots; i++) {
-            //     if (m_allocationTable[i].isOccupied) {
-            //         std::cout << "  Slot " << i << ": " << m_allocationTable[i].trafficType << std::endl;
-            //     } else {
-            //         std::cout << "  Slot " << i << ": [ IDLE ]" << std::endl;
-            //     }
-            // }
-            // std::cout << "\n" << std::endl;
     }
 
     // Receive MAC protocol data unit (MPDU) and extract the source and destination address

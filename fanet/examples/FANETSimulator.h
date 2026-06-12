@@ -91,6 +91,8 @@ namespace ns3
 
             std::vector<TrafficProfile> m_currentActiveProfiles; //To keep track of currently active profiles for logging purposes
             void PeriodicTopologySync();//Method to periodically synchronize the topology and print the TDMA grid map for each node
+            std::deque<ClusterMacConfig> m_intraClusterConfigs; 
+            std::deque<ClusterMacConfig> m_interClusterConfigs;
 
         public:
             static TypeId GetTypeId();

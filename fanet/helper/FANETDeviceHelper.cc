@@ -98,7 +98,7 @@ namespace ns3
         clusterWifiStandard = WIFI_STANDARD_80211b;
         clusterWifiChannelPropagationDelay = "ns3::ConstantSpeedPropagationDelayModel";
         clusterPropagationLossModel = "ns3::FriisPropagationLossModel";
-        clusterMacType = "ns3::AdhocWifiMac";
+        clusterMacType = "ns3::TdmaWifiMac";
     }
 
     void FANETDeviceHelper::TdmaWifi(){
@@ -146,11 +146,11 @@ namespace ns3
         //wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
 
         // Install WiFi devices for each cluster
-        for (size_t i = 0; i < clusters.size(); i++) {
+        for (size_t i = 0; i < clusters.size(); i++) 
+        {
             
             // Create a unique Wi-Fi channel for this cluster
             YansWifiChannelHelper wifiChannelintra;
-            
             if (!clusterWifiChannelPropagationDelay.empty()) {
                 wifiChannelintra.SetPropagationDelay(clusterWifiChannelPropagationDelay);
             }
@@ -177,27 +177,21 @@ namespace ns3
             // Install WiFi devices on nodes in the current cluster
             NetDeviceContainer clusterDevices = localWifiIntra.Install(wifiPhyCluster, wifiMacCM, clusters[i]);
 
+            this->clustersDevices.push_back(clusterDevices);
+
             for (uint32_t j = 0; j < clusterDevices.GetN(); j++) {
-    
                 // Grab the generic device
                 Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(clusterDevices.Get(j));
                 
                 if (wifiDev) {
                     // Cast the generic MAC into our custom TdmaWifiMac
                     Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
-                    
-                    if (tdmaMac) {
-                        // Inject the JSON profiles directly into the hardware's memory!
-                        tdmaMac->SetTrafficProfiles(this->m_deviceTrafficProfiles);
-                    }
                 }
             }
-
-            this->clustersDevices.push_back(clusterDevices);
         }
-
         NS_LOG_DEBUG("Devices for intra-cluster communication installed on the nodes");
     }
+
 
     // Create the link for nodes to the GDT to prepare for dynamic assignment of CH during the simulation
     // void FANETDeviceHelper::SetUpLinksWifi(Ptr<FANETTopologyHelper> fanet) {
@@ -304,37 +298,57 @@ namespace ns3
         }
 
     NS_LOG_DEBUG("Devices for GDT-Cluster communication (f_0) installed");
-}
+    }
 
-    void FANETDeviceHelper::AssignTdmaSlots(NodeContainer nodes, Time cycleDuration){
-        for (uint32_t i = 0; i < nodes.GetN(); ++i)
+    void FANETDeviceHelper::AssignTdmaSlots(Ptr<FANETTopologyHelper> fanet, 
+                                            Time cycleDuration, 
+                                            std::deque<ClusterMacConfig>& intraConfigs, 
+                                            std::deque<ClusterMacConfig>& interConfigs) 
+    {
+        for (size_t i = 0; i < fanet->clusters.size(); ++i) 
         {
-            Ptr<Node> node = nodes.Get(i);
-            
-            // Iterate through all devices of this node
-            for (uint32_t j = 0; j < node->GetNDevices(); ++j)
+            for (uint32_t j = 0; j < fanet->clusters[i].GetN(); ++j) 
             {
-                Ptr<WifiNetDevice> wifiDevice = DynamicCast<WifiNetDevice>(node->GetDevice(j));
+                Ptr<Node> node = fanet->clusters[i].Get(j);
                 
-                // Check if it's a valid WifiNetDevice
-                if (wifiDevice)
+                //Check if node is a Cluster Head (for inter-cluster config)
+                bool isCH = false;
+                for (const auto& chNode : fanet->CHNodes) {
+                    if (chNode && chNode->GetId() == node->GetId()) {
+                        isCH = true;
+                        break;
+                    }
+                }
+
+                //Iterate over the devices of the node to find the WiFi device and configure TDMA parameters
+                for (uint32_t d = 0; d < node->GetNDevices(); ++d) 
                 {
-                    Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDevice->GetMac());
-                    
-                    // Ensure that the device has a valid TDMA MAC
-                    if (tdmaMac)
+                    Ptr<WifiNetDevice> wifiDevice = DynamicCast<WifiNetDevice>(node->GetDevice(d));
+                    if (wifiDevice) 
                     {
-                        // Assign the TDMA slot for this device
-                        tdmaMac->SetTdmaParameters(nodes.GetN(), cycleDuration, node->GetId());
-                        
-                        // Start TDMA for this device
-                        tdmaMac->StartTdma();
+                        Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDevice->GetMac());
+                        if (tdmaMac) 
+                        {
+                            //Set standard params
+                            tdmaMac->SetTdmaParameters(fanet->allNodes.GetN(), cycleDuration, node->GetId());
+                            
+                            //Determine if this device is for intra-cluster or inter-cluster communication based on SSID
+                            std::string ssid = wifiDevice->GetMac()->GetSsid().PeekString();
+                            bool isInterCluster = (ssid.find("InterCluster") != std::string::npos);
+
+                            if (isInterCluster) {
+                                tdmaMac->SetClusterConfig(isCH ? &interConfigs.at(i) : nullptr);
+                            } else {
+                                tdmaMac->SetClusterConfig(&intraConfigs.at(i));
+                            }
+
+                            tdmaMac->AllocateMiniSlots();
+                            tdmaMac->StartTdma();
+                        }
                     }
                 }
             }
         }
-
-        NS_LOG_DEBUG("Slots allocated to each node for TDMA");
     }
 
     void FANETDeviceHelper::AssignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, FANETAnimationHelper* anim)
@@ -393,10 +407,6 @@ namespace ns3
 
         Simulator::Schedule(Seconds(5.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);       
     }
-
-    void FANETDeviceHelper::SetTrafficProfiles(std::vector<TrafficProfile> profiles) {
-    this->m_deviceTrafficProfiles = profiles;
-}
 
     void FANETDeviceHelper::NotifyCHStatusChange(Ptr<Node> node, std::string status)
     {
