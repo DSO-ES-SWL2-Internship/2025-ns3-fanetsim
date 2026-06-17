@@ -199,7 +199,26 @@ namespace ns3
         // Resize the deques to match the exact number of created clusters
         m_intraClusterConfigs.resize(actualClusters);
         m_interClusterConfigs.resize(actualClusters);
+        m_chIntraConfigs.resize(actualClusters);
 
+        //Filter Video out for the CH Local Antenna
+        std::vector<TrafficProfile> chBaselineProfiles;
+        for (const auto& tp : this->m_trafficProfiles) {
+            if (tp.type.find("Video") == std::string::npos) {
+                chBaselineProfiles.push_back(tp);
+            }
+        }
+
+        //Aggregate profiles for the CH Backbone Antenna
+        //Assuming 4 nodes per cluster
+        std::vector<TrafficProfile> aggregatedBaseline;
+        for (const auto& tp : this->m_trafficProfiles) {
+            TrafficProfile aggDemand = tp;
+            aggDemand.bandwidthKb = (tp.bandwidthKb * 4.0) - 0.001;
+            aggregatedBaseline.push_back(aggDemand);
+        }
+
+        // Initialize the TDMA MAC configurations for each cluster
         for (size_t i = 0; i < actualClusters; i++) {
             // Intra-cluster settings
             m_intraClusterConfigs[i].totalMiniSlots = 12;
@@ -207,9 +226,15 @@ namespace ns3
             // Assign the baseline traffic profiles so the MAC is active at T=0
             m_intraClusterConfigs[i].trafficProfiles = this->m_trafficProfiles; 
 
+            //Intra-cluster settings for the cluster head
+            m_chIntraConfigs[i].totalMiniSlots = 12;
+            m_chIntraConfigs[i].kbPerMiniSlot = 0.1;
+            m_chIntraConfigs[i].trafficProfiles = chBaselineProfiles;
+
             // Inter-cluster settings
             m_interClusterConfigs[i].totalMiniSlots = 24;
             m_interClusterConfigs[i].kbPerMiniSlot = 0.1;
+            m_interClusterConfigs[i].trafficProfiles = aggregatedBaseline;
         }
 
         this->InstallDevices();
@@ -252,20 +277,20 @@ namespace ns3
         //Configure the traffic profiles for the applications based on the JSON configuration. 
         //For simplicity, just set up three types of traffic: Video, Status, and Command, each with different bandwidth requirements and priorities. 
         //The TDMA MAC layer will use the priorities to allocate mini-slots accordingly.
-        //VIDEO: 1.2K High Res -> 1200 bytes, 9.6Kbps | Priority 3 (DSCP 0x60)
+        //VIDEO: 1.2K High Res -> 1200 bytes, 9.6Kbps | TID 5 (DSCP 0xA0)
         OnOffHelper videoApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
-        videoApp.SetConstantRate(DataRate("9.6Kbps"), 1200); 
-        videoApp.SetAttribute("Tos", UintegerValue(0x60)); 
+        videoApp.SetConstantRate(DataRate("500Kbps"), 1200); 
+        videoApp.SetAttribute("Tos", UintegerValue(0xA0)); 
 
-        //STATUS 1: 0.1K -> 100 bytes, 0.8Kbps | Priority 2 (DSCP 0x80)
+        //STATUS 1: 0.1K -> 100 bytes, 0.8Kbps | TID 4 (DSCP 0x80)
         OnOffHelper statusApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
         statusApp.SetConstantRate(DataRate("0.8Kbps"), 100); 
         statusApp.SetAttribute("Tos", UintegerValue(0x80)); 
 
-        //CMD 1: 0.1K -> 100 bytes, 0.8Kbps | Priority 3 (DSCP 0x60)
+        //CMD 1: 0.1K -> 100 bytes, 0.8Kbps | TID 6 (DSCP 0xC0)
         OnOffHelper cmdApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
         cmdApp.SetConstantRate(DataRate("0.8Kbps"), 100); 
-        cmdApp.SetAttribute("Tos", UintegerValue(0x60)); 
+        cmdApp.SetAttribute("Tos", UintegerValue(0xC0));
 
         //Isntall applications on all the cluster nodes with staggered start times to prevent collisions and ensure the GDT is ready to receive when the apps start sending
         for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
@@ -310,6 +335,18 @@ namespace ns3
     
         this->anim->AnimateFANET(this->fanet);
 
+        // Give the GDT an active schedule so it can transmit Commands and ARP replies
+        Ptr<Node> activeGcsNode = this->fanet->GDTNode.Get(0);
+        for (uint32_t d = 0; d < activeGcsNode->GetNDevices(); d++) {
+            Ptr<WifiNetDevice> gdtWifi = DynamicCast<WifiNetDevice>(activeGcsNode->GetDevice(d));
+            if (gdtWifi) {
+                Ptr<TdmaWifiMac> gdtMac = DynamicCast<TdmaWifiMac>(gdtWifi->GetMac());
+                if (gdtMac) {
+                    gdtMac->SetClusterConfig(&m_interClusterConfigs[0]);
+                }
+            }
+        }
+
         //Set up a mechanism for the GCS to send a dynamic command to a target node at runtime, 
         //demonstrating the ability to interact with the network after it's already up and running.
         //Force Node 1 to listen on port 9999
@@ -320,7 +357,7 @@ namespace ns3
 
         //Get the IP address of that target node so the GCS knows where to aim
         Ptr<Ipv4> ipv4 = targetNode->GetObject<Ipv4>();
-        Ipv4Address targetIp = ipv4->GetAddress(1, 0).GetLocal();
+        Ipv4Address targetIp = ipv4->GetAddress(2, 0).GetLocal();
 
         //Schedule the GCS to send a command to that node after 15 seconds of simulation time, 
         //which should be well after the network is established and the applications are actively sending data.
@@ -445,7 +482,7 @@ namespace ns3
         //Connect to the Node's special command port (Port 9999)
         socket->Connect(InetSocketAddress(targetNodeIp, 9999));
         
-        //Fire the packet with the command. In a real scenario, this could be a more complex packet with specific headers, but for simplicity, we're just sending a plain packet with "HIGH_RES" as its content.
+        //Fire the packet with the command
         Ptr<Packet> packet = Create<Packet>((uint8_t*)"HIGH_RES", 8);
         socket->Send(packet);
     }
@@ -486,13 +523,22 @@ namespace ns3
             //Update the central cluster configuration objects with the new traffic profiles based on the received command. 
             this->m_intraClusterConfigs[targetClusterId].trafficProfiles = this->m_updateProfiles;
 
+            //Filter Video for CH
+            std::vector<TrafficProfile> chIntraProfiles;
+            for (const auto& p : this->m_updateProfiles) {
+                if (p.type.find("Video") == std::string::npos) {
+                    chIntraProfiles.push_back(p);
+                }
+            }
+            this->m_chIntraConfigs[targetClusterId].trafficProfiles = chIntraProfiles;
+
             //Generate the aggregated traffic profiles for the inter-cluster communication by multiplying the bandwidth requirements 
             //of each profile by the number of nodes in the cluster, since the cluster head will be handling the traffic for 
             //all its members when communicating with other clusters.
             std::vector<TrafficProfile> aggregatedProfiles;
             for (const auto& baseProfile : this->m_updateProfiles) {
                 TrafficProfile clusterDemand = baseProfile;
-                clusterDemand.bandwidthKb = baseProfile.bandwidthKb * clusterSize; 
+                clusterDemand.bandwidthKb = (baseProfile.bandwidthKb * clusterSize)-0.001; 
                 aggregatedProfiles.push_back(clusterDemand);
             }
             this->m_interClusterConfigs[targetClusterId].trafficProfiles = aggregatedProfiles;
@@ -521,14 +567,28 @@ namespace ns3
                         if (tdmaMac) {
                             std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
                             bool isInterCluster = (ssid.find("InterCluster") != std::string::npos);
+
                             if (isInterCluster) {
+                                Ptr<Ipv4> nodeIpv4 = clusterNode->GetObject<Ipv4>(); 
+                                int32_t ifIndex = nodeIpv4->GetInterfaceForDevice(wifiDev);
+
                                 if (isClusterHead) {
+                                    //Get aggregated video profile
                                     tdmaMac->SetClusterConfig(&m_interClusterConfigs[targetClusterId]);
+                                    if (ifIndex >= 0) nodeIpv4->SetMetric(ifIndex, 1); // Highly preferred active route
                                 } else {
                                     tdmaMac->SetClusterConfig(nullptr);
+                                    if (ifIndex >= 0) nodeIpv4->SetMetric(ifIndex, 255); //Expensive route forces traffic to CH
                                 }
                             } else {
-                                tdmaMac->SetClusterConfig(&m_intraClusterConfigs[targetClusterId]);
+                                if (isClusterHead)
+                                {
+                                    //Get No Video Profile
+                                    tdmaMac->SetClusterConfig(&m_chIntraConfigs[targetClusterId]);
+                                }else{                                   
+                                    //Get standard video profile
+                                    tdmaMac->SetClusterConfig(&m_intraClusterConfigs[targetClusterId]);
+                                }
                             }
                             tdmaMac->AllocateMiniSlots();//Recalculate the mini-slot allocations based on the new profiles
                             PrintTdmaGridMap(clusterNode, wifiDev, tdmaMac);
@@ -555,10 +615,19 @@ namespace ns3
 
             m_intraClusterConfigs[i].trafficProfiles = profilesToApply;
 
+            //Filter Video for CH
+            std::vector<TrafficProfile> chIntraProfiles;
+            for (const auto& p : profilesToApply) {
+                if (p.type.find("Video") == std::string::npos) {
+                    chIntraProfiles.push_back(p);
+                }
+            }
+            m_chIntraConfigs[i].trafficProfiles = chIntraProfiles;
+
             std::vector<TrafficProfile> aggregatedProfiles;
             for (const auto& baseProfile : profilesToApply) {
                 TrafficProfile clusterDemand = baseProfile;
-                clusterDemand.bandwidthKb = baseProfile.bandwidthKb * clusterSize;
+                clusterDemand.bandwidthKb = (baseProfile.bandwidthKb * clusterSize) - 0.001;
                 aggregatedProfiles.push_back(clusterDemand);
             }
             m_interClusterConfigs[i].trafficProfiles = aggregatedProfiles;
@@ -566,7 +635,6 @@ namespace ns3
             for (uint32_t j = 0; j < clusterSize; j++) {
                 Ptr<Node> node = this->fanet->clusters[i].Get(j);
                 uint32_t nodeId = node->GetId();
-
                 //Check if this node is currently elected as a Cluster Head
                 bool isClusterHead = false;
                 for (size_t c = 0; c < this->fanet->CHNodes.size(); c++) {
@@ -575,7 +643,23 @@ namespace ns3
                         break;
                     }
                 }
-                
+
+                //Ensure the node actually has applications installed to prevent crashes
+                if (node->GetNApplications() > 0) {
+                    //Grab Application 0 (Video App)
+                    Ptr<Application> myVideoApp = node->GetApplication(0);
+                    
+                    if (isClusterHead) {
+                        //Mute the video feed, it is a CH and must save bandwidth for routing.
+                        myVideoApp->SetAttribute("DataRate", StringValue("1bps"));
+                    } else {
+                        //Turn the camera on, it is a standard member drone.
+                        myVideoApp->SetAttribute("DataRate", StringValue("500Kbps"));
+                    }
+                }
+
+                //Iterate through the devices of this node to find the WiFi interfaces and update their TDMA MAC configurations 
+                //based on whether they are inter-cluster or intra-cluster interfaces, and whether this node is a cluster head or not.
                 for (uint32_t d = 0; d < node->GetNDevices(); d++) {
                     Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(node->GetDevice(d));
                     if (wifiDev) {
@@ -596,20 +680,47 @@ namespace ns3
                             //plain members get an empty profile to maintain their dormant state on the inter-cluster link, 
                             //and all nodes get the regular profiles on their intra-cluster interfaces.
                             if (isInterCluster) {
-                            // Point to the stable address in the vector
-                            tdmaMac->SetClusterConfig(isClusterHead ? &m_interClusterConfigs.at(i) : nullptr);
-                            }   
-                            else {
-                                tdmaMac->SetClusterConfig(&m_intraClusterConfigs.at(i));
+                                Ptr<Ipv4> nodeIpv4 = node->GetObject<Ipv4>(); 
+                                int32_t ifIndex = nodeIpv4->GetInterfaceForDevice(wifiDev);
+
+                                if (isClusterHead) {
+                                    //Get the aggregated profiles for the inter-cluster communication by multiplying the bandwidth requirements
+                                    tdmaMac->SetClusterConfig(&m_interClusterConfigs.at(i));
+                                    if (ifIndex >= 0) nodeIpv4->SetMetric(ifIndex, 1); 
+                                } else {
+                                    tdmaMac->SetClusterConfig(nullptr);
+                                    if (ifIndex >= 0) nodeIpv4->SetMetric(ifIndex, 255); 
+                                }
+                            } else {
+                                if (isClusterHead) {
+                                    //Get No Video Profiles for the intra-cluster communication on the cluster head's local antenna, since the CH should not be sending video to its members.
+                                    tdmaMac->SetClusterConfig(&m_chIntraConfigs.at(i));
+                                } else
+                                {
+                                    //Get standard video profile
+                                    tdmaMac->SetClusterConfig(&m_intraClusterConfigs.at(i));
+                                }
                             }
-                        tdmaMac->AllocateMiniSlots();
-                        PrintTdmaGridMap(node, wifiDev, tdmaMac);
+                            tdmaMac->AllocateMiniSlots();
+                            PrintTdmaGridMap(node, wifiDev, tdmaMac);
                         }
+                    }
+                }
+            }
+            Ptr<Node> syncGcsNode = this->fanet->GDTNode.Get(0);
+            for (uint32_t d = 0; d < syncGcsNode->GetNDevices(); d++) {
+                Ptr<WifiNetDevice> gdtWifi = DynamicCast<WifiNetDevice>(syncGcsNode->GetDevice(d));
+                if (gdtWifi) {
+                    Ptr<TdmaWifiMac> gdtMac = DynamicCast<TdmaWifiMac>(gdtWifi->GetMac());
+                    if (gdtMac) {
+                        gdtMac->SetClusterConfig(&m_interClusterConfigs[0]);
+                        gdtMac->AllocateMiniSlots();
                     }
                 }
             }
         }
     }
+
 
     //Method to periodically synchronize the topology and print the TDMA grid map for each node, demonstrating how the MAC layer adapts to any changes in the network over time (e.g., nodes moving, cluster head changes, etc.)
     void FANETSimulator::PeriodicTopologySync()
@@ -670,11 +781,12 @@ namespace ns3
             headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId 
                     << "  |  IP: " << ipAddr
                     << "  |  MAC: " << macAddr 
-                    << "  |  SSID: SSID=[" << ssid << "] | Sim Time: " << simTime;
+                    << "  |  SSID: " << ssid << " | Sim Time: " << simTime;
         } else {
             headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId 
                     << "  |  IP: " << ipAddr
-                    << "  |  SSID: " << ssid << "  | Time: " << simTime;
+                    << "  |  MAC: " << macAddr
+                    << "  |  SSID: " << ssid << "  | Sim Time: " << simTime;
         }
         std::string headerContent = headerSs.str();
 

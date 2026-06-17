@@ -80,7 +80,15 @@ namespace ns3
             double m_kbPerMiniSlot;
             const ClusterMacConfig* m_clusterConfig = nullptr; // Pointer to the shared cluster configuration
 
-            std::queue<TdmaBufferItem> m_tdmaBuffer;
+            //MAC-Level WFQ Queues
+            std::queue<TdmaBufferItem> m_videoQueue;
+            std::queue<TdmaBufferItem> m_statusQueue;
+            std::queue<TdmaBufferItem> m_cmdQueue;
+
+            //Leaky Bucket Limits (Max packets allowed to wait)
+            uint32_t m_maxVideoQueueSize = 50;
+            uint32_t m_maxStatusQueueSize = 50;
+            uint32_t m_maxCmdQueueSize = 50;
     };
 }
 #endif

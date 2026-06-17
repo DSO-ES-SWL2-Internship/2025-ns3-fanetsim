@@ -88,6 +88,11 @@ namespace ns3
         auto packet = mpdu->GetPacket();
         NS_LOG_FUNCTION(this << packet << to);
 
+        // Drop ALL packets (including AODV routing broadcasts) so the IP layer is forced to reroute.
+        if (m_clusterConfig == nullptr) {
+            return; 
+        }
+
         // when new packet is to be sent, check if the destination is a new location
         // FIXED: Do not register broadcast addresses as brand new unicast stations
         if (!to.IsBroadcast() && GetWifiRemoteStationManager()->IsBrandNew(to))
@@ -161,7 +166,10 @@ namespace ns3
             // mean that AC_BE is used.
             if (tid > 7)
             {
-                tid = 0;
+                if (tid == 0xA0) tid = 5;      // Video
+                else if (tid == 0xC0) tid = 6; // Cmd
+                else if (tid == 0x80) tid = 4; // Status
+                else tid = 0;                  // Best Effort Fallback
             }
             hdr.SetQosTid(tid);
         }
@@ -199,13 +207,31 @@ namespace ns3
         // TODO: Refactor for cleanliness
         TdmaBufferItem item;
         item.mpdu = mpdu;
-        // item.hdr = hdr;
-        // item.to = to;
+        // Read the TID mapped from the IP ToS byte
+        // Use the safely mapped 'tid' from above to route to the correct Leaky Bucket
+        if (tid == 5) { 
+            if (m_videoQueue.size() >= m_maxVideoQueueSize) {
+                NS_LOG_WARN("Video Leaky Bucket FULL! Dropping delayed frame.");
+                return; 
+            }
+            m_videoQueue.push(item);
+        } 
+        else if (tid == 6) { 
+            if (m_cmdQueue.size() >= m_maxCmdQueueSize) {
+                NS_LOG_WARN("Command Leaky Bucket FULL! Dropping packet.");
+                return;
+            }
+            m_cmdQueue.push(item);
+        } 
+        else { 
+            if (m_statusQueue.size() >= m_maxStatusQueueSize) {
+                NS_LOG_WARN("Status Leaky Bucket FULL! Dropping packet.");
+                return;
+            }
+            m_statusQueue.push(item);
+        }
 
-        m_tdmaBuffer.push(item);
-
-        if (m_isMySlot)
-        {
+        if (m_isMySlot) {
             TdmaTransmit();
         }
     }
@@ -245,37 +271,65 @@ namespace ns3
         NS_LOG_FUNCTION(this);
 
         Time slotStartTime = Simulator::Now();
+        
+        //Evaluate how many packets of each traffic type we can send based on the allocation table for this slot
+        uint32_t videoQuota = 0;
+        uint32_t statusQuota = 0;
+        uint32_t cmdQuota = 0;
 
-        // Transmit all packets in the buffer during the node's slot
-        while (!m_tdmaBuffer.empty())
-        {
-
-            if (Simulator::Now() - slotStartTime >= m_slotDuration)
-            {
-                NS_LOG_WARN("Slot overrun detected! Stopping transmission.");
-                break; // Stop if the slot time is exceeded
+        for(const auto& slot : m_allocationTable) {
+            if (!slot.isOccupied) {
+                continue; // Skip empty slots
             }
-
-            // Get the next packet and header from the buffer
-            TdmaBufferItem item = m_tdmaBuffer.front();
-            Ptr<WifiMpdu> mpdu = item.mpdu;
-            // WifiMacHeader hdr = item.hdr;
-            // Mac48Address to = item.to;
-
-            // Queue the packet and header in the appropriate Txop or QosTxop
-            if (GetQosSupported())
-            {
-                uint8_t tid = GetTid(mpdu->GetPacket(), mpdu->GetHeader());
-                GetQosTxop(tid)->Queue(mpdu);
+            
+            // Use find() so it matches "Video_HIGH_RES", "Video_LOW_RES", etc.
+            if (slot.trafficType.find("Video") != std::string::npos) {
+                videoQuota++;
             }
-            else
-            {
-                GetTxop()->Queue(mpdu);
+            else if (slot.trafficType.find("Status") != std::string::npos) {
+                statusQuota++;
             }
-
-            // Remove the item from the buffer
-            m_tdmaBuffer.pop();
+            else if (slot.trafficType.find("Cmd") != std::string::npos) {
+                cmdQuota++;
+            }
         }
+        //Lambda function to decrease a specific queue safely
+        auto drainQueue = [&](std::queue<TdmaBufferItem>& queue, uint32_t& quota, uint8_t destTid) {
+            while (!queue.empty() && quota > 0)
+            {
+                if (Simulator::Now() - slotStartTime >= m_slotDuration)
+                {
+                    NS_LOG_WARN("Slot overrun detected... Stopping transmission.");
+                    return; 
+                }
+                TdmaBufferItem item = queue.front();
+                Ptr mpdu = item.mpdu;
+
+                if (GetQosSupported())
+                {
+                    // Directly use destTid instead of calculating it!
+                    GetQosTxop(destTid)->Queue(mpdu);
+                }
+                else
+                {
+                    GetTxop()->Queue(mpdu);
+                }
+                queue.pop();
+                quota--; 
+            }
+        };
+
+        if (!m_videoQueue.empty() || !m_statusQueue.empty() || !m_cmdQueue.empty()) {
+            std::cout << "[WFQ ENFORCER] Node Slot Active | Sending Max: " 
+                      << videoQuota << " Video, " 
+                      << statusQuota << " Status, " 
+                      << cmdQuota << " Cmd." << std::endl;
+        }    
+
+        // Pass the explicit 802.11e TIDs: 6 (Cmd), 4 (Status), 5 (Video)
+        drainQueue(m_cmdQueue, cmdQuota, 6);
+        drainQueue(m_statusQueue, statusQuota, 4);
+        drainQueue(m_videoQueue, videoQuota, 5);
     }
 
     // This method updates the slot duration whenever the number of slots or cycle duration changes.

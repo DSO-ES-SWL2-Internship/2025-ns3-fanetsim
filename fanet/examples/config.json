@@ -1,9 +1,9 @@
 {
-    "nClusters": 2,
-    "nClusterNodes": "3 3",
+    "nClusters": 1,
+    "nClusterNodes": "4",
     "cycleDuration": 200,
     "filename": "hello.xml",
-    "simulationDuration": 30.0,
+    "simulationDuration": 40.0,
     "fanetDevices": {
       "clusterWifiStandard": "WIFI_STANDARD_80211b",
       "clusterWifiChannelPropagationDelay": "ns3::ConstantSpeedPropagationDelayModel",
@@ -23,23 +23,53 @@
 
     "updateProfiles": [ 
         {
-          "startTime": 15.0,
-          "endTime": 19.0,
+          "startTime": 5.0,
+          "endTime": 9.0,
           "profiles":
           [
               {"type": "Status2", "priority": 1, "bandwidthKb": 0.3},
-              {"type": "Cmd2", "priority": 2, "bandwidthKb": 0.3},
-              {"type": "Video_HIGH_RES", "priority": 3, "bandwidthKb": 1.2}
+              {"type": "Cmd1", "priority": 3, "bandwidthKb": 0.1},
+              {"type": "Video_LOW_RES", "priority": 55, "bandwidthKb": 0.6}
           ]
         },
         {
+          "startTime": 10.0,
+          "endTime": 14.0,
+          "profiles":
+            [
+                {"type": "Status1", "priority": 2, "bandwidthKb": 0.1},
+                {"type": "Cmd1", "priority": 3, "bandwidthKb": 0.1},
+                {"type": "Video_HIGH_RES", "priority": 3, "bandwidthKb": 1.2}
+            ]
+        },
+        {
+          "startTime": 15.0,
+          "endTime": 19.0,
+          "profiles":
+            [
+                {"type": "Status1", "priority": 2, "bandwidthKb": 0.1},
+                {"type": "Cmd2", "priority": 2, "bandwidthKb": 0.3},
+                {"type": "Video_LOW_RES", "priority": 5, "bandwidthKb": 0.6}
+            ]
+        },
+        {
           "startTime": 20.0,
-          "endTime": 25.0,
+          "endTime": 24.0,
+          "profiles":
+            [
+                {"type": "Status1", "priority": 2, "bandwidthKb": 0.1},
+                {"type": "Cmd3", "priority": 1, "bandwidthKb": 0.6},
+                {"type": "Video_LOW_RES", "priority": 5, "bandwidthKb": 0.6}
+            ]
+        },
+        {
+          "startTime": 25.0,
+          "endTime": 29.0,
           "profiles":
             [
                 {"type": "Status2", "priority": 1, "bandwidthKb": 0.3},
                 {"type": "Cmd3", "priority": 1, "bandwidthKb": 0.6},
-                {"type": "Video_HIGH_RES", "priority": 3, "bandwidthKb": 1.2}
+                {"type": "Video_HIGH_RES", "priority": 3, "bandwidthKb": 0.6}
             ]
         }
     ],

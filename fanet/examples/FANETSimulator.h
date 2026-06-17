@@ -93,6 +93,7 @@ namespace ns3
             void PeriodicTopologySync();//Method to periodically synchronize the topology and print the TDMA grid map for each node
             std::deque<ClusterMacConfig> m_intraClusterConfigs; 
             std::deque<ClusterMacConfig> m_interClusterConfigs;
+            std::deque<ClusterMacConfig> m_chIntraConfigs;
 
         public:
             static TypeId GetTypeId();
