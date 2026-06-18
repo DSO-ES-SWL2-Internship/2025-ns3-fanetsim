@@ -40,7 +40,6 @@ namespace ns3
                                 StringValue("animation.xml"),
                                 MakeStringAccessor(&FANETSimulator::fileName),
                                 MakeStringChecker())
-
                 .AddAttribute(  "simulationDuration",
                                 "Duration of simulation",
                                 DoubleValue(0.0),
@@ -214,7 +213,7 @@ namespace ns3
         std::vector<TrafficProfile> aggregatedBaseline;
         for (const auto& tp : this->m_trafficProfiles) {
             TrafficProfile aggDemand = tp;
-            aggDemand.bandwidthKb = (tp.bandwidthKb * 4.0) - 0.001;
+            aggDemand.bandwidthKb = (tp.bandwidthKb * 4.0);
             aggregatedBaseline.push_back(aggDemand);
         }
 
@@ -653,7 +652,7 @@ namespace ns3
                         //Mute the video feed, it is a CH and must save bandwidth for routing.
                         myVideoApp->SetAttribute("DataRate", StringValue("1bps"));
                     } else {
-                        //Turn the camera on, it is a standard member drone.
+                        //Turn the camera on, it is a standard member node.
                         myVideoApp->SetAttribute("DataRate", StringValue("500Kbps"));
                     }
                 }
