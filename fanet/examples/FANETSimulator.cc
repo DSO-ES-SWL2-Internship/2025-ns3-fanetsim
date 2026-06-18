@@ -247,7 +247,7 @@ namespace ns3
 
         LogComponentDisable("ClusterNodeCHPromo", LOG_LEVEL_DEBUG);
 
-        this->SetUpNetAnim();
+        //this->SetUpNetAnim();
 
         //Schedule the cluster head assignment to run shortly after the simulation starts 
         //to ensure all devices are installed and ready, but before the applications start sending data, 
