@@ -8,7 +8,16 @@
 #include "ns3/log.h"
 #include "ns3/packet.h"
 #include "ns3/vht-capabilities.h"
-#include "ns3/core-module.h"
+#include "ns3/log.h"
+#include "ns3/simulator.h"
+#include "ns3/boolean.h"
+#include "ns3/uinteger.h"
+#include "ns3/double.h"
+#include "ns3/string.h"
+#include "ns3/pointer.h"
+#include "ns3/trace-source-accessor.h"
+#include "ns3/mac48-address.h"
+#include "ns3/packet.h"
 
 namespace ns3
 {
@@ -164,6 +173,7 @@ namespace ns3
             // Any value greater than 7 is invalid and likely indicates that
             // the packet had no QoS tag, so we revert to zero, which will
             // mean that AC_BE is used.
+            // Some special TID values map to specific ACs (e.g. Video, Command, Status)
             if (tid > 7)
             {
                 if (tid == 0xA0) tid = 5;      // Video
@@ -209,7 +219,7 @@ namespace ns3
         item.mpdu = mpdu;
         // Read the TID mapped from the IP ToS byte
         // Use the safely mapped 'tid' from above to route to the correct Leaky Bucket
-        if (tid == 5) { 
+        if (tid == 3) { 
             if (m_videoQueue.size() >= m_maxVideoQueueSize) {
                 NS_LOG_WARN("Video Leaky Bucket FULL! Dropping delayed frame.");
                 return; 
@@ -230,7 +240,6 @@ namespace ns3
             }
             m_statusQueue.push(item);
         }
-
         if (m_isMySlot) {
             TdmaTransmit();
         }
@@ -277,11 +286,11 @@ namespace ns3
         uint32_t statusQuota = 0;
         uint32_t cmdQuota = 0;
 
+        //Scans m_allocationTable and tallies up the weights for the current cycle
         for(const auto& slot : m_allocationTable) {
             if (!slot.isOccupied) {
                 continue; // Skip empty slots
             }
-            
             // Use find() so it matches "Video_HIGH_RES", "Video_LOW_RES", etc.
             if (slot.trafficType.find("Video") != std::string::npos) {
                 videoQuota++;
@@ -293,6 +302,7 @@ namespace ns3
                 cmdQuota++;
             }
         }
+
         //Lambda function to decrease a specific queue safely
         auto drainQueue = [&](std::queue<TdmaBufferItem>& queue, uint32_t& quota, uint8_t destTid) {
             while (!queue.empty() && quota > 0)
@@ -326,10 +336,10 @@ namespace ns3
                       << cmdQuota << " Cmd." << std::endl;
         }    
 
-        // Pass the explicit 802.11e TIDs: 6 (Cmd), 4 (Status), 5 (Video)
-        drainQueue(m_cmdQueue, cmdQuota, 6);
-        drainQueue(m_statusQueue, statusQuota, 4);
-        drainQueue(m_videoQueue, videoQuota, 5);
+        //Pass the explicit 802.11e TIDs: 6 (Cmd), 5 (Status), 3 (Video)
+        drainQueue(m_cmdQueue, cmdQuota, 6); //Maps to AC_V0
+        drainQueue(m_statusQueue, statusQuota, 5); //Maps to AC_VI
+        drainQueue(m_videoQueue, videoQuota, 3); //Maps to AC_BE
     }
 
     // This method updates the slot duration whenever the number of slots or cycle duration changes.

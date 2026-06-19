@@ -1,12 +1,18 @@
 #ifndef FANET_DEVICE_HELPER_H
 #define FANET_DEVICE_HELPER_H
 
-#include "ns3/wifi-module.h"
-#include "ns3/point-to-point-module.h"
+#include "ns3/wifi-helper.h"
 #include "ns3/FANETTopologyHelper.h"
 #include "ns3/FANETAddressHelper.h"
 #include "ns3/FANETAnimationHelper.h"
 #include "ns3/tdma-wifi-mac.h"
+#include "ns3/yans-wifi-helper.h"
+#include "ns3/wifi-mac-helper.h"
+#include "ns3/wifi-net-device.h"
+#include "ns3/point-to-point-helper.h"
+#include "ns3/net-device-container.h"
+#include "ns3/mac48-address.h"
+#include "ns3/rectangle.h"
 
 #include <cstdint>
 #include <vector>

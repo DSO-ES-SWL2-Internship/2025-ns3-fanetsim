@@ -1,8 +1,13 @@
 #include "FANETDeviceHelper.h"
-#include "ns3/core-module.h"
 #include "ns3/FANETMobilityHelper.h"
 #include "ns3/FANETHeader.h"
 #include "ns3/tdma-wifi-mac.h"
+#include "ns3/log.h"
+#include "ns3/simulator.h"
+#include "ns3/string.h"
+#include "ns3/double.h"
+#include "ns3/pointer.h"
+#include "ns3/config.h"
 
 namespace ns3
 {

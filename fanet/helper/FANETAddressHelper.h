@@ -1,7 +1,8 @@
 #ifndef FANET_ADDRESS_HELPER_H
 #define FANET_ADDRESS_HELPER_H
 
-#include "ns3/internet-module.h"
+#include "ns3/ipv4-address-helper.h"
+#include "ns3/ipv4-address.h"
 #include "ns3/ipv4-global-routing-helper.h"
 
 

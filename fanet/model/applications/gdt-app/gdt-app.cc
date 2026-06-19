@@ -1,5 +1,7 @@
 #include "gdt-app.h"
 #include "ns3/fanet-communication.h"
+#include "ns3/simulator.h"
+#include "ns3/log.h"
 
 namespace ns3 
 {
