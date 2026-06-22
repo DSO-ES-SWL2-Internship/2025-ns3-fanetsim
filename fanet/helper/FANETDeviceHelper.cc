@@ -21,7 +21,7 @@ namespace ns3
                 .AddConstructor<FANETDeviceHelper>()
                 .AddAttribute(  "clusterWifiStandard",
                                 "Wifi standard to use for clusters",
-                                EnumValue(WIFI_STANDARD_80211b),
+                                EnumValue(WIFI_STANDARD_80211n),
                                 MakeEnumAccessor<WifiStandard>(&FANETDeviceHelper::clusterWifiStandard),
                                 MakeEnumChecker(
                                     WIFI_STANDARD_UNSPECIFIED, "WIFI_STANDARD_UNSPECIFIED",
@@ -55,7 +55,7 @@ namespace ns3
                                 )      
                 .AddAttribute(  "linkWifiStandard",
                                 "Wifi standard to use for links",
-                                EnumValue(WIFI_STANDARD_80211b),
+                                EnumValue(WIFI_STANDARD_80211n),
                                 MakeEnumAccessor<WifiStandard>(&FANETDeviceHelper::linkWifiStandard),
                                 MakeEnumChecker(
                                     WIFI_STANDARD_UNSPECIFIED, "WIFI_STANDARD_UNSPECIFIED",
@@ -100,14 +100,14 @@ namespace ns3
     }
 
     void FANETDeviceHelper::DefaultWifi() {
-        clusterWifiStandard = WIFI_STANDARD_80211b;
+        clusterWifiStandard = WIFI_STANDARD_80211n;
         clusterWifiChannelPropagationDelay = "ns3::ConstantSpeedPropagationDelayModel";
         clusterPropagationLossModel = "ns3::FriisPropagationLossModel";
         clusterMacType = "ns3::TdmaWifiMac";
     }
 
     void FANETDeviceHelper::TdmaWifi(){
-        clusterWifiStandard = WIFI_STANDARD_80211b;
+        clusterWifiStandard = WIFI_STANDARD_80211n;
         clusterWifiChannelPropagationDelay = "ns3::ConstantSpeedPropagationDelayModel";
         clusterPropagationLossModel = "ns3::FriisPropagationLossModel";
         clusterMacType = "ns3::TdmaWifiMac";
@@ -166,6 +166,12 @@ namespace ns3
             // Setup the PHY layer for this cluster with the unique channel
             YansWifiPhyHelper wifiPhyCluster;
             wifiPhyCluster.SetChannel(wifiChannelintra.Create());
+
+            //Dynamically assign channels to clusters to avoid interference, using a simple round-robin approach
+            int channelNum = 1 + (i % 3) * 5; 
+            std::ostringstream channelStr;
+            channelStr << "{" << channelNum << ", 20, BAND_2_4GHZ, 0}";
+            wifiPhyCluster.Set("ChannelSettings", StringValue(channelStr.str()));
 
             // Configure SSID for the cluster
             std::ostringstream ssidStream;
@@ -272,6 +278,9 @@ namespace ns3
 
         YansWifiPhyHelper wifiPhyInter;
         wifiPhyInter.SetChannel(wifiChannelinter.Create());
+        
+        //Assign Inter cluster antenna to 5 GHz Band (Channel 36) to avoid interference with intra-cluster communication on 2.4 GHz band.
+        wifiPhyInter.Set("ChannelSettings", StringValue("{36, 20, BAND_5GHZ, 0}"));
 
         // Configure 1 common MAC and SSID for the Inter-cluster network
         WifiMacHelper wifiMacInter;

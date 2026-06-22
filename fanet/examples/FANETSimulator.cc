@@ -346,21 +346,36 @@ namespace ns3
             }
         }
 
-        //Set up a mechanism for the GCS to send a dynamic command to a target node at runtime, 
-        //demonstrating the ability to interact with the network after it's already up and running.
-        //Force Node 1 to listen on port 9999
-        Ptr<Node> targetNode= this->fanet->clusters[0].Get(0); 
+        //Set up Node listener dynamically to listen for incoming commands from the GCS 
         Ptr<Socket> cmdSocket = Socket::CreateSocket(targetNode, UdpSocketFactory::GetTypeId());
-        cmdSocket->Bind(InetSocketAddress(Ipv4Address::GetAny(), 9999));
-        cmdSocket->SetRecvCallback(MakeCallback(&FANETSimulator::DynamicCommandRxCallback, this));
+        cmdSocket->Bind(InetSocketAddress(Ipv4Address::GetAny(), this->m_targetPort));
+        cmdSocket->SetRecvCallback(MakeCallback(&FANETSimulator::CommandCallBack, this));
 
         //Get the IP address of that target node so the GCS knows where to aim
-        Ptr<Ipv4> ipv4 = targetNode->GetObject<Ipv4>();
-        Ipv4Address targetIp = ipv4->GetAddress(2, 0).GetLocal();
+        Ptr<Ipv4> ipv4 = targetNode ->GetObject<Ipv4>();
+        Ipv4Address targetIp = ipv4 ->GetAddress(2, 0).GetLocal();
 
-        //Schedule the GCS to send a command to that node after 15 seconds of simulation time, 
-        //which should be well after the network is established and the applications are actively sending data.
-        Simulator::Schedule(Seconds(this->m_updateTime), &FANETSimulator::SendDynamicCommand, this, gcsNode, targetIp);
+        //Create the GDTapp 
+        Ptr<GDTApp> gdtApp = CreateObject<GDTApp>();
+        gcsNode->AddApplication(gdtApp);
+        gdtApp->SetStartTime(Seconds(0.0));
+        gdtApp->SetStopTime(Seconds(this->simDuration));
+
+        Ptr<NetDevice> gdtInterClusterRadio;
+        for (uint32_t d = 0; d < gcsNode->GetNDevices(); d++) {
+            Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(gcsNode->GetDevice(d));
+            if (wifiDev) {
+                std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
+                if (ssid.find("InterCluster") != std::string::npos) {
+                    gdtInterClusterRadio = wifiDev;
+                    break;
+                }
+            }
+        }
+        //Schedule the GDT App to dispatch the command through the Inter-Cluster radio
+        Simulator::Schedule(Seconds(this->m_updateTime), 
+                            &GDTApp::SendCommand, 
+                            gdtApp, targetIp, this->m_targetPort, this->m_commandString, gdtInterClusterRadio);
 
         Simulator::Stop(Seconds(simDuration));
         Simulator::Run();
@@ -442,6 +457,21 @@ namespace ns3
             this->m_updateTime = 15.0; 
         }
 
+        //Parse GDT command configuration from JSON. 
+        //This includes which node should be the target of the command, what port to listen on, and what command string to send.
+        if (config.contains("gdtCommandConfig")) {
+            this->m_targetClusterIndex = config["gdtCommandConfig"]["targetClusterIndex"].get<uint32_t>();
+            this->m_targetNodeIndex = config["gdtCommandConfig"]["targetNodeIndex"].get<uint32_t>();
+            this->m_targetPort = config["gdtCommandConfig"]["targetPort"].get<uint16_t>();
+            this->m_commandString = config["gdtCommandConfig"]["commandString"].get<std::string>();
+        } else {
+            //Safe defaults if the block is missing from the JSON
+            this->m_targetClusterIndex = 0;
+            this->m_targetNodeIndex = 0;
+            this->m_targetPort = 9999;
+            this->m_commandString = "HIGH_RES";
+        }
+
         Setup();
         SetAttribute("nClusters", UintegerValue(config["nClusters"]));
         SetAttribute("nClusterNodes", StringValue(config["nClusterNodes"].get<std::string>()));
@@ -467,32 +497,14 @@ namespace ns3
         this->m_currentActiveProfiles = this->m_trafficProfiles; //Initialize the current active profiles to the baseline profiles at the start of the simulation
     }
 
-    //Dynamic GCS command and MAC layer reallocation callback implementations
-    void FANETSimulator::SendDynamicCommand(Ptr<Node> gcsNode, Ipv4Address targetNodeIp)
-    {
-        std::cout << "\n" << std::endl;
-        std::cout << "[GCS COMMAND] Time: " << Simulator::Now().As(Time::S) << std::endl;
-        std::cout << "[GCS COMMAND] Transmitting 'HIGH_RES' command to Node: " << targetNodeIp << std::endl;
-        std::cout << "\n" << std::endl;
-
-        //Create a UDP Socket on the GCS
-        Ptr<Socket> socket = Socket::CreateSocket(gcsNode, UdpSocketFactory::GetTypeId());
-        
-        //Connect to the Node's special command port (Port 9999)
-        socket->Connect(InetSocketAddress(targetNodeIp, 9999));
-        
-        //Fire the packet with the command
-        Ptr<Packet> packet = Create<Packet>((uint8_t*)"HIGH_RES", 8);
-        socket->Send(packet);
-    }
-
     //This callback is triggered when the target node receives the command from the GCS. 
     //It identifies which cluster the node belongs to, updates the central configuration objects 
     //with the new traffic profiles, and signals all nodes in that cluster to refresh their TDMA slot allocations based on the new profiles.
-    void FANETSimulator::DynamicCommandRxCallback(Ptr<Socket> socket)
+    void FANETSimulator::CommandCallBack(Ptr<Socket> socket)
     {
         Ptr<Packet> packet;
-        while ((packet = socket->Recv()))
+        Address from;
+        while ((packet = socket->RecvFrom(from)))
         {
             Ptr<Node> rxNode = socket->GetNode();
             uint32_t rxNodeId = rxNode->GetId();
@@ -568,16 +580,11 @@ namespace ns3
                             bool isInterCluster = (ssid.find("InterCluster") != std::string::npos);
 
                             if (isInterCluster) {
-                                Ptr<Ipv4> nodeIpv4 = clusterNode->GetObject<Ipv4>(); 
-                                int32_t ifIndex = nodeIpv4->GetInterfaceForDevice(wifiDev);
-
                                 if (isClusterHead) {
                                     //Get aggregated video profile
                                     tdmaMac->SetClusterConfig(&m_interClusterConfigs[targetClusterId]);
-                                    if (ifIndex >= 0) nodeIpv4->SetMetric(ifIndex, 1); // Highly preferred active route
                                 } else {
                                     tdmaMac->SetClusterConfig(nullptr);
-                                    if (ifIndex >= 0) nodeIpv4->SetMetric(ifIndex, 255); //Expensive route forces traffic to CH
                                 }
                             } else {
                                 if (isClusterHead)
@@ -595,6 +602,17 @@ namespace ns3
                     }
                 }
             }
+            //Send a reply back to the GDT to confirm that the command was received and processed successfully.
+            InetSocketAddress senderInetAddr = InetSocketAddress::ConvertFrom(from);
+            Ipv4Address gdtIp = senderInetAddr.GetIpv4();
+            
+            std::cout << "[NODE LISTENER] Sending requested data back to GDT IP: " << gdtIp << std::endl;
+            
+            Ptr<Socket> replySocket = Socket::CreateSocket(rxNode, UdpSocketFactory::GetTypeId());
+            replySocket->Connect(InetSocketAddress(gdtIp, 9999)); 
+            
+            Ptr<Packet> replyData = Create<Packet>((uint8_t*)"VIDEO_DATA_REPLY", 16);
+            replySocket->Send(replyData);
         }
     }
 
@@ -679,16 +697,11 @@ namespace ns3
                             //plain members get an empty profile to maintain their dormant state on the inter-cluster link, 
                             //and all nodes get the regular profiles on their intra-cluster interfaces.
                             if (isInterCluster) {
-                                Ptr<Ipv4> nodeIpv4 = node->GetObject<Ipv4>(); 
-                                int32_t ifIndex = nodeIpv4->GetInterfaceForDevice(wifiDev);
-
                                 if (isClusterHead) {
-                                    //Get the aggregated profiles for the inter-cluster communication by multiplying the bandwidth requirements
+                                    //Get the aggregated profiles for the inter-cluster communication
                                     tdmaMac->SetClusterConfig(&m_interClusterConfigs.at(i));
-                                    if (ifIndex >= 0) nodeIpv4->SetMetric(ifIndex, 1); 
                                 } else {
                                     tdmaMac->SetClusterConfig(nullptr);
-                                    if (ifIndex >= 0) nodeIpv4->SetMetric(ifIndex, 255); 
                                 }
                             } else {
                                 if (isClusterHead) {

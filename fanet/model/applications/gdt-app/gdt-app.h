@@ -44,11 +44,13 @@ namespace ns3
             
             /// @brief Enable NS_LOG_DEBUG for this component
             void EnableDebugLog() override;
-
+            void SendCommand(Ipv4Address targetIp, uint16_t targetPort, std::string commandStr, Ptr<NetDevice> egressDevice = nullptr);
 
         private:
 
             std::map<uint32_t, uint32_t> m_clusterHeads;
+
+            Ptr<Socket> m_cmdSocket;
 
             /// @brief Starts the application
             virtual void StartApplication() override;

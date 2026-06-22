@@ -18,6 +18,11 @@ namespace ns3
             m_socket->Close();
             m_socket = nullptr;
         }
+        if (m_cmdSocket)
+        {
+            m_cmdSocket->Close();
+            m_cmdSocket = nullptr;
+        }
     }
 
     void GDTApp::SetPort(uint16_t port)
@@ -38,6 +43,11 @@ namespace ns3
             m_socket->Close();
             m_socket = nullptr;
         }
+        if (m_cmdSocket)
+        {
+            m_cmdSocket->Close();
+            m_cmdSocket = nullptr;
+        }
     }
 
     void GDTApp::DoInitialize()
@@ -55,6 +65,29 @@ namespace ns3
         FANETApplication::RegisterHandlers();
 
         helloServiceHandlers[CH_PROMO] = [this] (FANETHeader* header, Ptr<Packet> packet, Address from) { HandleCHPromo(header, packet, from); };
+    }
+
+    void GDTApp::SendCommand(Ipv4Address targetIp, uint16_t targetPort, std::string commandStr, Ptr<NetDevice> egressDevice)
+    {
+        //Create and bind the socket only if it doesn't exist yet by checking if m_cmdSocket is nullptr. 
+        //This ensures that the socket is created only once and reused for subsequent command sends.
+        if (!m_cmdSocket) {
+            m_cmdSocket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+            
+            //Apply SO_BINDTODEVICE equivalent once
+            if (egressDevice != nullptr) {
+                m_cmdSocket->BindToNetDevice(egressDevice);
+                NS_LOG_INFO("Command socket explicitly bound to physical interface ID: " << egressDevice->GetIfIndex());
+            }
+        }
+
+        //Creating the payload
+        //This allows the single socket to send commands to any drone dynamically
+        Ptr<Packet> packet = Create<Packet>((uint8_t*)commandStr.c_str(), commandStr.length());
+        m_cmdSocket->SendTo(packet, 0, InetSocketAddress(targetIp, targetPort));
+
+        NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, GDT dispatched command [" 
+                    << commandStr << "] directly to " << targetIp);
     }
 
     void GDTApp::EnableInfoLog()

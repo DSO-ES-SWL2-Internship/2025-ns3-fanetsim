@@ -36,6 +36,10 @@ namespace ns3
 
             double simDuration;
             double m_updateTime;
+            uint32_t m_targetClusterIndex;
+            uint32_t m_targetNodeIndex;
+            uint16_t m_targetPort;
+            std::string m_commandString;
 
             std::unordered_map<std::string, WifiStandard> wifiStandardMap = {
                 {"WIFI_STANDARD_80211a", WIFI_STANDARD_80211a},
@@ -84,8 +88,7 @@ namespace ns3
             void SetRoutingProtocol();
             void AssignAddress();
             void SetUpNetAnim();
-            void SendDynamicCommand(Ptr<Node> gcsNode, Ipv4Address targetNodeIp); // Method to send a dynamic command from the GCS to a specific drone
-            void DynamicCommandRxCallback(Ptr<Socket> socket); // Callback method to handle the reception of a dynamic command at the drone
+            void CommandCallBack(Ptr<Socket> socket); // Callback method to handle the reception of a dynamic command at the drone
             void ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::string stageName);
             void PrintTdmaGridMap(Ptr<Node> node, Ptr<WifiNetDevice> wifiDev, Ptr<TdmaWifiMac> tdmaMac);
 
