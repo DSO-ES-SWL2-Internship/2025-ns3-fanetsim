@@ -60,6 +60,16 @@ namespace ns3
                 {"DSR", DSR}
             };
 
+            // Track which nodes have applications installed and their current state
+            struct NodeAppState {
+                Ptr<Node> node;
+                ApplicationContainer videoApp;
+                ApplicationContainer statusApp;
+                ApplicationContainer cmdApp;
+                bool isCurrentlyCH = false;
+            };
+            std::map<uint32_t, NodeAppState> m_nodeApps; // Key = Node ID
+
             // Methods
             
             /// @brief Obtain from user, the number of clusters to simulate
@@ -91,6 +101,8 @@ namespace ns3
             void CommandCallBack(Ptr<Socket> socket); // Callback method to handle the reception of a dynamic command at the drone
             void ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::string stageName);
             void PrintTdmaGridMap(Ptr<Node> node, Ptr<WifiNetDevice> wifiDev, Ptr<TdmaWifiMac> tdmaMac);
+            void HandleCommand(Ptr<Node> rxNode, Ptr<Packet> packet);
+            void ConfigureInterfaceMetrics(); 
 
             std::vector<TrafficProfile> m_currentActiveProfiles; //To keep track of currently active profiles for logging purposes
             void PeriodicTopologySync();//Method to periodically synchronize the topology and print the TDMA grid map for each node
@@ -139,6 +151,7 @@ namespace ns3
             void RunSimulation();
 
             void SetupSimulation(std::string jsonFilePath);
+            void UpdateNodeApplications(Ptr<Node> node, bool isNowCH);
 
     };
 }

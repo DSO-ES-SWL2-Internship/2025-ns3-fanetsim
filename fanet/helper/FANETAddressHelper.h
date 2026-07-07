@@ -71,10 +71,10 @@ namespace ns3
             /**
              * @brief Assigns IP addresses to the devices in the FANET network
              * @param GDTDevice The GDT network device
-             * @param clustersDevices Vector of network devices in clusters
-             * @param clustersLinkDevices 2D vector of network devices linking the GDT to cluster nodes
+             * @param allIntraClusterNetDevices Vector of network devices in clusters
+             * @param allInterClusterNetDevices 2D vector of network devices linking the GDT to cluster nodes
              */
-            void SetBases(NetDeviceContainer GDTDevice, std::vector<NetDeviceContainer> clustersDevices, std::vector<std::vector<NetDeviceContainer>> clustersLinkDevices);
+            void SetBases(NetDeviceContainer GDTDevice, std::vector<NetDeviceContainer> allIntraClusterNetDevices, std::vector<std::vector<NetDeviceContainer>> allInterClusterNetDevices);
             
             /**
              * @brief Computes the base network address from a given IP address.

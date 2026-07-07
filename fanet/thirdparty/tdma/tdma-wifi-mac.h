@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <map>
+#include "ns3/mac48-address.h"
 
 namespace ns3
 {
@@ -20,15 +22,15 @@ namespace ns3
     /// Structure to represent a mini-slot in the TDMA schedule
     struct MiniSlot 
     {
-    bool isOccupied; // Indicates if the mini-slot is occupied
-    std::string trafficType; // Type of traffic assigned to this mini-slot (e.g., "video", "audio", "data")
+        bool isOccupied; // Indicates if the mini-slot is occupied
+        std::string trafficType; // Type of traffic assigned to this mini-slot (e.g., "video", "audio", "data")
     };
 
     struct TrafficProfile 
     {
-    std::string type;
-    uint32_t priority; // Higher value means higher priority
-    double bandwidthKb; // Bandwidth requirement in Kb/s for this traffic type
+        std::string type;
+        uint32_t priority; // Higher value means higher priority
+        uint32_t bandwidthKb; // Bandwidth requirement, store as integer
     };
 
     //Configuration structure for the TDMA MAC, which can be populated from JSON data
@@ -36,7 +38,7 @@ namespace ns3
     {
         std::vector<TrafficProfile> trafficProfiles;
         uint32_t totalMiniSlots = 12;
-        double kbPerMiniSlot = 0.1;
+        uint32_t kbPerMiniSlot = 1;
     };
 
     class TdmaWifiMac : public WifiMac
@@ -59,16 +61,22 @@ namespace ns3
             // Function to set the cluster configuration, which includes traffic profiles and mini-slot allocation 
             //(to wire up the reference from the JSON data to the MAC layer))
             void SetClusterConfig(const ClusterMacConfig* sharedConfig);
-            
+            void SetIsClusterHead(bool isCH);
+            void SetIsInterCluster(bool isInter);
+            void ClearQueueTracking() { m_nodeQueueSizes.clear(); }
+            const std::map<Mac48Address, uint16_t>& GetNodeQueueSizes() const { return m_nodeQueueSizes; }
+            void setName(std::string& name)
+            {
+                m_name = name;
+            }
         private:
-            std::vector<MiniSlot> m_allocationTable;
-        
             void TdmaScheduleNextSlot();
             void TdmaTransmit();
             void UpdateSlotDuration();
             void Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId) override;
             void DoCompleteConfig() override;
-
+        
+            std::string m_name;
             uint32_t m_numSlots;          // Total number of TDMA slots (equal to the number of nodes)
             Time m_cycleDuration;         // Duration of one TDMA cycle
             Time m_slotDuration;          // Duration of each slot (calculated as cycleDuration / numSlots)
@@ -76,9 +84,16 @@ namespace ns3
             uint32_t m_currentSlot;       // Current slot in the TDMA cycle
             EventId m_tdmaEvent;          // Event for scheduling the next slot
             bool m_isMySlot;              // Flag to indicate if it's the node's slot
-            uint32_t m_totalMiniSlots;   
-            double m_kbPerMiniSlot;
+            uint32_t m_totalMiniSlots;    // 
+            uint32_t m_kbPerMiniSlot;
+            bool m_isInterCluster;        // Flag to indicate if this interface is Inter-Cluster
+            bool m_isClusterHead;         // Flag to indicate if this node is a cluster head
+
             const ClusterMacConfig* m_clusterConfig = nullptr; // Pointer to the shared cluster configuration
+
+            std::vector<MiniSlot> m_allocationTable;
+            std::map<Mac48Address, std::queue<TdmaBufferItem>> m_nodeQueues; // Map of node MAC addresses to their respective queues
+            std::map<Mac48Address, uint16_t> m_nodeQueueSizes; // Map to track the latest queue size for each node (keyed by MAC address)    
 
             //MAC-Level WFQ Queues
             std::queue<TdmaBufferItem> m_videoQueue;
@@ -88,7 +103,7 @@ namespace ns3
             //Leaky Bucket Limits (Max packets allowed to wait)
             uint32_t m_maxVideoQueueSize = 50;
             uint32_t m_maxStatusQueueSize = 50;
-            uint32_t m_maxCmdQueueSize = 50;
+            uint32_t m_maxCmdQueueSize = 50;          
     };
 }
 #endif

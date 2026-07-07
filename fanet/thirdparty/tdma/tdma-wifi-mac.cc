@@ -1,7 +1,5 @@
 #include "tdma-wifi-mac.h"
-
 #include "ns3/qos-txop.h"
-
 #include "ns3/eht-capabilities.h"
 #include "ns3/he-capabilities.h"
 #include "ns3/ht-capabilities.h"
@@ -18,6 +16,9 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/mac48-address.h"
 #include "ns3/packet.h"
+#include "ns3/wifi-net-device.h"
+#include "ns3/node.h"
+#include "dtdma-queue-header.h"
 
 namespace ns3
 {
@@ -44,9 +45,9 @@ namespace ns3
                                           MakeUintegerAccessor(&TdmaWifiMac::m_totalMiniSlots),
                                           MakeUintegerChecker<uint32_t>())
                                 .AddAttribute("KbPerMiniSlot", "Bandwidth weight per mini-slot unit",
-                                          DoubleValue(0.1),
-                                          MakeDoubleAccessor(&TdmaWifiMac::m_kbPerMiniSlot),
-                                          MakeDoubleChecker<double>());
+                                          UintegerValue(1),
+                                          MakeUintegerAccessor(&TdmaWifiMac::m_kbPerMiniSlot),
+                                          MakeUintegerChecker<uint32_t>());
         return tid;
     }
 
@@ -66,6 +67,15 @@ namespace ns3
     TdmaWifiMac::~TdmaWifiMac()
     {
         NS_LOG_FUNCTION(this);
+    }
+
+    void TdmaWifiMac::SetIsClusterHead(bool isCH)
+    {
+        m_isClusterHead = isCH; 
+    }
+
+    void TdmaWifiMac::SetIsInterCluster(bool isInter) {
+        m_isInterCluster = isInter;
     }
 
     // This method calculates the duration of each slot based on the total cycle duration and the number of slots.
@@ -94,30 +104,42 @@ namespace ns3
     // This method calculates the duration of each slot based on the total cycle duration and the number of slots.
     void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from)
     {
-        auto packet = mpdu->GetPacket();
-        NS_LOG_FUNCTION(this << packet << to);
+        // Get existing MAC header provided by ns3
+        WifiMacHeader hdr = mpdu->GetHeader();
 
-        // Drop ALL packets (including AODV routing broadcasts) so the IP layer is forced to reroute.
-        if (m_clusterConfig == nullptr) {
-            return; 
+        uint32_t packetSize = mpdu->GetPacket()->GetSize();
+        std::cout << "[MAC ENQUEUE] Node " << GetDevice()->GetNode()->GetId() 
+                  << " | Size: " << packetSize << " bytes | To: " << to << std::endl;
+
+        // Setting Address
+        hdr.SetAddr1(to);
+        hdr.SetAddr2(GetAddress());
+        hdr.SetAddr3(Mac48Address::GetBroadcast()); // For ad-hoc, we can use broadcast for the third address
+        hdr.SetDsNotFrom();
+        hdr.SetDsNotTo();
+
+        if (GetHtSupported(to))
+        {
+            hdr.SetNoOrder(); // explicitly set to 0 for the time being since HT control field is not
+                            // yet implemented (set it to 1 when implemented)
         }
 
         // when new packet is to be sent, check if the destination is a new location
         // FIXED: Do not register broadcast addresses as brand new unicast stations
         if (!to.IsBroadcast() && GetWifiRemoteStationManager()->IsBrandNew(to))
         {
-            // In ad hoc mode, we assume that every destination supports all the rates we support.
-            // Register the station with all the different capabilities
-            // HT (High Throughput)
-            // VHT (Very High Throughput)
-            // HE (High Efficiency)
-            // EHT (Extremely High Throughput)
-            // ensure that the mac layer can support different station types
+        //     // In ad hoc mode, we assume that every destination supports all the rates we support.
+        //     // Register the station with all the different capabilities
+        //     // HT (High Throughput)
+        //     // VHT (Very High Throughput)
+        //     // HE (High Efficiency)
+        //     // EHT (Extremely High Throughput)
+        //     // ensure that the mac layer can support different station types
             if (GetHtSupported(to))
             {
                 GetWifiRemoteStationManager()->AddAllSupportedMcs(to);
                 GetWifiRemoteStationManager()->AddStationHtCapabilities(
-                    to,
+                    to, 
                     GetHtCapabilities(SINGLE_LINK_OP_ID));
             }
             if (GetVhtSupported(SINGLE_LINK_OP_ID))
@@ -139,87 +161,74 @@ namespace ns3
                     GetEhtCapabilities(SINGLE_LINK_OP_ID));
             }
             GetWifiRemoteStationManager()->AddAllSupportedModes(to);
-            //GetWifiRemoteStationManager()->RecordDisassociated(to);
+            // GetWifiRemoteStationManager()->RecordDisassociated(to);
         }
+        
+        // Drop ALL packets (including AODV routing broadcasts) so the IP layer is forced to reroute.
+        //if (m_clusterConfig == nullptr) return; 
 
-        // Creating and configuring the Mac Header
-
-        WifiMacHeader& hdr = mpdu->GetHeader();
-
-        // If we are not a QoS STA then we definitely want to use AC_BE to
-        // transmit the packet. A TID of zero will map to AC_BE (through \c
-        // QosUtilsMapTidToAc()), so we use that as our default here.
         uint8_t tid = 0;
-
-        // For now, a STA that supports QoS does not support non-QoS
-        // associations, and vice versa. In future the STA model should fall
-        // back to non-QoS if talking to a peer that is also non-QoS. At
-        // that point there will need to be per-station QoS state maintained
-        // by the association state machine, and consulted here.
+        if (packetSize > 1000) tid = 5;      // Video (1200 bytes)
+        else if (packetSize > 100) tid = 6; // Cmd/Status (>100 bytes)
+        else if (packetSize > 80) tid = 4; 
 
         // Setting QoS in the header if its supported else just use WIFI_MAC_DATA
         if (GetQosSupported())
         {
             hdr.SetType(WIFI_MAC_QOSDATA);
+            hdr.SetQosTid(tid);
             hdr.SetQosAckPolicy(WifiMacHeader::NORMAL_ACK);
             hdr.SetQosNoEosp();
             hdr.SetQosNoAmsdu();
             // Transmission of multiple frames in the same TXOP is not
             // supported for now
             hdr.SetQosTxopLimit(0);
-
-            // Fill in the QoS control field in the MAC header
-            tid = GetTid(packet, hdr);
-            // Any value greater than 7 is invalid and likely indicates that
-            // the packet had no QoS tag, so we revert to zero, which will
-            // mean that AC_BE is used.
-            // Some special TID values map to specific ACs (e.g. Video, Command, Status)
-            if (tid > 7)
-            {
-                if (tid == 0xA0) tid = 5;      // Video
-                else if (tid == 0xC0) tid = 6; // Cmd
-                else if (tid == 0x80) tid = 4; // Status
-                else tid = 0;                  // Best Effort Fallback
-            }
-            hdr.SetQosTid(tid);
         }
         else
         {
             hdr.SetType(WIFI_MAC_DATA);
         }
 
-        if (GetHtSupported(to))
-        {
-            hdr.SetNoOrder(); // explicitly set to 0 for the time being since HT control field is not
-                            // yet implemented (set it to 1 when implemented)
+        // Handle bypass for small/control packets (AODV routing broadcasts, ARP requests)
+        Ptr<WifiMpdu> bypassMpdu = Create<WifiMpdu>(mpdu->GetPacket(), hdr);
+        if (to.IsBroadcast() || tid == 0) {
+            if (GetQosSupported()) GetQosTxop(tid)->Queue(bypassMpdu);
+            else GetTxop()->Queue(bypassMpdu);
+            return; 
         }
 
-        // Setting Address
-        hdr.SetAddr1(to);
-        hdr.SetAddr2(GetAddress());
-        hdr.SetAddr3(GetBssid(0));
-        hdr.SetDsNotFrom();
-        hdr.SetDsNotTo();
-
-        // FIXED: The VIP PASS for Broadcast packets (ARP, AODV RREQ, etc.)
-        // Let them bypass the TDMA buffer so routing can establish instantly!
-        if (to.IsBroadcast()) {
-            if (GetQosSupported()) {
-                GetQosTxop(tid)->Queue(mpdu);
-            } else {
-                GetTxop()->Queue(mpdu);
+        // Traffic flow trace
+        if (tid == 4 || tid == 5 || tid == 6) {
+            std::string role = m_isClusterHead ? "CH" : "CM";
+            std::string iface = m_isInterCluster ? "Backbone (5GHz)" : "Local (2.4GHz)";
+            std::string type = (tid == 5) ? "Video" : (tid == 6) ? "Cmd" : "Status";
+            
+            std::cout << "[FLOW TRACE - TX] Node: " << GetDevice()->GetNode()->GetId() 
+                    << " (" << role << " | " << iface << ") " 
+                    << "Type: " << type << " | Dest MAC: " << to 
+                    << " | Size: " << mpdu->GetPacket()->GetSize() << std::endl;
             }
-            return; // Exit the function immediately, bypassing the TDMA queue
-        }
+        
+        //Create a fully mutable copy of the read-only packet
+        // Ptr<Packet> mutablePacket = mpdu->GetPacket()->Copy();
 
-        // Deprecated, since MPDU is supposed to contain all information
-        // Since later version of NS3
-        // TODO: Refactor for cleanliness
+        // //Calculate total no. of packets currently in local buckets
+        // uint16_t totalQueuedPackets = m_videoQueue.size() + m_statusQueue.size() + m_cmdQueue.size();
+
+        // //Create 2-byte custom header and attach it to the front of the packet
+        // DtdmaQueueHeader qHeader;
+        // qHeader.SetQueueSize(totalQueuedPackets);
+        // mutablePacket->AddHeader(qHeader);
+
+        //Rebuild the MPDU wrapper using new modified packet and the original MAC header
+        // Ptr<WifiMpdu> modifiedMpdu = Create<WifiMpdu>(mutablePacket, hdr);
+
         TdmaBufferItem item;
-        item.mpdu = mpdu;
+        item.mpdu = bypassMpdu;
+
         // Read the TID mapped from the IP ToS byte
         // Use the safely mapped 'tid' from above to route to the correct Leaky Bucket
-        if (tid == 3) { 
+        if (tid == 5) { 
             if (m_videoQueue.size() >= m_maxVideoQueueSize) {
                 NS_LOG_WARN("Video Leaky Bucket FULL! Dropping delayed frame.");
                 return; 
@@ -233,21 +242,24 @@ namespace ns3
             }
             m_cmdQueue.push(item);
         } 
-        else { 
+        else if(tid == 4) { 
             if (m_statusQueue.size() >= m_maxStatusQueueSize) {
                 NS_LOG_WARN("Status Leaky Bucket FULL! Dropping packet.");
                 return;
             }
             m_statusQueue.push(item);
         }
+        else {
+            return;
+        }
+        
         if (m_isMySlot) {
             TdmaTransmit();
         }
     }
 
     // Set to always return true meaning that this MAC layer allows packet forwarding to any MAC address
-    bool
-    TdmaWifiMac::CanForwardPacketsTo(Mac48Address to) const
+    bool TdmaWifiMac::CanForwardPacketsTo(Mac48Address to) const
     {
         return true;
     }
@@ -277,8 +289,6 @@ namespace ns3
     // It checks for slot overruns to ensure that the node does not exceed its allocated time.
     void TdmaWifiMac::TdmaTransmit()
     {
-        NS_LOG_FUNCTION(this);
-
         Time slotStartTime = Simulator::Now();
         
         //Evaluate how many packets of each traffic type we can send based on the allocation table for this slot
@@ -317,13 +327,14 @@ namespace ns3
 
                 if (GetQosSupported())
                 {
-                    // Directly use destTid instead of calculating it!
+                    // Directly use destTid instead of calculating it
                     GetQosTxop(destTid)->Queue(mpdu);
                 }
                 else
                 {
                     GetTxop()->Queue(mpdu);
                 }
+                NS_LOG_FUNCTION(this << "transmit-" << m_name);
                 queue.pop();
                 quota--; 
             }
@@ -338,8 +349,8 @@ namespace ns3
 
         //Pass the explicit 802.11e TIDs: 6 (Cmd), 5 (Status), 3 (Video)
         drainQueue(m_cmdQueue, cmdQuota, 6); //Maps to AC_V0
-        drainQueue(m_statusQueue, statusQuota, 5); //Maps to AC_VI
-        drainQueue(m_videoQueue, videoQuota, 3); //Maps to AC_BE
+        drainQueue(m_statusQueue, statusQuota, 4); //Maps to AC_VI
+        drainQueue(m_videoQueue, videoQuota, 5); //Maps to AC_BE
     }
 
     // This method updates the slot duration whenever the number of slots or cycle duration changes.
@@ -362,15 +373,31 @@ namespace ns3
         //Reset the table to 12 empty slots
         m_allocationTable.clear();
         m_allocationTable.resize(m_clusterConfig->totalMiniSlots, {false, ""});
-        const std::vector<TrafficProfile> &profiles = m_clusterConfig->trafficProfiles;
+
+        std::vector<TrafficProfile> allowedProfiles;
+        //Filter for CH
+        for (const auto& p : m_clusterConfig->trafficProfiles) {
+            if (m_isClusterHead && !m_isInterCluster) {
+                if (p.type.find("Cmd") != std::string::npos) {
+                    //Case 1: CH local antenna, pure relay for Cmds
+                    allowedProfiles.push_back(p);
+                }
+            } else if(m_isClusterHead && m_isInterCluster) {
+                //Case 2: CH Backbone antenna, full relay
+                allowedProfiles.push_back(p);
+            } else {
+                // All other cases (CM local OR CH backbone): Allow everything
+                allowedProfiles.push_back(p);
+            }
+        }
+
+        //
         uint32_t slotsAvailable = m_clusterConfig->totalMiniSlots;
-
-
         //Loop through the JSON profiles (already sorted highest priority first)
-        for (const auto& profile : profiles) 
+        for (const auto& profile : allowedProfiles) 
         {
             //Calculate how many mini-slots this traffic needs (e.g., 0.6K / 0.1 = 6 slots)
-            uint32_t slotsNeeded = std::ceil(profile.bandwidthKb / m_kbPerMiniSlot);
+            uint32_t slotsNeeded = std::ceil(static_cast<double>(profile.bandwidthKb / m_kbPerMiniSlot));
             
             //If we don't have enough slots left, it gets whatever is remaining (e.g., if only 4 slots left but needs 6, it gets 4 and is marked as partially allocated)
             uint32_t slotsToAllocate = std::min(slotsNeeded, slotsAvailable);
@@ -396,10 +423,10 @@ namespace ns3
     }
 
     // Receive MAC protocol data unit (MPDU) and extract the source and destination address
-    void
-    TdmaWifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId)
+    void TdmaWifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId)
     {
         NS_LOG_FUNCTION(this << *mpdu << +linkId);
+        NS_LOG_FUNCTION(this << "receive-" << m_name);
         const WifiMacHeader* hdr = &mpdu->GetHeader();
         NS_ASSERT(!hdr->IsCtl());
         Mac48Address from = hdr->GetAddr2();
@@ -435,31 +462,41 @@ namespace ns3
                     GetEhtCapabilities(SINGLE_LINK_OP_ID));
             }
             GetWifiRemoteStationManager()->AddAllSupportedModes(from);
-            //GetWifiRemoteStationManager()->RecordDisassociated(from);
         }
 
-
-        // If the received packet is QoS A-MSDU, it is deaggregated.
-        // Otherwise, it is forwarded to higher layers.
-        // If the packet is not a data packet, it is processed by the base class (WifiMac).
-        if (hdr->IsData())
-        {
-            if (hdr->IsQosData() && hdr->IsQosAmsdu())
-            {
-                NS_LOG_DEBUG("Received A-MSDU from" << from);
-                DeaggregateAmsduAndForward(mpdu);
-            }
-            else
-            {
-                ForwardUp(mpdu->GetPacket()->Copy(), from, to);
-            }
+        // Control frames bypass the TDMA logic and are processed by the base class (WifiMac)
+        if (hdr->IsCtl()) {
+            WifiMac::Receive(mpdu, linkId);
             return;
         }
 
-        // Invoke the receive handler of our parent class to deal with any
-        // other frames. Specifically, this will handle Block Ack-related
-        // Management Action frames.
+        // If the received packet is QoS A-MSDU, it is deaggregated.
+        // Otherwise, it is forwarded to higher layers.
+        if (hdr->IsData())
+        {
+            // Only trace application data (Video=5, Cmd=6, Status=4)
+            uint8_t rxTid = hdr->IsQosData() ? hdr->GetQosTid() : 0;
+            // Ptr<Packet> packet = mpdu->GetPacket()->Copy();
 
+            // Only strip the custom header if it is actually TDMA application traffic
+            if (rxTid == 4 || rxTid == 5 || rxTid == 6) {
+                // DtdmaQueueHeader qHeader;
+                // if (packet->RemoveHeader(qHeader))
+                // {
+                //     if (m_isClusterHead) m_nodeQueueSizes[from] = qHeader.GetQueueSize();      
+                // }
+                // Ptr<WifiNetDevice> dev = DynamicCast<WifiNetDevice>(GetDevice());
+                // std::string ssid = dev ? dev->GetMac()->GetSsid().PeekString() : "Unknown";
+                std::string role = m_isClusterHead ? "CH" : "CM";
+                std::cout << "[DATA TRACE - RX] Node " << GetDevice()->GetNode()->GetId() 
+                        << " (" << role << ") received data From MAC: " << from << std::endl;
+            }
+            // Forward the clean packet to the higher layers
+            //Ptr<WifiMpdu> cleanMpdu = Create<WifiMpdu>(cleanPacket, *hdr);
+            Ptr<Packet> packet = mpdu->GetPacket()->Copy();
+            ForwardUp(packet, from, to);
+            return;
+        }
         // if not a data packet, it will be processed by the base class
         WifiMac::Receive(mpdu, linkId);
     }

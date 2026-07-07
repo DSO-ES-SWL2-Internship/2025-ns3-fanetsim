@@ -143,7 +143,8 @@ namespace ns3
     }
 
     //Intra-cluster f_n
-    void FANETDeviceHelper::SetupClustersWifi(std::vector<NodeContainer> clusters) {
+    // @param clusters: Node container of all cluster members/heads in the network, exclusive of GDT 
+    void FANETDeviceHelper::SetUpIntraClusterWifi(std::vector<NodeContainer> clusters) {
         
         WifiHelper localWifiIntra;
         // Ensure the WiFi standard is set
@@ -183,86 +184,30 @@ namespace ns3
             wifiMacCM.SetType(clusterMacType, 
                   "Ssid", SsidValue(Ssid(ssid)),
                   "TotalMiniSlots", UintegerValue(12),
-                  "KbPerMiniSlot", DoubleValue(0.1));
+                  "KbPerMiniSlot", UintegerValue(1));
 
             // Install WiFi devices on nodes in the current cluster
             NetDeviceContainer clusterDevices = localWifiIntra.Install(wifiPhyCluster, wifiMacCM, clusters[i]);
 
-            this->clustersDevices.push_back(clusterDevices);
-
+            this->allIntraClusterNetDevices.push_back(clusterDevices);
+            
+            // LKW: Set name for TDMAWifiMac
             for (uint32_t j = 0; j < clusterDevices.GetN(); j++) {
                 // Grab the generic device
                 Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(clusterDevices.Get(j));
-                
                 if (wifiDev) {
                     // Cast the generic MAC into our custom TdmaWifiMac
+                    std::string devname = std::string("wlan-intra-node") + std::to_string(clusters[i].Get(j)->GetId());
                     Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
+                    tdmaMac->setName(devname);
                 }
             }
         }
         NS_LOG_DEBUG("Devices for intra-cluster communication installed on the nodes");
     }
 
-
-    // Create the link for nodes to the GDT to prepare for dynamic assignment of CH during the simulation
-    // void FANETDeviceHelper::SetUpLinksWifi(Ptr<FANETTopologyHelper> fanet) {
-    //     // Ensure the WiFi standard is set
-    //     wifi.SetStandard(linkWifiStandard);
-    //     //wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
-
-    //     for (size_t i = 0; i < fanet->clusters.size(); i++){
-    //         std::vector<NetDeviceContainer> clusterLinks;
-    //         this->clustersLinkDevices.push_back(clusterLinks);
-    //     }
-
-    //     // Iterate over each cluster, and create the link between each cluster's node and the GDT
-    //     for (size_t i = 0; i < fanet->clusters.size(); i++) {
-    //         // Iterate over each node in the cluster
-            
-    //         for (uint32_t j = 0; j < fanet->clusters[i].GetN(); j++)
-    //         {
-                
-    //             // Create a separate WiFi channel for the link between cluster node and GDT 
-    //             YansWifiChannelHelper wifiChannelLink;
-    //             if (!linkWifiChannelPropagationDelay.empty()) {
-    //                 wifiChannelLink.SetPropagationDelay(clusterWifiChannelPropagationDelay);
-    //             }
-    //             if (!linkPropagationLossModel.empty()) {
-    //                 wifiChannelLink.AddPropagationLoss(clusterPropagationLossModel);
-    //             }
-
-    //             // Setup the PHY layer for CH-GDT links
-    //             YansWifiPhyHelper wifiPhyLink;
-    //             wifiPhyLink.SetChannel(wifiChannelLink.Create());
-    //             // Create a unique SSID for each CH-GDT pair
-    //             std::ostringstream ssidStream;
-    //             ssidStream << "Link_" << i << "_" << j;
-    //             std::string ssid = ssidStream.str();
-
-    //             // Configure the MAC layer for AdHoc (for both GDT and CH)
-    //             WifiMacHelper wifiMacAdHoc;
-    //             wifiMacAdHoc.SetType(linkMacType, "Ssid", SsidValue(Ssid(ssid)));
-
-    //             // Install the WiFi device on the GDT node (AdHoc mode)
-    //             NetDeviceContainer adhocDeviceGDT = wifi.Install(wifiPhyLink, wifiMacAdHoc, fanet->GDTNode.Get(0));  
-
-    //             // Install the WiFi device on the CH node (AdHoc mode)
-    //             NetDeviceContainer adhocDeviceClusterNode = wifi.Install(wifiPhyLink, wifiMacAdHoc, fanet->clusters[i].Get(j));
-
-    //             // Combine the devices into a single container for this link
-    //             NetDeviceContainer linkDevices;
-    //             linkDevices.Add(adhocDeviceGDT);
-    //             linkDevices.Add(adhocDeviceClusterNode);
-
-    //             this->clustersLinkDevices[i].push_back(linkDevices);
-    //         }
-    //     }
-
-    //     NS_LOG_DEBUG("Devices for GDT-Cluster communication installed on the nodes");
-    // }
-
     //Creates a channel representing inter-cluster(f_0), attach it to the GDT and all nodes
-    void FANETDeviceHelper::SetUpLinksWifi(Ptr<FANETTopologyHelper> fanet) {
+    void FANETDeviceHelper::SetUpInterClusterWifi(Ptr<FANETTopologyHelper> fanet) {
         
         WifiHelper localWifiInter;
         localWifiInter.SetStandard(linkWifiStandard);
@@ -287,28 +232,66 @@ namespace ns3
         wifiMacInter.SetType(linkMacType, 
                      "Ssid", SsidValue(Ssid("InterCluster_f0")),
                      "TotalMiniSlots", UintegerValue(24),
-                     "KbPerMiniSlot", DoubleValue(0.1));
+                     "KbPerMiniSlot", UintegerValue(1));
 
         // Install this f0 radio on the GDT
         NetDeviceContainer gdtInterDevice = localWifiInter.Install(wifiPhyInter, wifiMacInter, fanet->GDTNode.Get(0));    
         // If you have a variable to hold the GDT device, save it here
         this->GDTDevice = gdtInterDevice; 
 
+        // LKW: Set name for TDMAWifiMac
+        for (uint32_t j = 0; j < gdtInterDevice.GetN(); j++) {
+            Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(gdtInterDevice.Get(j));
+            if (wifiDev) {
+                // Cast the generic MAC into our custom TdmaWifiMac
+                std::string devname = std::string("wlan-inter-gdt");
+                Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
+                tdmaMac->setName(devname);
+            }
+        }
+
         // Install this SAME f0 radio on ALL cluster nodes.
         // CH assignment is dynamic, every node needs the hardware, 
         // but the TDMA MAC logic will keep it silent unless they are promoted to CH.
         for (size_t i = 0; i < fanet->clusters.size(); i++) {
         
+// #define TEST_MODE
+#ifdef TEST_MODE
+            YansWifiPhyHelper wifiPhyInterTest;
+            wifiPhyInterTest.SetChannel(wifiChannelinter.Create());
+            
+            //Assign Inter cluster antenna to 5 GHz Band (Channel 36) to avoid interference with intra-cluster communication on 2.4 GHz band.
+            wifiPhyInterTest.Set("ChannelSettings", StringValue("{0, 0, BAND_2_4GHZ, 0}"));
+
+            // Configure 1 common MAC and SSID for the Inter-cluster network
+            WifiMacHelper wifiMacInter;
+            wifiMacInter.SetType(linkMacType, 
+                        "Ssid", SsidValue(Ssid("InterCluster_f0")),
+                        "TotalMiniSlots", UintegerValue(24),
+                        "KbPerMiniSlot", UintegerValue(1));
+            // Install on the whole cluster at once
+            NetDeviceContainer clusterInterDevices = localWifiInter.Install(wifiPhyInterTest, wifiMacInter, fanet->clusters[i]);
+#else
             // Install on the whole cluster at once
             NetDeviceContainer clusterInterDevices = localWifiInter.Install(wifiPhyInter, wifiMacInter, fanet->clusters[i]);
-
-            // Create an inner vector to satisfy the 2D requirement of clustersLinkDevices
+#endif
+            // LKW: Set name for TDMAWifiMac
+            for (uint32_t j = 0; j < clusterInterDevices.GetN(); j++) {
+                Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(clusterInterDevices.Get(j));
+                if (wifiDev) {
+                    // Cast the generic MAC into our custom TdmaWifiMac
+                    std::string devname = std::string("wlan-inter-node") + std::to_string(fanet->clusters[i].Get(j)->GetId());
+                    Ptr<TdmaWifiMac> tdmaMac = DynamicCast<TdmaWifiMac>(wifiDev->GetMac());
+                    tdmaMac->setName(devname);
+                }
+            }
+            // Create an inner vector to satisfy the 2D requirement of allInterClusterNetDevices
             std::vector<NetDeviceContainer> innerVector;
             innerVector.push_back(clusterInterDevices);
 
             // Store the devices. Note: I changed this to push back the whole container
             // rather than doing it node-by-node to match standard ns-3 topology structures.
-            this->clustersLinkDevices.push_back(innerVector);
+            this->allInterClusterNetDevices.push_back(innerVector);
         }
 
     NS_LOG_DEBUG("Devices for GDT-Cluster communication (f_0) installed");
@@ -349,6 +332,8 @@ namespace ns3
                             //Determine if this device is for intra-cluster or inter-cluster communication based on SSID
                             std::string ssid = wifiDevice->GetMac()->GetSsid().PeekString();
                             bool isInterCluster = (ssid.find("InterCluster") != std::string::npos);
+                            //sync MAC layer identity
+                            tdmaMac->SetIsInterCluster(isInterCluster);
 
                             if (isInterCluster) {
                                 tdmaMac->SetClusterConfig(isCH ? &interConfigs.at(i) : nullptr);
@@ -381,10 +366,13 @@ namespace ns3
         }
     }
 
-    void FANETDeviceHelper::AssignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, FANETAnimationHelper* anim)
+    void FANETDeviceHelper::AssignClusterHeads(Ptr<FANETTopologyHelper> fanet,
+                                               Ptr<FANETAddressHelper> ipv4,
+                                               FANETAnimationHelper* anim,
+                                               CHStatusChangeCallback callback)
     {
         fanet->CHNodes.clear(); // Clear previous CH assignments before reassigning
-
+                
         for (size_t i = 0; i < fanet->clusters.size(); i++)
         {
             // Obtain the closest node of the cluster to the GDT 
@@ -393,22 +381,51 @@ namespace ns3
             if (closestNode==nullptr && fanet->clusters[i].GetN() > 0) {
                 closestNode = fanet->clusters[i].Get(0); // Fallback to the first node if GetClosestNode fails
             }
+
+            for (uint32_t j = 0; j < fanet->clusters[i].GetN(); j++) {
+                Ptr<Node> n = fanet->clusters[i].Get(j);
+                bool isCH = (n == closestNode);
+                
+                // Loop through devices to find the TDMA MAC
+                for (uint32_t d = 0; d < n->GetNDevices(); d++) {
+                    Ptr<WifiNetDevice> wifi = DynamicCast<WifiNetDevice>(n->GetDevice(d));
+                    if (wifi) {
+                        Ptr<TdmaWifiMac> mac = DynamicCast<TdmaWifiMac>(wifi->GetMac());
+                        if (mac) {
+                            mac->SetIsClusterHead(isCH);
+                            mac->AllocateMiniSlots(); // Refresh slot table based on role
+                        }
+                    }
+                }
+            }
+
             fanet->CHNodes.push_back(closestNode); // Store the closest node as the CH for this cluster
             
             if (closestNode != nullptr) {
                  // Notify the application layer of the CH assignment
                 NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
                         << closestNode->GetId() << " selected as cluster head");
+                
+                //Invoke the callback instead of calling simulator directly
+                if(!callback.IsNull())
+                {
+                    callback(closestNode, true);
+                }
             }
         }
         if (anim != nullptr && !fanet->CHNodes.empty()) {
             anim->AssignCHAnim(fanet->CHNodes);
         }
         
-        Simulator::Schedule(Seconds(5.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);
+        Simulator::Schedule(Seconds(5.0), [this, fanet, ipv4, anim, callback]() {
+        this->ReassignClusterHeads(fanet, ipv4, anim, callback);
+        });
     }
 
-    void FANETDeviceHelper::ReassignClusterHeads(Ptr<FANETTopologyHelper> fanet, Ptr<FANETAddressHelper> ipv4, FANETAnimationHelper* anim)
+    void FANETDeviceHelper::ReassignClusterHeads(Ptr<FANETTopologyHelper> fanet,
+                                                 Ptr<FANETAddressHelper> ipv4,
+                                                 FANETAnimationHelper* anim,
+                                                 CHStatusChangeCallback callback)
     {
         for (size_t i = 0; i < fanet->clusters.size(); i++)
         {
@@ -418,24 +435,38 @@ namespace ns3
                 closestNode = fanet->clusters[i].Get(0); // Fallback to the first node if GetClosestNode fails
             }
             
-            if (closestNode == nullptr || i > fanet->CHNodes.size() || fanet->CHNodes[i] == nullptr) continue; 
+            if (closestNode == nullptr || i > fanet->CHNodes.size() || fanet->CHNodes[i] == nullptr) 
+                continue; 
             Ptr<Node> clusterHeadNode = fanet->CHNodes[i];
 
             if (closestNode->GetId() != clusterHeadNode->GetId()) {
+            
+                // Invoke callback for demotion
+                if (!callback.IsNull()) {
+                    callback(clusterHeadNode, false);
+                }
+                
+                fanet->CHNodes[i] = closestNode;
+                
+                // Invoke callback for promotion
+                if (!callback.IsNull()) {
+                    callback(closestNode, true);
+                }  
 
-                fanet->CHNodes[i] = closestNode; // Update the CH assignment for this cluster
-
-                 // Notify the application layer of the CH reassignment 
+                // Notify the application layer of the CH reassignment 
                 NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << "s, Node " 
                             << closestNode->GetId() << " reassigned as cluster head");
-            }
+                }
         }
 
         if (anim != nullptr) {
             anim->UpdateCHAnim(fanet->CHNodes);
         }
 
-        Simulator::Schedule(Seconds(5.0), &FANETDeviceHelper::ReassignClusterHeads, this, fanet, ipv4, anim);       
+        //Pass callback to recursive call
+        Simulator::Schedule(Seconds(5.0), [this, fanet, ipv4, anim, callback]() {
+        this->ReassignClusterHeads(fanet, ipv4, anim, callback);
+    }); 
     }
 
     void FANETDeviceHelper::NotifyCHStatusChange(Ptr<Node> node, std::string status)
