@@ -19,6 +19,9 @@
 #include "ns3/wifi-net-device.h"
 #include "ns3/node.h"
 #include "dtdma-queue-header.h"
+#include "ns3/socket.h"
+#include "ns3/llc-snap-header.h"
+#include "ns3/ipv4-header.h"
 
 namespace ns3
 {
@@ -163,14 +166,30 @@ namespace ns3
             GetWifiRemoteStationManager()->AddAllSupportedModes(to);
             // GetWifiRemoteStationManager()->RecordDisassociated(to);
         }
-        
-        // Drop ALL packets (including AODV routing broadcasts) so the IP layer is forced to reroute.
-        //if (m_clusterConfig == nullptr) return; 
+
+        uint8_t tos = 0;
+        // Decipher the IPv4 Header directly to get the ToS byte
+        Ptr<Packet> packetCopy = mpdu->GetPacket()->Copy();
+        LlcSnapHeader llc;
+
+        // Remove the LLC/SNAP header (8 bytes) to expose the IP layer
+        if (packetCopy->RemoveHeader(llc)) {
+            // 0x0800 is the standard hex code for IPv4 traffic
+            if (llc.GetType() == 0x0800) {
+                Ipv4Header ipv4Hdr;
+                packetCopy->PeekHeader(ipv4Hdr);
+                tos = ipv4Hdr.GetTos();
+            }
+        }
 
         uint8_t tid = 0;
-        if (packetSize > 1000) tid = 5;      // Video (1200 bytes)
-        else if (packetSize > 100) tid = 6; // Cmd/Status (>100 bytes)
-        else if (packetSize > 80) tid = 4; 
+        if (tos == 0x10) { tid = 1; } 
+        else if (tos == 0x11) { tid = 2; }
+        else if (tos == 0x20) { tid = 3; } 
+        else if (tos == 0x21) { tid = 4; }
+        else if (tos == 0x30) { tid = 5; } 
+        else if (tos == 0x31) { tid = 6; }
+        else if (tos == 0x50) { tid = 7; }
 
         // Setting QoS in the header if its supported else just use WIFI_MAC_DATA
         if (GetQosSupported())
@@ -189,8 +208,8 @@ namespace ns3
             hdr.SetType(WIFI_MAC_DATA);
         }
 
-        // Handle bypass for small/control packets (AODV routing broadcasts, ARP requests)
         Ptr<WifiMpdu> bypassMpdu = Create<WifiMpdu>(mpdu->GetPacket(), hdr);
+        // Handle bypass for small/control packets (AODV routing broadcasts, ARP requests)
         if (to.IsBroadcast() || tid == 0) {
             if (GetQosSupported()) GetQosTxop(tid)->Queue(bypassMpdu);
             else GetTxop()->Queue(bypassMpdu);
@@ -198,16 +217,28 @@ namespace ns3
         }
 
         // Traffic flow trace
-        if (tid == 4 || tid == 5 || tid == 6) {
+        if (tid >= 1 && tid <= 7) {
             std::string role = m_isClusterHead ? "CH" : "CM";
             std::string iface = m_isInterCluster ? "Backbone (5GHz)" : "Local (2.4GHz)";
-            std::string type = (tid == 5) ? "Video" : (tid == 6) ? "Cmd" : "Status";
             
             std::cout << "[FLOW TRACE - TX] Node: " << GetDevice()->GetNode()->GetId() 
-                    << " (" << role << " | " << iface << ") " 
-                    << "Type: " << type << " | Dest MAC: " << to 
-                    << " | Size: " << mpdu->GetPacket()->GetSize() << std::endl;
-            }
+                      << " (" << role << " | " << iface << ") " 
+                      << "TID: " << (int)tid << " | Dest: " << to 
+                      << " | Size: " << mpdu->GetPacket()->GetSize() << std::endl;
+        }
+
+        // Create a TdmaBufferItem to hold the packet and its associated information
+        TdmaBufferItem item;
+        item.mpdu = bypassMpdu;
+
+        // Push the item into the appropriate queue based on the TID
+        if (tid == 1) { m_pri1_status2Queue.push(item); }
+        else if (tid == 2) { m_pri1_cmd3Queue.push(item); }
+        else if (tid == 3) { m_pri2_status1Queue.push(item); }
+        else if (tid == 4) { m_pri2_cmd2Queue.push(item); }
+        else if (tid == 5) { m_pri3_highResQueue.push(item); }
+        else if (tid == 6) { m_pri3_cmd1Queue.push(item); }
+        else if (tid == 7) { m_pri5_lowResQueue.push(item); }
         
         //Create a fully mutable copy of the read-only packet
         // Ptr<Packet> mutablePacket = mpdu->GetPacket()->Copy();
@@ -223,35 +254,33 @@ namespace ns3
         //Rebuild the MPDU wrapper using new modified packet and the original MAC header
         // Ptr<WifiMpdu> modifiedMpdu = Create<WifiMpdu>(mutablePacket, hdr);
 
-        TdmaBufferItem item;
-        item.mpdu = bypassMpdu;
 
         // Read the TID mapped from the IP ToS byte
         // Use the safely mapped 'tid' from above to route to the correct Leaky Bucket
-        if (tid == 5) { 
-            if (m_videoQueue.size() >= m_maxVideoQueueSize) {
-                NS_LOG_WARN("Video Leaky Bucket FULL! Dropping delayed frame.");
-                return; 
-            }
-            m_videoQueue.push(item);
-        } 
-        else if (tid == 6) { 
-            if (m_cmdQueue.size() >= m_maxCmdQueueSize) {
-                NS_LOG_WARN("Command Leaky Bucket FULL! Dropping packet.");
-                return;
-            }
-            m_cmdQueue.push(item);
-        } 
-        else if(tid == 4) { 
-            if (m_statusQueue.size() >= m_maxStatusQueueSize) {
-                NS_LOG_WARN("Status Leaky Bucket FULL! Dropping packet.");
-                return;
-            }
-            m_statusQueue.push(item);
-        }
-        else {
-            return;
-        }
+        // if (tid == 5) { 
+        //     if (m_videoQueue.size() >= m_maxVideoQueueSize) {
+        //         NS_LOG_WARN("Video Leaky Bucket FULL! Dropping delayed frame.");
+        //         return; 
+        //     }
+        //     m_videoQueue.push(item);
+        // } 
+        // else if (tid == 6) { 
+        //     if (m_cmdQueue.size() >= m_maxCmdQueueSize) {
+        //         NS_LOG_WARN("Command Leaky Bucket FULL! Dropping packet.");
+        //         return;
+        //     }
+        //     m_cmdQueue.push(item);
+        // } 
+        // else if(tid == 4) { 
+        //     if (m_statusQueue.size() >= m_maxStatusQueueSize) {
+        //         NS_LOG_WARN("Status Leaky Bucket FULL! Dropping packet.");
+        //         return;
+        //     }
+        //     m_statusQueue.push(item);
+        // }
+        // else {
+        //     return;
+        // }
         
         if (m_isMySlot) {
             TdmaTransmit();
@@ -292,9 +321,9 @@ namespace ns3
         Time slotStartTime = Simulator::Now();
         
         //Evaluate how many packets of each traffic type we can send based on the allocation table for this slot
-        uint32_t videoQuota = 0;
-        uint32_t statusQuota = 0;
-        uint32_t cmdQuota = 0;
+        uint32_t status1Quota = 0, status2Quota = 0;
+        uint32_t cmd1Quota = 0, cmd2Quota = 0, cmd3Quota = 0;
+        uint32_t lowResQuota = 0, highResQuota = 0;
 
         //Scans m_allocationTable and tallies up the weights for the current cycle
         for(const auto& slot : m_allocationTable) {
@@ -302,15 +331,13 @@ namespace ns3
                 continue; // Skip empty slots
             }
             // Use find() so it matches "Video_HIGH_RES", "Video_LOW_RES", etc.
-            if (slot.trafficType.find("Video") != std::string::npos) {
-                videoQuota++;
-            }
-            else if (slot.trafficType.find("Status") != std::string::npos) {
-                statusQuota++;
-            }
-            else if (slot.trafficType.find("Cmd") != std::string::npos) {
-                cmdQuota++;
-            }
+            if (slot.trafficType == "Status1") status1Quota++;
+            else if (slot.trafficType == "Status2") status2Quota++;
+            else if (slot.trafficType == "Cmd1") cmd1Quota++;
+            else if (slot.trafficType == "Cmd2") cmd2Quota++;
+            else if (slot.trafficType == "Cmd3") cmd3Quota++;
+            else if (slot.trafficType == "Video_LOW_RES") lowResQuota++;
+            else if (slot.trafficType == "Video_HIGH_RES") highResQuota++;
         }
 
         //Lambda function to decrease a specific queue safely
@@ -340,17 +367,29 @@ namespace ns3
             }
         };
 
-        if (!m_videoQueue.empty() || !m_statusQueue.empty() || !m_cmdQueue.empty()) {
-            std::cout << "[WFQ ENFORCER] Node Slot Active | Sending Max: " 
-                      << videoQuota << " Video, " 
-                      << statusQuota << " Status, " 
-                      << cmdQuota << " Cmd." << std::endl;
-        }    
+        // if (!m_videoQueue.empty() || !m_statusQueue.empty() || !m_cmdQueue.empty()) {
+        //     std::cout << "[WFQ ENFORCER] Node Slot Active | Sending Max: " 
+        //               << videoQuota << " Video, " 
+        //               << statusQuota << " Status, " 
+        //               << cmdQuota << " Cmd." << std::endl;
+        // }    
 
-        //Pass the explicit 802.11e TIDs: 6 (Cmd), 5 (Status), 3 (Video)
-        drainQueue(m_cmdQueue, cmdQuota, 6); //Maps to AC_V0
-        drainQueue(m_statusQueue, statusQuota, 4); //Maps to AC_VI
-        drainQueue(m_videoQueue, videoQuota, 5); //Maps to AC_BE
+        // Pass the explicit 802.11e TIDs (0-3) to ensure GetQosTxop() returns a valid pointer
+        // Priority 1/2 traffic -> Maps to Access Category BK/BE/VI
+        // Priority 1
+        drainQueue(m_pri1_status2Queue, status2Quota, 3); // Map to AC_VO (Highest priority hardware queue)
+        drainQueue(m_pri1_cmd3Queue, cmd3Quota, 3);       // Map to AC_VO
+        
+        // Priority 2
+        drainQueue(m_pri2_status1Queue, status1Quota, 2); // Map to AC_VI (Video queue)
+        drainQueue(m_pri2_cmd2Queue, cmd2Quota, 2);       // Map to AC_VI
+        
+        // Priority 3
+        drainQueue(m_pri3_highResQueue, highResQuota, 0); // Map to AC_BE (Best effort)
+        drainQueue(m_pri3_cmd1Queue, cmd1Quota, 0);       // Map to AC_BE
+        
+        // Priority 5
+        drainQueue(m_pri5_lowResQueue, lowResQuota, 1);   // Map to AC_BK (Background)
     }
 
     // This method updates the slot duration whenever the number of slots or cycle duration changes.
@@ -479,7 +518,7 @@ namespace ns3
             // Ptr<Packet> packet = mpdu->GetPacket()->Copy();
 
             // Only strip the custom header if it is actually TDMA application traffic
-            if (rxTid == 4 || rxTid == 5 || rxTid == 6) {
+            if (rxTid >= 1 && rxTid <= 7) {
                 // DtdmaQueueHeader qHeader;
                 // if (packet->RemoveHeader(qHeader))
                 // {

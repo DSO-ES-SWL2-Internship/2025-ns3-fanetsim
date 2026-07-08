@@ -385,21 +385,6 @@ namespace ns3
 
                 double staggerOffset = (i * 0.1) + (j * 0.05);
 
-                // Install Video
-                OnOffHelper videoApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
-                videoApp.SetConstantRate(DataRate("50Kbps"), 1200);
-                videoApp.SetAttribute("Tos", UintegerValue(0xA0));
-
-                //STATUS 1: 0.1K -> 100 bytes, 0.8Kbps | TID 4 (DSCP 0x80)
-                OnOffHelper statusApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
-                statusApp.SetConstantRate(DataRate("0.8Kbps"), 100);
-                statusApp.SetAttribute("Tos", UintegerValue(0x80));
-
-                //CMD 1: 0.1K -> 100 bytes, 0.8Kbps | TID 6 (DSCP 0xC0)
-                OnOffHelper cmdApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
-                cmdApp.SetConstantRate(DataRate("0.8Kbps"), 100);
-                cmdApp.SetAttribute("Tos", UintegerValue(0xC0));
-
                 // Bind physical interface to the local address of the node to ensure that the traffic is sent from the correct interface
                 Ipv4Address localAddr;
                 Ptr<Ipv4> cmIpv4 = currentNode->GetObject<Ipv4>();
@@ -420,21 +405,44 @@ namespace ns3
                     }
                 }
 
-                videoApp.SetAttribute("Local", AddressValue(InetSocketAddress(localAddr, 0)));
-                std::cout << "Bound Client Node " << nodeId << " Local Source to: " << localAddr << std::endl; //
-                appState.videoApp = videoApp.Install(currentNode);
+                AddressValue localSocketAddr(InetSocketAddress(localAddr, 0));
+                std::cout << "Bound Client Node " << nodeId << " Local Source to: " << localAddr << std::endl; 
+                
+                // LOW RES VIDEO [Pri 5 | ToS: 0x50] (Continuous Default)
+                OnOffHelper lowResApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+                lowResApp.SetConstantRate(DataRate("48Kbps"), 600);
+                lowResApp.SetAttribute("Local", localSocketAddr);
+                lowResApp.SetAttribute("Tos", UintegerValue(0x50)); 
+                appState.videoApp = lowResApp.Install(currentNode); // Tracked for muting during CH promotion
                 appState.videoApp.Start(Seconds(1.0 + staggerOffset));
                 appState.videoApp.Stop(Seconds(this->simDuration));
 
-                //Install Status
-                appState.statusApp = statusApp.Install(currentNode);
+                // HIGH RES VIDEO [Pri 3 | ToS: 0x30] (Dormant Default, waiting for trigger)
+                OnOffHelper highResApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+                highResApp.SetConstantRate(DataRate("1bps"), 1200); // 0bps so it doesn't transmit until commanded
+                highResApp.SetAttribute("Local", localSocketAddr);
+                highResApp.SetAttribute("Tos", UintegerValue(0x30));
+                appState.highResVideoApp = highResApp.Install(currentNode);
+                appState.highResVideoApp.Start(Seconds(1.0 + staggerOffset));
+                appState.highResVideoApp.Stop(Seconds(this->simDuration));
+
+                // STATUS 1 [Pri 2 | ToS: 0x20] (Continuous Telemetry)
+                OnOffHelper status1App("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+                status1App.SetConstantRate(DataRate("0.8Kbps"), 100);
+                status1App.SetAttribute("Local", localSocketAddr);
+                status1App.SetAttribute("Tos", UintegerValue(0x20));
+                appState.statusApp = status1App.Install(currentNode);
                 appState.statusApp.Start(Seconds(1.1 + staggerOffset));
                 appState.statusApp.Stop(Seconds(this->simDuration));
 
-                //Install Cmd
-                appState.cmdApp = cmdApp.Install(currentNode);
-                appState.cmdApp.Start(Seconds(1.2 + staggerOffset));
-                appState.cmdApp.Stop(Seconds(this->simDuration));
+                // STATUS 2 [Pri 1 | ToS: 0x10] (Asynchronous Burst/Alert)
+                OnOffHelper status2App("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+                status2App.SetConstantRate(DataRate("2.4Kbps"), 300); // Higher rate to push 300 bytes in 1s
+                status2App.SetAttribute("Local", localSocketAddr);
+                status2App.SetAttribute("Tos", UintegerValue(0x10));
+                ApplicationContainer s2 = status2App.Install(currentNode);
+                s2.Start(Seconds(10.0 + staggerOffset)); // Emergency burst at 10s
+                s2.Stop(Seconds(12.0 + staggerOffset));
 
                 // Store the app references
                 m_nodeApps[nodeId] = appState;
@@ -477,6 +485,28 @@ namespace ns3
         gcsNode->AddApplication(gdtApp);
         gdtApp->SetStartTime(Seconds(0.0));
         gdtApp->SetStopTime(Seconds(this->simDuration));
+
+        // Define GDT Local Socket
+        Ipv4Address gdtLocalIp = gcsNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
+        AddressValue gdtSocketAddr(InetSocketAddress(gdtLocalIp, 0));
+
+        // CMD 1 [Pri 3 | ToS: 0x31] (Continuous GDT Heartbeat)
+        OnOffHelper cmd1App("ns3::UdpSocketFactory", InetSocketAddress(targetIp, this->m_targetPort));
+        cmd1App.SetConstantRate(DataRate("0.8Kbps"), 100); 
+        cmd1App.SetAttribute("Local", gdtSocketAddr);
+        cmd1App.SetAttribute("Tos", UintegerValue(0x31));
+        ApplicationContainer c1 = cmd1App.Install(gcsNode);
+        c1.Start(Seconds(2.0));
+        c1.Stop(Seconds(this->simDuration));
+
+        // CMD 2 [Pri 2 | ToS: 0x21] (Asynchronous Target Update)
+        OnOffHelper cmd2App("ns3::UdpSocketFactory", InetSocketAddress(targetIp, this->m_targetPort));
+        cmd2App.SetConstantRate(DataRate("2.4Kbps"), 300); 
+        cmd2App.SetAttribute("Local", gdtSocketAddr);
+        cmd2App.SetAttribute("Tos", UintegerValue(0x21));
+        ApplicationContainer c2 = cmd2App.Install(gcsNode);
+        c2.Start(Seconds(15.0)); // Asynchronous firing at t=15s
+        c2.Stop(Seconds(17.0));
 
         Ptr<NetDevice> gdtInterClusterRadio;
         for (uint32_t d = 0; d < gcsNode->GetNDevices(); d++)
@@ -893,30 +923,28 @@ namespace ns3
                 }
 
                 // Iterate through all applications on the node to safely find the Video App
-                for (uint32_t a = 0; a < node->GetNApplications(); a++)
+                if (m_nodeApps.find(nodeId) != m_nodeApps.end())
                 {
-                    // Try to cast the generic application to an OnOffApplication
-                    Ptr<OnOffApplication> onOffApp = DynamicCast<OnOffApplication>(node->GetApplication(a));
+                    NodeAppState &appState = m_nodeApps[nodeId];
 
-                    // If the cast succeeds, we know this is a traffic generator, not the ClusterNodeApp
-                    if (onOffApp)
-                    {
-                        // We check if the current data rate matches our known video rates to ensure we don't accidentally throttle the Status or Cmd apps
-                        StringValue currentRateStr;
-                        onOffApp->GetAttribute("DataRate", currentRateStr);
-                        std::string rate = currentRateStr.Get();
-
-                        if (rate == "50Kbps" || rate == "500Kbps" || rate == "1bps")
-                        { // Video App
-                            if (isClusterHead)
-                            {
-                                onOffApp->SetAttribute("DataRate", StringValue("1bps")); // CH: turn off Video
-                            }
-                            else
-                            {
-                                onOffApp->SetAttribute("DataRate", StringValue("50Kbps"));// CM: turn on Video 
-                            }
-                            break; // found and updated the video app, exit the loop safely
+                    if (isClusterHead) {
+                        // CHs are muted (they only act as relays)
+                        appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                        appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                    } else {
+                        // Check if the HIGH_RES profile is actively commanded by the GDT
+                        bool activateHighRes = false;
+                        for (const auto& p : profilesToApply) {
+                            if (p.type == "Video_HIGH_RES") activateHighRes = true;
+                        }
+                        
+                        // Toggle the appropriate video resolution
+                        if (activateHighRes) {
+                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                            appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("96Kbps"));
+                        } else {
+                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("48Kbps"));
+                            appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
                         }
                     }
                 }

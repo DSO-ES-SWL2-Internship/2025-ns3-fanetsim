@@ -64,6 +64,7 @@ namespace ns3
             struct NodeAppState {
                 Ptr<Node> node;
                 ApplicationContainer videoApp;
+                ApplicationContainer highResVideoApp;
                 ApplicationContainer statusApp;
                 ApplicationContainer cmdApp;
                 bool isCurrentlyCH = false;

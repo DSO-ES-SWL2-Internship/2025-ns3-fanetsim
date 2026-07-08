@@ -93,12 +93,16 @@ namespace ns3
 
             std::vector<MiniSlot> m_allocationTable;
             std::map<Mac48Address, std::queue<TdmaBufferItem>> m_nodeQueues; // Map of node MAC addresses to their respective queues
-            std::map<Mac48Address, uint16_t> m_nodeQueueSizes; // Map to track the latest queue size for each node (keyed by MAC address)    
+            std::map<Mac48Address, uint16_t> m_nodeQueueSizes; // Map to track the latest queue size for each node (keyed by MAC address)   
 
             //MAC-Level WFQ Queues
-            std::queue<TdmaBufferItem> m_videoQueue;
-            std::queue<TdmaBufferItem> m_statusQueue;
-            std::queue<TdmaBufferItem> m_cmdQueue;
+            std::queue<TdmaBufferItem> m_pri1_status2Queue;
+            std::queue<TdmaBufferItem> m_pri1_cmd3Queue;
+            std::queue<TdmaBufferItem> m_pri2_status1Queue;
+            std::queue<TdmaBufferItem> m_pri2_cmd2Queue;
+            std::queue<TdmaBufferItem> m_pri3_highResQueue;
+            std::queue<TdmaBufferItem> m_pri5_lowResQueue;
+            std::queue<TdmaBufferItem> m_pri3_cmd1Queue;
 
             //Leaky Bucket Limits (Max packets allowed to wait)
             uint32_t m_maxVideoQueueSize = 50;
