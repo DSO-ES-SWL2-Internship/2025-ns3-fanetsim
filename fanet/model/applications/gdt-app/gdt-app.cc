@@ -73,12 +73,16 @@ namespace ns3
         //This ensures that the socket is created only once and reused for subsequent command sends.
         if (!m_cmdSocket) {
             m_cmdSocket = Socket::CreateSocket(GetNode(), UdpSocketFactory::GetTypeId());
+
+            m_cmdSocket->SetIpTos(0x11);
             
-            //Apply SO_BINDTODEVICE equivalent once
+            //Apply SO_BINDTODEVICE once
             if (egressDevice != nullptr) {
                 m_cmdSocket->BindToNetDevice(egressDevice);
-                NS_LOG_INFO("Command socket explicitly bound to physical interface ID: " << egressDevice->GetIfIndex());
+                NS_LOG_INFO("Command socket bound to physical interface ID: " << egressDevice->GetIfIndex());
             }
+            std::cout << "[GDT DISPATCH] Time: " << Simulator::Now().As(Time::S) << std::endl;
+            std::cout << "[GDT DISPATCH] GDT fired command [" << commandStr << "] directly to IP: " << targetIp << std::endl;
         }
 
         //Creating the payload

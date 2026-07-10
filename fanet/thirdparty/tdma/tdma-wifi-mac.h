@@ -107,7 +107,13 @@ namespace ns3
             //Leaky Bucket Limits (Max packets allowed to wait)
             uint32_t m_maxVideoQueueSize = 50;
             uint32_t m_maxStatusQueueSize = 50;
-            uint32_t m_maxCmdQueueSize = 50;          
+            uint32_t m_maxCmdQueueSize = 50;    
+            
+            // Map to track the latest queue size for each neighbour node (keyed by MAC address) 
+            std::map<Mac48Address, uint16_t> m_neighbourQueueSizes;  
+
+            // Threshold before begging neighbours for bandwidth
+            uint16_t m_offloadThreshold = 5; // Threshold for offloading packets to the next node
     };
 }
 #endif

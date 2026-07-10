@@ -409,12 +409,18 @@ namespace ns3
                 std::cout << "Bound Client Node " << nodeId << " Local Source to: " << localAddr << std::endl; 
                 
                 // LOW RES VIDEO [Pri 5 | ToS: 0x50] (Continuous Default)
+                // Ipv4Address chIp = Ipv4Address("10.1.1.1");
                 OnOffHelper lowResApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
-                lowResApp.SetConstantRate(DataRate("48Kbps"), 600);
+                // lowResApp.SetConstantRate(DataRate("48Kbps"), 600);
+                if (nodeId == 2) {
+                    lowResApp.SetConstantRate(DataRate("500Kbps"), 600);
+                } else {
+                    lowResApp.SetConstantRate(DataRate("1bps"), 600); 
+                }
                 lowResApp.SetAttribute("Local", localSocketAddr);
                 lowResApp.SetAttribute("Tos", UintegerValue(0x50)); 
                 appState.videoApp = lowResApp.Install(currentNode); // Tracked for muting during CH promotion
-                appState.videoApp.Start(Seconds(1.0 + staggerOffset));
+                appState.videoApp.Start(Seconds(4.0 + staggerOffset));
                 appState.videoApp.Stop(Seconds(this->simDuration));
 
                 // HIGH RES VIDEO [Pri 3 | ToS: 0x30] (Dormant Default, waiting for trigger)
@@ -423,7 +429,7 @@ namespace ns3
                 highResApp.SetAttribute("Local", localSocketAddr);
                 highResApp.SetAttribute("Tos", UintegerValue(0x30));
                 appState.highResVideoApp = highResApp.Install(currentNode);
-                appState.highResVideoApp.Start(Seconds(1.0 + staggerOffset));
+                appState.highResVideoApp.Start(Seconds(4.0 + staggerOffset));
                 appState.highResVideoApp.Stop(Seconds(this->simDuration));
 
                 // STATUS 1 [Pri 2 | ToS: 0x20] (Continuous Telemetry)
@@ -939,11 +945,16 @@ namespace ns3
                         }
                         
                         // Toggle the appropriate video resolution
-                        if (activateHighRes) {
-                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                            appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("96Kbps"));
+                        if (nodeId == 2) {
+                            if (activateHighRes) {
+                                appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                                appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps"));
+                            } else {
+                                appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps"));
+                                appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                            }
                         } else {
-                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("48Kbps"));
+                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
                             appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
                         }
                     }

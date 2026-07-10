@@ -14,6 +14,7 @@
 #include "ns3/nstime.h"
 #include "ns3/FANETHeader.h"
 #include "ns3/fanet-application.h"
+#include "ns3/callback.h"
 
 namespace ns3
 {
@@ -48,14 +49,16 @@ namespace ns3
             void EnableDebugLog() override;
 
             uint32_t GetClusterIndex();
-
             Ipv4Address GetClusterBaseIP();
-
             Ipv4Address GetClusterBroadcastIP();
-
             Ipv4Address GetGdtIp();
 
             bool GetCHStatus();
+
+            typedef Callback<void, Ptr<Node>, Ptr<Packet>> CommandReceivedCallback;
+            void SetCommandCallback(CommandReceivedCallback cb);
+            void CommandCallBack(Ptr<Socket> socket);
+            void SetupCommandSocket(uint16_t);
 
         private:
             /// @brief Flag indication if the node is a cluster head
@@ -91,8 +94,8 @@ namespace ns3
 
             void HandleCHPromo(FANETHeader* header, Ptr<Packet> packet, Address from);
 
-
-
+            CommandReceivedCallback m_commandCallback;
+            Ptr<Socket> m_cmdSocket;
     };
 }
 
