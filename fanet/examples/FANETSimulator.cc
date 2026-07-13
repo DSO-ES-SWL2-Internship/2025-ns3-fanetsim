@@ -8,6 +8,7 @@
 #include "ns3/json.hpp"
 #include "../thirdparty/tdma/dtdma-queue-header.h"
 #include "ns3/node.h"
+#include "ns3/ipv4-static-routing-helper.h"
 
 namespace ns3
 {
@@ -195,6 +196,18 @@ namespace ns3
 
             bool isGdt = (node->GetId() == gdtNode->GetId());
 
+            bool isCH = (
+                false
+                // (node->GetId() == 1)
+                // || (node->GetId() == 8)
+            );
+
+            bool isCM = !(isGdt || isCH);
+
+            std::string persn = (isGdt) ? "GDT" : (isCH) ? "CH" : "CM";
+
+            std::cout << "[LOG] Node" << std::to_string(node->GetId()) << " is identified as " << persn << std::endl;
+
             // Iterate over all hardware devices on this specific node
             for (uint32_t d = 0; d < node->GetNDevices(); d++)
             {
@@ -212,15 +225,15 @@ namespace ns3
                         // If it's the Inter-Cluster interface, make it less preferred
                         if (ssid.find("InterCluster") != std::string::npos)
                         {
-                            ipv4Stack->SetMetric(ifIndex, 10);
-                            if (!isGdt) {
+                            // ipv4Stack->SetMetric(ifIndex, 10);
+                            if (isCM) {
                                 ipv4Stack->SetDown(ifIndex); // Disable al CM's interfaces for routing purposes
-                        }
+                            }
                         // If it's the Intra-Cluster interface, make it highly preferred
                         } else if (ssid.find("Cluster_") != std::string::npos)
-                            {
-                                ipv4Stack->SetMetric(ifIndex, 1);
-                            }
+                        {
+                            // ipv4Stack->SetMetric(ifIndex, 1);
+                        }
                     }
                 }
             }
@@ -243,6 +256,8 @@ namespace ns3
 
         // See if GDTApp can send command and if node listender can received command
         LogComponentEnable("GDTApp", LOG_LEVEL_INFO);
+
+        LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
 
         this->CreateNetwork();
         InternetStackHelper internet;
@@ -327,12 +342,41 @@ namespace ns3
         this->SetUpNetAnim();
 
         // Schedule the cluster head assignment to run shortly after the simulation starts
-        // to ensure all devices are installed and ready, but before the applications start sending data,
-        // so that the cluster heads are properly assigned and can manage the TDMA scheduling from the get-go.
-        Simulator::Schedule(Seconds(0.001), [this]()
-                            {
-            auto callback = MakeCallback(&FANETSimulator::UpdateNodeApplications, this);
-            this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim, callback); });
+        Simulator::Schedule(Seconds(0.001), [this]() {
+
+            //Dynamic CH promotion based on queue sizes and traffic profiles. The callback will update the applications on the nodes to reflect their new roles.
+            //auto callback = MakeCallback(&FANETSimulator::UpdateNodeApplications, this);
+            //this->fanetDevices->AssignClusterHeads(this->fanet, this->ipv4, this->anim, callback); 
+
+            //Static CH: Node 1 of Cluster 0, Node 8 of Cluster 1
+            this->fanet->CHNodes.clear();
+            this->fanet->CHNodes.resize(this->fanet->clusters.size(), nullptr);
+            
+            for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+                for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
+                    Ptr<Node> node = this->fanet->clusters[i].Get(j);
+                    uint32_t id = node->GetId();
+                    
+                    if (i == 0 && id == 1) this->fanet->CHNodes[i] = node;      // Node 1 is CH for Cluster 0
+                    else if (i == 1 && id == 8) this->fanet->CHNodes[i] = node; // Node 8 is CH for Cluster 1
+                }
+            }
+            
+            // Turn on the 5GHz backbone for the CHs
+            for (uint32_t i = 0; i < this->fanet->allNodes.GetN(); i++) {
+                Ptr<Node> node = this->fanet->allNodes.Get(i);
+                bool isCH = false;
+                for (auto ch : this->fanet->CHNodes) {
+                    if (ch != nullptr && ch->GetId() == node->GetId()) {
+                        isCH = true; 
+                        break;
+                    }
+                }
+                this->UpdateNodeApplications(node, isCH);
+            }
+            std::cout << "\n[TOPOLOGY] Deterministic Cluster Heads successfully enforced (Node 1 & Node 8)." << std::endl;
+        });
+
         // Schedule the periodic topology sync to run every 2ms to print the TDMA grid map of each node and verify that the mini-slot allocations are correct and updating as expected based on the traffic profiles.
         Simulator::Schedule(Seconds(0.002), &FANETSimulator::PeriodicTopologySync, this);
 
@@ -408,51 +452,71 @@ namespace ns3
                 AddressValue localSocketAddr(InetSocketAddress(localAddr, 0));
                 std::cout << "Bound Client Node " << nodeId << " Local Source to: " << localAddr << std::endl; 
                 
-                // LOW RES VIDEO [Pri 5 | ToS: 0x50] (Continuous Default)
-                // Ipv4Address chIp = Ipv4Address("10.1.1.1");
-                OnOffHelper lowResApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
-                // lowResApp.SetConstantRate(DataRate("48Kbps"), 600);
-                if (nodeId == 2) {
-                    lowResApp.SetConstantRate(DataRate("500Kbps"), 600);
-                } else {
-                    lowResApp.SetConstantRate(DataRate("1bps"), 600); 
-                }
-                lowResApp.SetAttribute("Local", localSocketAddr);
-                lowResApp.SetAttribute("Tos", UintegerValue(0x50)); 
+                
+
 
 #define TRAFFIC_STAAPP
+#define TRAFFIC_GDTAPP
+// #define TRAFFIC_STAAPP
+
 
 #ifdef TRAFFIC_VIDAPP                
+                OnOffHelper lowResApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));                
+                
+                // LOW RES VIDEO [Pri 5 | ToS: 0x50] (Continuous Default)
+                // Ipv4Address chIp = Ipv4Address("10.1.1.1");
+                
+                lowResApp.SetConstantRate(DataRate("48Kbps"), 600);
+                // if (nodeId == 2) {
+                //     lowResApp.SetConstantRate(DataRate("500Kbps"), 600);
+                // } else {
+                //     lowResApp.SetConstantRate(DataRate("1bps"), 600); 
+                // }
+                lowResApp.SetAttribute("Local", localSocketAddr);
+                lowResApp.SetAttribute("Tos", UintegerValue(0x50)); 
+                
                 appState.videoApp = lowResApp.Install(currentNode); // Tracked for muting during CH promotion
                 appState.videoApp.Start(Seconds(4.0 + staggerOffset));
                 appState.videoApp.Stop(Seconds(this->simDuration));
+                
 #endif
+
+#ifdef TRAFFIC_VIDHIRESAPP
+                OnOffHelper highResApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));                
                 // HIGH RES VIDEO [Pri 3 | ToS: 0x30] (Dormant Default, waiting for trigger)
-                OnOffHelper highResApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+                
                 highResApp.SetConstantRate(DataRate("1bps"), 1200); // 0bps so it doesn't transmit until commanded
                 highResApp.SetAttribute("Local", localSocketAddr);
                 highResApp.SetAttribute("Tos", UintegerValue(0x30));
-#ifdef TRAFFIC_VIDHIRESAPP
+
                 appState.highResVideoApp = highResApp.Install(currentNode);
                 appState.highResVideoApp.Start(Seconds(4.0 + staggerOffset));
                 appState.highResVideoApp.Stop(Seconds(this->simDuration));
+
 #endif
+
+#ifdef TRAFFIC_STAAPP
                 // STATUS 1 [Pri 2 | ToS: 0x20] (Continuous Telemetry)
                 OnOffHelper status1App("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
                 status1App.SetConstantRate(DataRate("0.8Kbps"), 100);
                 status1App.SetAttribute("Local", localSocketAddr);
                 status1App.SetAttribute("Tos", UintegerValue(0x20));
-#ifdef TRAFFIC_STAAPP
-                appState.statusApp = status1App.Install(currentNode);
-                appState.statusApp.Start(Seconds(1.1 + staggerOffset));
-                appState.statusApp.Stop(Seconds(this->simDuration));
+                if (nodeId == 1)
+                {
+                    appState.statusApp = status1App.Install(currentNode);
+                    appState.statusApp.Start(Seconds(1.1 + staggerOffset));
+                    appState.statusApp.Stop(Seconds(this->simDuration));
+                }
 #endif
-                // STATUS 2 [Pri 1 | ToS: 0x10] (Asynchronous Burst/Alert)
+                
+#ifdef TRAFFIC_STA2APP
                 OnOffHelper status2App("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
+                
+                // STATUS 2 [Pri 1 | ToS: 0x10] (Asynchronous Burst/Alert)
+                
                 status2App.SetConstantRate(DataRate("2.4Kbps"), 300); // Higher rate to push 300 bytes in 1s
                 status2App.SetAttribute("Local", localSocketAddr);
                 status2App.SetAttribute("Tos", UintegerValue(0x10));
-#ifdef TRAFFIC_STA2APP
                 ApplicationContainer s2 = status2App.Install(currentNode);
                 s2.Start(Seconds(10.0 + staggerOffset)); // Emergency burst at 10s
                 s2.Stop(Seconds(12.0 + staggerOffset));
@@ -569,23 +633,30 @@ namespace ns3
         }
         
         Ptr<Ipv4> ipv4Stack = node->GetObject<Ipv4>();
-        if (ipv4Stack)
+        if (ipv4Stack) // Check if the node has an IPv4 stack
         {
-            for (uint32_t d = 0; d < node->GetNDevices(); d++)
+            for (uint32_t d = 0; d < node->GetNDevices(); d++) // Iterate over all devices on the node
             {
                 Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(node->GetDevice(d));
-                if (wifiDev)
+                if (wifiDev) // Check if the device is a WifiNetDevice
                 {
                     std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
-                    if (ssid.find("InterCluster") != std::string::npos)
+                    if (ssid.find("InterCluster") != std::string::npos) // Check if it's the Inter-Cluster interface
                     {
                         int32_t ifIndex = ipv4Stack->GetInterfaceForDevice(wifiDev);
-                        if (ifIndex >= 0)
+                        if (ifIndex >= 0) // Check if the interface index is valid
                         {
-                            if (isNowCH)
-                                ipv4Stack->SetUp(ifIndex); //Turn on the Inter-Cluster interface of CH for routing purposes
-                            else
-                                ipv4Stack->SetDown(ifIndex); //Turn off the Inter-Cluster interface of CM for routing purposes
+                            if (isNowCH) {// If the node is now a Cluster Head, enable the Inter-Cluster interface for routing
+                                if (!ipv4Stack->IsUp(ifIndex))
+                                {
+                                    ipv4Stack->SetUp(ifIndex); //Turn on the Inter-Cluster interface of CH for routing purposes
+                                }
+                            } else {
+                                if (ipv4Stack->IsUp(ifIndex)) // If the node is now a Cluster Member, disable the Inter-Cluster interface for routing
+                                {
+                                    ipv4Stack->SetDown(ifIndex); //Turn off the Inter-Cluster interface of CM for routing purposes
+                                }
+                            }
                         }
                     }
                 }
@@ -881,7 +952,7 @@ namespace ns3
 
         NS_LOG_UNCOND("[DEBUG] ExecuteProfileSwap called. Cluster count: " << (this->fanet ? this->fanet->clusters.size() : 0));
 
-        for (size_t i = 0; i < this->fanet->clusters.size(); i++)
+        for (size_t i = 0; i < this->fanet->clusters.size(); i++) // Iterate through each cluster
         {
             // Dynamically get the number of nodes in this specific cluster
             uint32_t clusterSize = this->fanet->clusters[i].GetN();
@@ -923,14 +994,14 @@ namespace ns3
             }
             m_interClusterConfigs[i].trafficProfiles = aggregatedProfiles;
 
-            for (uint32_t j = 0; j < clusterSize; j++)
+            for (uint32_t j = 0; j < clusterSize; j++) // Iterate through each node in the cluster
             {
                 Ptr<Node> node = this->fanet->clusters[i].Get(j);
                 uint32_t nodeId = node->GetId();
 
                 // Check if this node is currently elected as a Cluster Head
                 bool isClusterHead = false;
-                for (size_t c = 0; c < this->fanet->CHNodes.size(); c++)
+                for (size_t c = 0; c < this->fanet->CHNodes.size(); c++) // Iterate through the list of CH nodes to see if this node is a CH
                 {
                     if (this->fanet->CHNodes[c] != nullptr && this->fanet->CHNodes[c]->GetId() == nodeId)
                     {
@@ -940,12 +1011,12 @@ namespace ns3
                 }
 
                 // Iterate through all applications on the node to safely find the Video App
-                if (m_nodeApps.find(nodeId) != m_nodeApps.end())
+                if (m_nodeApps.find(nodeId) != m_nodeApps.end()) // Check if the node has any applications registered in the map
                 {
                     NodeAppState &appState = m_nodeApps[nodeId];
 
                     if (isClusterHead) {
-                        if (appState.videoApp.GetN() > 0)
+                        if (appState.videoApp.GetN() > 0) // Mute the low-res video app for CHs
                         {
                             // CHs are muted (they only act as relays)
                             appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
