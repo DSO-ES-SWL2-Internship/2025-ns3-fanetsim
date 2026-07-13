@@ -195,7 +195,7 @@ namespace ns3
 
         // Map the custom TID back to the standard hardware AC for the MAC Header
         // AC_BK = 0, AC_BE = 1, AC_VI = 2, AC_VO = 3
-        uint8_t ac_tid = 0;
+        [[maybe_unused]] uint8_t ac_tid = 0;
         if (tid == 1 || tid == 2) ac_tid = 0;      
         else if (tid == 3 || tid == 4) ac_tid = 1; 
         else if (tid == 5 || tid == 6) ac_tid = 2; 

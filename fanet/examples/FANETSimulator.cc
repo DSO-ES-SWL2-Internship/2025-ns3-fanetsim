@@ -383,7 +383,7 @@ namespace ns3
                 NodeAppState appState;
                 appState.node = currentNode;
 
-                double staggerOffset = (i * 0.1) + (j * 0.05);
+                [[maybe_unused]]double staggerOffset = (i * 0.1) + (j * 0.05);
 
                 // Bind physical interface to the local address of the node to ensure that the traffic is sent from the correct interface
                 Ipv4Address localAddr;
@@ -419,37 +419,44 @@ namespace ns3
                 }
                 lowResApp.SetAttribute("Local", localSocketAddr);
                 lowResApp.SetAttribute("Tos", UintegerValue(0x50)); 
+
+#define TRAFFIC_STAAPP
+
+#ifdef TRAFFIC_VIDAPP                
                 appState.videoApp = lowResApp.Install(currentNode); // Tracked for muting during CH promotion
                 appState.videoApp.Start(Seconds(4.0 + staggerOffset));
                 appState.videoApp.Stop(Seconds(this->simDuration));
-
+#endif
                 // HIGH RES VIDEO [Pri 3 | ToS: 0x30] (Dormant Default, waiting for trigger)
                 OnOffHelper highResApp("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
                 highResApp.SetConstantRate(DataRate("1bps"), 1200); // 0bps so it doesn't transmit until commanded
                 highResApp.SetAttribute("Local", localSocketAddr);
                 highResApp.SetAttribute("Tos", UintegerValue(0x30));
+#ifdef TRAFFIC_VIDHIRESAPP
                 appState.highResVideoApp = highResApp.Install(currentNode);
                 appState.highResVideoApp.Start(Seconds(4.0 + staggerOffset));
                 appState.highResVideoApp.Stop(Seconds(this->simDuration));
-
+#endif
                 // STATUS 1 [Pri 2 | ToS: 0x20] (Continuous Telemetry)
                 OnOffHelper status1App("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
                 status1App.SetConstantRate(DataRate("0.8Kbps"), 100);
                 status1App.SetAttribute("Local", localSocketAddr);
                 status1App.SetAttribute("Tos", UintegerValue(0x20));
+#ifdef TRAFFIC_STAAPP
                 appState.statusApp = status1App.Install(currentNode);
                 appState.statusApp.Start(Seconds(1.1 + staggerOffset));
                 appState.statusApp.Stop(Seconds(this->simDuration));
-
+#endif
                 // STATUS 2 [Pri 1 | ToS: 0x10] (Asynchronous Burst/Alert)
                 OnOffHelper status2App("ns3::UdpSocketFactory", InetSocketAddress(gcsIp, port));
                 status2App.SetConstantRate(DataRate("2.4Kbps"), 300); // Higher rate to push 300 bytes in 1s
                 status2App.SetAttribute("Local", localSocketAddr);
                 status2App.SetAttribute("Tos", UintegerValue(0x10));
+#ifdef TRAFFIC_STA2APP
                 ApplicationContainer s2 = status2App.Install(currentNode);
                 s2.Start(Seconds(10.0 + staggerOffset)); // Emergency burst at 10s
                 s2.Stop(Seconds(12.0 + staggerOffset));
-
+#endif
                 // Store the app references
                 m_nodeApps[nodeId] = appState;
             }
@@ -501,19 +508,21 @@ namespace ns3
         cmd1App.SetConstantRate(DataRate("0.8Kbps"), 100); 
         cmd1App.SetAttribute("Local", gdtSocketAddr);
         cmd1App.SetAttribute("Tos", UintegerValue(0x31));
+#ifdef TRAFFIC_CMDAPP
         ApplicationContainer c1 = cmd1App.Install(gcsNode);
         c1.Start(Seconds(2.0));
         c1.Stop(Seconds(this->simDuration));
-
+#endif
         // CMD 2 [Pri 2 | ToS: 0x21] (Asynchronous Target Update)
         OnOffHelper cmd2App("ns3::UdpSocketFactory", InetSocketAddress(targetIp, this->m_targetPort));
         cmd2App.SetConstantRate(DataRate("2.4Kbps"), 300); 
         cmd2App.SetAttribute("Local", gdtSocketAddr);
         cmd2App.SetAttribute("Tos", UintegerValue(0x21));
+#ifdef TRAFFIC_CMD2APP
         ApplicationContainer c2 = cmd2App.Install(gcsNode);
         c2.Start(Seconds(15.0)); // Asynchronous firing at t=15s
         c2.Stop(Seconds(17.0));
-
+#endif
         Ptr<NetDevice> gdtInterClusterRadio;
         for (uint32_t d = 0; d < gcsNode->GetNDevices(); d++)
         {
@@ -528,11 +537,13 @@ namespace ns3
                 }
             }
         }
+
+#ifdef TRAFFIC_GDTAPP
         // Schedule the GDT App to dispatch the command through the Inter-Cluster radio
         Simulator::Schedule(Seconds(this->m_updateTime + 5.0),
                             &GDTApp::SendCommand,
                             gdtApp, targetIp, this->m_targetPort, this->m_commandString, gdtInterClusterRadio);
-
+#endif
         Simulator::Stop(Seconds(simDuration));
         Simulator::Run();
 
@@ -934,9 +945,15 @@ namespace ns3
                     NodeAppState &appState = m_nodeApps[nodeId];
 
                     if (isClusterHead) {
-                        // CHs are muted (they only act as relays)
-                        appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                        appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                        if (appState.videoApp.GetN() > 0)
+                        {
+                            // CHs are muted (they only act as relays)
+                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                        }
+                        if (appState.highResVideoApp.GetN() > 0)
+                        {
+                            appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                        }
                     } else {
                         // Check if the HIGH_RES profile is actively commanded by the GDT
                         bool activateHighRes = false;
@@ -947,15 +964,33 @@ namespace ns3
                         // Toggle the appropriate video resolution
                         if (nodeId == 2) {
                             if (activateHighRes) {
-                                appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                                appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps"));
+                                if (appState.videoApp.GetN() > 0)
+                                {
+                                    appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                                }
+                                if (appState.highResVideoApp.GetN() > 0)
+                                {
+                                    appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps"));
+                                }
                             } else {
-                                appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps"));
-                                appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                                if (appState.videoApp.GetN() > 0)
+                                {
+                                    appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps"));
+                                }
+                                if (appState.highResVideoApp.GetN() > 0)
+                                {
+                                    appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                                }
                             }
                         } else {
-                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                            appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                            if (appState.videoApp.GetN() > 0)
+                            {
+                                appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                            }
+                            if (appState.highResVideoApp.GetN() > 0)
+                            {
+                                appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                            }
                         }
                     }
                 }
