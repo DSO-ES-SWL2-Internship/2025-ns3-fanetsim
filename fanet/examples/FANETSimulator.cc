@@ -9,6 +9,7 @@
 #include "../thirdparty/tdma/dtdma-queue-header.h"
 #include "ns3/node.h"
 #include "ns3/ipv4-static-routing-helper.h"
+#include "ns3/ipv4-routing-table-entry.h"
 
 namespace ns3
 {
@@ -196,11 +197,19 @@ namespace ns3
 
             bool isGdt = (node->GetId() == gdtNode->GetId());
 
-            bool isCH = (
-                false
-                // (node->GetId() == 1)
-                // || (node->GetId() == 8)
-            );
+            // bool isCH = (
+            //     false
+            //     // (node->GetId() == 1)
+            //     // || (node->GetId() == 8)
+            // );
+
+            bool isCH = false;
+            for (uint32_t chId : this->m_initialCHs) {
+                if (node->GetId() == chId) {
+                    isCH = true;
+                    break;
+                }
+            }
 
             bool isCM = !(isGdt || isCH);
 
@@ -352,13 +361,18 @@ namespace ns3
             this->fanet->CHNodes.clear();
             this->fanet->CHNodes.resize(this->fanet->clusters.size(), nullptr);
             
-            for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+            for (size_t i = 0; i < this->fanet->clusters.size(); i++) { 
                 for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
                     Ptr<Node> node = this->fanet->clusters[i].Get(j);
-                    uint32_t id = node->GetId();
-                    
-                    if (i == 0 && id == 1) this->fanet->CHNodes[i] = node;      // Node 1 is CH for Cluster 0
-                    else if (i == 1 && id == 8) this->fanet->CHNodes[i] = node; // Node 8 is CH for Cluster 1
+                    // For static CH
+                    // uint32_t id = node->GetId();
+                    // if (i == 0 && id == 1) this->fanet->CHNodes[i] = node;      // Node 1 is CH for Cluster 0
+                    // else if (i == 1 && id == 8) this->fanet->CHNodes[i] = node; // Node 8 is CH for Cluster 1
+
+                    // For static CH via json config
+                    if (i < m_initialCHs.size() && node->GetId() == m_initialCHs[i]) {
+                        this->fanet->CHNodes[i] = node;      
+                    }
                 }
             }
             
@@ -455,9 +469,9 @@ namespace ns3
                 
 
 
-#define TRAFFIC_STAAPP
+#define TRAFFIC_VIDHIRESAPP
 #define TRAFFIC_GDTAPP
-// #define TRAFFIC_STAAPP
+//#define TRAFFIC_VIDAPP
 
 
 #ifdef TRAFFIC_VIDAPP                
@@ -518,8 +532,8 @@ namespace ns3
                 status2App.SetAttribute("Local", localSocketAddr);
                 status2App.SetAttribute("Tos", UintegerValue(0x10));
                 ApplicationContainer s2 = status2App.Install(currentNode);
-                s2.Start(Seconds(10.0 + staggerOffset)); // Emergency burst at 10s
-                s2.Stop(Seconds(12.0 + staggerOffset));
+                s2.Start(Seconds(2.0 + staggerOffset)); // Emergency burst at 10s
+                s2.Stop(Seconds(4.0 + staggerOffset));
 #endif
                 // Store the app references
                 m_nodeApps[nodeId] = appState;
@@ -532,12 +546,13 @@ namespace ns3
             // Schedule the activation of this specific profile block
             Simulator::Schedule(Seconds(block.startTime),
                                 &FANETSimulator::ExecuteProfileSwap, this,
-                                block.profiles, "ACTIVATING UPDATE PROFILE WINDOW");
+                                block.profiles, block.newClusterHeads,"ACTIVATING UPDATE PROFILE WINDOW");
 
+            std::vector<uint32_t> emptyCHs;
             // Schedule the automatic tear-down to revert back to baseline trafficProfiles
             Simulator::Schedule(Seconds(block.endTime),
                                 &FANETSimulator::ExecuteProfileSwap, this,
-                                this->m_trafficProfiles, "WINDOW ENDED - REVERTING TO BASELINE");
+                                this->m_trafficProfiles, emptyCHs, "WINDOW ENDED - REVERTING TO BASELINE");
         }
 
         this->anim->AnimateFANET(this->fanet);
@@ -623,7 +638,7 @@ namespace ns3
         Simulator::Destroy();
     }
 
-    // Node is only allowed to generate data if it is a CM
+    // Update the applications on a node based on its new role (Cluster Head or Cluster Member)
     void FANETSimulator::UpdateNodeApplications(Ptr<Node> node, bool isNowCH)
     {
         uint32_t nodeId = node->GetId();
@@ -663,6 +678,67 @@ namespace ns3
             }
         }
 
+        // Update the routing table to ensure that GDT traffic is routed through the 2.4GHz interface when the node is a Cluster Member, 
+        // and remove that route when it becomes a Cluster Head.
+        if (ipv4Stack) { // Check if the node has an IPv4 stack
+            Ptr<Ipv4StaticRouting> staticRouting = Ipv4RoutingHelper::GetRouting<Ipv4StaticRouting>(ipv4Stack->GetRoutingProtocol());
+            if (staticRouting) { // Check if the static routing protocol is available
+                Ipv4Address gdtIp = Ipv4Address("10.1.0.1");
+                
+                // Clean up old host routes to avoid routing table bloat
+                for (uint32_t r = 0; r < staticRouting->GetNRoutes(); r++) { // Iterate over all routes in the static routing table
+                    Ipv4RoutingTableEntry entry = staticRouting->GetRoute(r);
+                    if (entry.IsHost() && entry.GetDest() == gdtIp) { // Check if the route is a host route to the GDT IP
+                        staticRouting->RemoveRoute(r);
+                        break;
+                    }
+                }
+                // Find the 2.4GHz Local Interface Index
+                int32_t intraIndex = -1;
+                for (uint32_t d = 0; d < node->GetNDevices(); d++) { // Iterate over all devices on the node
+                    Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(node->GetDevice(d));
+                    if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) { // Check if it's the Intra-Cluster interface
+                        intraIndex = ipv4Stack->GetInterfaceForDevice(wDev); 
+                        break;
+                    }
+                }
+
+                if (!isNowCH && intraIndex >= 0) {
+                    // 1. Find which cluster this node belongs to
+                    int clusterId = -1;
+                    for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+                        for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
+                            if (this->fanet->clusters[i].Get(j)->GetId() == nodeId) {
+                                clusterId = i;
+                                break;
+                            }
+                        }
+                        if (clusterId != -1) break;
+                    }
+
+                    // Get the IP address of the Cluster Head for this cluster
+                    Ipv4Address gatewayIp;
+                    if (clusterId != -1 && this->fanet->CHNodes[clusterId]) { // Check if the cluster ID is valid and the CH node exists
+                        Ptr<Node> chNode = this->fanet->CHNodes[clusterId];
+                        Ptr<Ipv4> chIpv4 = chNode->GetObject<Ipv4>();
+                        for (uint32_t d = 0; d < chNode->GetNDevices(); d++) { // Iterate over all devices on the CH node
+                            Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(chNode->GetDevice(d));
+                            if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) { // Check if it's the Intra-Cluster interface
+                                int32_t chIdx = chIpv4->GetInterfaceForDevice(wDev);
+                                if (chIdx >= 0) { // Check if the interface index is valid
+                                    gatewayIp = chIpv4->GetAddress(chIdx, 0).GetLocal(); 
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Force the IP stack to route GDT traffic through the CH Gateway
+                        staticRouting->AddHostRouteTo(gdtIp, gatewayIp, intraIndex, 1);
+                    }
+                }
+            }
+        }
+
         if (m_nodeApps.find(nodeId) == m_nodeApps.end())
             return;
 
@@ -688,6 +764,12 @@ namespace ns3
         std::ifstream file(jsonFilePath);
         json config;
         file >> config;
+
+        if (config.contains("initialClusterHeads")) {
+            for (const auto& ch : config["initialClusterHeads"]) {
+                this->m_initialCHs.push_back(ch.get<uint32_t>());
+            }
+        }
 
         // Read the Bandwidth Table from JSON
         if (config.contains("trafficProfiles"))
@@ -720,6 +802,12 @@ namespace ns3
                 TrafficWindow tw;
                 tw.startTime = block["startTime"].get<double>();
                 tw.endTime = block["endTime"].get<double>();
+
+                if (block.contains("newClusterHeads")) {
+                    for (const auto& ch : block["newClusterHeads"]) {
+                        tw.newClusterHeads.push_back(ch.get<uint32_t>());
+                    }
+                }
 
                 // Parse the traffic profiles for this update block
                 for (const auto &item : block["profiles"])
@@ -938,7 +1026,7 @@ namespace ns3
         }
     }
 
-    void FANETSimulator::ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::string stageName)
+    void FANETSimulator::ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::vector<uint32_t> newCHs, std::string stageName)
     {
         if (!this->fanet || m_intraClusterConfigs.size() != this->fanet->clusters.size())
         {
@@ -952,6 +1040,35 @@ namespace ns3
 
         NS_LOG_UNCOND("[DEBUG] ExecuteProfileSwap called. Cluster count: " << (this->fanet ? this->fanet->clusters.size() : 0));
 
+        // If new cluster heads are specified, update the CHNodes vector accordingly
+        if (!newCHs.empty()) { // Check if the newCHs vector is not empty
+            this->fanet->CHNodes.clear();
+            this->fanet->CHNodes.resize(this->fanet->clusters.size(), nullptr);
+            
+            for (size_t i = 0; i < this->fanet->clusters.size(); i++) { // Iterate through each cluster
+                for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) { // Iterate through each node in the cluster
+                    Ptr<Node> node = this->fanet->clusters[i].Get(j);
+                    // If the node ID matches the JSON array, crown it as the new CH
+                    if (i < newCHs.size() && node->GetId() == newCHs[i]) { // Check if the node ID matches the new CH ID for this cluster
+                        this->fanet->CHNodes[i] = node;      
+                    }
+                }
+            }
+            
+            // Fire the state update callback to toggle the 5GHz IP interfaces for the new topology
+            for (uint32_t i = 0; i < this->fanet->allNodes.GetN(); i++) { // Iterate through all nodes in the FANET to update their application states based on the new CH assignments
+                Ptr<Node> node = this->fanet->allNodes.Get(i);
+                bool isCH = false;
+                for (auto ch : this->fanet->CHNodes) {
+                    if (ch != nullptr && ch->GetId() == node->GetId()) {
+                        isCH = true; 
+                        break;
+                    }
+                }
+                this->UpdateNodeApplications(node, isCH);
+            }
+        }
+        
         for (size_t i = 0; i < this->fanet->clusters.size(); i++) // Iterate through each cluster
         {
             // Dynamically get the number of nodes in this specific cluster
@@ -1019,11 +1136,11 @@ namespace ns3
                         if (appState.videoApp.GetN() > 0) // Mute the low-res video app for CHs
                         {
                             // CHs are muted (they only act as relays)
-                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                            //appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
                         }
                         if (appState.highResVideoApp.GetN() > 0)
                         {
-                            appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
+                            //appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
                         }
                     } else {
                         // Check if the HIGH_RES profile is actively commanded by the GDT
@@ -1136,8 +1253,10 @@ namespace ns3
     // Method to periodically synchronize the topology and print the TDMA grid map for each node, demonstrating how the MAC layer adapts to any changes in the network over time (e.g., nodes moving, cluster head changes, etc.)
     void FANETSimulator::PeriodicTopologySync()
     {
+        std::vector<uint32_t> emptyCHs;
+
         // Re-trigger the profile swap loop to apply rules to any newly promoted/demoted nodes
-        ExecuteProfileSwap(this->m_currentActiveProfiles, "PERIODIC TOPOLOGY HARDWARE SYNC");
+        ExecuteProfileSwap(this->m_currentActiveProfiles, emptyCHs, "PERIODIC TOPOLOGY HARDWARE SYNC");
 
         // Reschedule the synchronization to execute 5 seconds from now
         Simulator::Schedule(Seconds(5.0), &FANETSimulator::PeriodicTopologySync, this);

@@ -11,6 +11,7 @@ namespace ns3
     struct TrafficWindow {
         double startTime; // Time to start the profile
         double endTime;   // Time to end the profile
+        std::vector<uint32_t> newClusterHeads; // List of new cluster head node IDs for this window
         std::vector<TrafficProfile> profiles; // Traffic profiles to apply during this duration
     };
     
@@ -100,7 +101,7 @@ namespace ns3
             void AssignAddress();
             void SetUpNetAnim();
             void CommandCallBack(Ptr<Socket> socket); // Callback method to handle the reception of a dynamic command at the drone
-            void ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::string stageName);
+            void ExecuteProfileSwap(std::vector<TrafficProfile> profilesToApply, std::vector<uint32_t> newCHs, std::string stageName);
             void PrintTdmaGridMap(Ptr<Node> node, Ptr<WifiNetDevice> wifiDev, Ptr<TdmaWifiMac> tdmaMac);
             void HandleCommand(Ptr<Node> rxNode, Ptr<Packet> packet);
             void ConfigureInterfaceMetrics(); 
@@ -110,7 +111,8 @@ namespace ns3
             std::deque<ClusterMacConfig> m_intraClusterConfigs; 
             std::deque<ClusterMacConfig> m_interClusterConfigs;
             std::deque<ClusterMacConfig> m_chIntraConfigs;
-
+            std::vector<uint32_t> m_initialCHs; // To keep track of the initial cluster heads for logging purposes
+            
         public:
             static TypeId GetTypeId();
             /// @brief Create a FANET Simulator
