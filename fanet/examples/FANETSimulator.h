@@ -105,6 +105,7 @@ namespace ns3
             void PrintTdmaGridMap(Ptr<Node> node, Ptr<WifiNetDevice> wifiDev, Ptr<TdmaWifiMac> tdmaMac);
             void HandleCommand(Ptr<Node> rxNode, Ptr<Packet> packet);
             void ConfigureInterfaceMetrics(); 
+            Ptr<WifiNetDevice> getWifiNetDevice(uint32_t nodeId, bool is_inter_else_intra);
 
             std::vector<TrafficProfile> m_currentActiveProfiles; //To keep track of currently active profiles for logging purposes
             void PeriodicTopologySync();//Method to periodically synchronize the topology and print the TDMA grid map for each node

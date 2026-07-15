@@ -185,18 +185,25 @@ namespace ns3
 
         // Assign Priority based on the ToS value (custom mapping)
         uint8_t tid = 0;
-        if (tos == 0x10) { tid = 1; } 
-        else if (tos == 0x11) { tid = 2; }
-        else if (tos == 0x20 || tos == 0x80) { tid = 3; } 
-        else if (tos == 0x21) { tid = 4; }
-        else if (tos == 0x30 || tos == 0xA0) { tid = 5; } 
-        else if (tos == 0x31 || tos == 0xC0) { tid = 6; }
-        else if (tos == 0x50) { tid = 7; }
+        // PRIORITY 5 
+        if (tos == 0x50) { tid = 1; }                     // Low-Res Video 
+        else if (tos == 0x30 || tos == 0xA0) { tid = 2; } // High-Res Video
+        
+        // PRIORITY 3
+        else if (tos == 0x31 || tos == 0xC0) { tid = 3; } // Cmd 1
+        else if (tos == 0x21) { tid = 4; } // Cmd 2
+        
+        // PRIORITY 2
+        else if (tos == 0x20 || tos == 0x80) { tid = 5; } // Status 1
+        
+        // PRIORITY 1 
+        else if (tos == 0x11) { tid = 6; }                // Cmd 3 
+        else if (tos == 0x10) { tid = 7; }                // Status 2
 
         // Map the custom TID back to the standard hardware AC for the MAC Header
         // AC_BK = 0, AC_BE = 1, AC_VI = 2, AC_VO = 3
         [[maybe_unused]] uint8_t ac_tid = 0;
-        if (tid == 1 || tid == 2) ac_tid = 0;      
+        if (tid == 1 || tid == 2) ac_tid = 0;
         else if (tid == 3 || tid == 4) ac_tid = 1; 
         else if (tid == 5 || tid == 6) ac_tid = 2; 
         else if (tid == 7) ac_tid = 3;

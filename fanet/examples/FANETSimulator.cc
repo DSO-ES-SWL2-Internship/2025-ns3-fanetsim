@@ -231,7 +231,7 @@ namespace ns3
                     {
                         // Force IP layer to slice application packets to 84 bytes to avoid fragmentation at the MAC layer
                         // 84 bytes fragments (64 payload + 20 IP header) are the maximum size that can be transmitted in a single TDMA mini-slot
-                        dev->SetMtu(84);
+                        // dev->SetMtu(84);
 
                         std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
 
@@ -254,6 +254,50 @@ namespace ns3
         std::cout << "[ROUTING] Interface metrics successfully configured for Role-Based Routing." << std::endl;
     }
 
+    Ptr<WifiNetDevice> FANETSimulator::getWifiNetDevice(uint32_t nodeId, bool is_inter_else_intra)
+    {
+        Ptr<Node> chNode = nullptr;
+        for (uint32_t i = 0; i < this->fanet->allNodes.GetN(); i++)
+        {
+            Ptr<Node> node = this->fanet->allNodes.Get(i);
+            if (node->GetId() == nodeId)
+            {
+                chNode = node;
+            }
+        }
+
+        Ptr<Ipv4> chIpv4 = chNode->GetObject<Ipv4>();
+        Ipv4Address chInterIp;
+        
+        // Find the CH's 5GHz IP to act as the Gateway
+        for (uint32_t d = 0; d < chNode->GetNDevices(); d++) {
+            Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(chNode->GetDevice(d));
+            if (!wDev) continue;
+            bool isMatch = false;
+            if (std::string(wDev->GetMac()->GetSsid().PeekString()).find("InterCluster"))
+            {
+                if (is_inter_else_intra)
+                {
+                    isMatch = true;
+                }
+                else
+                {
+                    isMatch = std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster");
+                }
+            }
+
+            // if (isMatch) {
+            //     int32_t chIdx = chIpv4->GetInterfaceForDevice(wDev);
+            //     if (chIdx >= 0) {
+            //         chInterIp = chIpv4->GetAddress(chIdx, 0).GetLocal();
+            //         break;
+            //     }
+            // }
+            if (isMatch) return wDev;
+        }
+        return nullptr;
+    }
+
     void FANETSimulator::RunSimulation()
     {
         ns3::PacketMetadata::Enable();
@@ -273,8 +317,8 @@ namespace ns3
         LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
 
         this->CreateNetwork();
-        InternetStackHelper internet;
-        internet.Install(this->fanet->allNodes);
+        // InternetStackHelper internet;
+        // internet.Install(this->fanet->allNodes);
 
         this->SetMobility();
 
@@ -504,10 +548,10 @@ namespace ns3
                 
                 
 
-
-#define TRAFFIC_VIDHIRESAPP
-#define TRAFFIC_GDTAPP
-#define TRAFFIC_VIDAPP
+#define NODE_SENDER 1
+// #define TRAFFIC_VIDHIRESAPP
+// #define TRAFFIC_GDTAPP
+// #define TRAFFIC_VIDAPP
 #define TRAFFIC_STAAPP
 
 
@@ -518,11 +562,11 @@ namespace ns3
                 // Ipv4Address chIp = Ipv4Address("10.1.1.1");
                 
                 lowResApp.SetConstantRate(DataRate("48Kbps"), 600);
-                // if (nodeId == 2) {
-                //     lowResApp.SetConstantRate(DataRate("500Kbps"), 600);
-                // } else {
-                //     lowResApp.SetConstantRate(DataRate("1bps"), 600); 
-                // }
+                if (nodeId == NODE_SENDER) {
+                    lowResApp.SetConstantRate(DataRate("500Kbps"), 600);
+                } else {
+                    lowResApp.SetConstantRate(DataRate("1bps"), 600); 
+                }
                 lowResApp.SetAttribute("Local", localSocketAddr);
                 lowResApp.SetAttribute("Tos", UintegerValue(0x50)); 
                 
@@ -552,7 +596,7 @@ namespace ns3
                 status1App.SetConstantRate(DataRate("0.8Kbps"), 100);
                 status1App.SetAttribute("Local", localSocketAddr);
                 status1App.SetAttribute("Tos", UintegerValue(0x20));
-                if (nodeId == 1)
+                if (nodeId == NODE_SENDER)
                 {
                     appState.statusApp = status1App.Install(currentNode);
                     appState.statusApp.Start(Seconds(1.1 + staggerOffset));
@@ -693,9 +737,10 @@ namespace ns3
                 if (wifiDev) // Check if the device is a WifiNetDevice
                 {
                     std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
+                    int32_t ifIndex = ipv4Stack->GetInterfaceForDevice(wifiDev);
                     if (ssid.find("InterCluster") != std::string::npos) // Check if it's the Inter-Cluster interface
                     {
-                        int32_t ifIndex = ipv4Stack->GetInterfaceForDevice(wifiDev);
+                        // int32_t ifIndex = ipv4Stack->GetInterfaceForDevice(wifiDev);
                         if (ifIndex >= 0) // Check if the interface index is valid
                         {
                             if (isNowCH) {// If the node is now a Cluster Head, enable the Inter-Cluster interface for routing
@@ -715,66 +760,66 @@ namespace ns3
             }
         }
 
-        // Update the routing table to ensure that GDT traffic is routed through the 2.4GHz interface when the node is a Cluster Member, 
-        // and remove that route when it becomes a Cluster Head.
-        if (ipv4Stack) { // Check if the node has an IPv4 stack
-            Ptr<Ipv4StaticRouting> staticRouting = Ipv4RoutingHelper::GetRouting<Ipv4StaticRouting>(ipv4Stack->GetRoutingProtocol());
-            if (staticRouting) { // Check if the static routing protocol is available
-                Ipv4Address gdtIp = Ipv4Address("10.1.0.1");
+        // // Update the routing table to ensure that GDT traffic is routed through the 2.4GHz interface when the node is a Cluster Member, 
+        // // and remove that route when it becomes a Cluster Head.
+        // if (ipv4Stack) { // Check if the node has an IPv4 stack
+        //     Ptr<Ipv4StaticRouting> staticRouting = Ipv4RoutingHelper::GetRouting<Ipv4StaticRouting>(ipv4Stack->GetRoutingProtocol());
+        //     if (staticRouting) { // Check if the static routing protocol is available
+        //         Ipv4Address gdtIp = Ipv4Address("10.1.0.1");
                 
-                // Clean up old host routes to avoid routing table bloat
-                for (uint32_t r = 0; r < staticRouting->GetNRoutes(); r++) { // Iterate over all routes in the static routing table
-                    Ipv4RoutingTableEntry entry = staticRouting->GetRoute(r);
-                    if (entry.IsHost() && entry.GetDest() == gdtIp) { // Check if the route is a host route to the GDT IP
-                        staticRouting->RemoveRoute(r);
-                        break;
-                    }
-                }
-                // Find the 2.4GHz Local Interface Index
-                int32_t intraIndex = -1;
-                for (uint32_t d = 0; d < node->GetNDevices(); d++) { // Iterate over all devices on the node
-                    Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(node->GetDevice(d));
-                    if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) { // Check if it's the Intra-Cluster interface
-                        intraIndex = ipv4Stack->GetInterfaceForDevice(wDev); 
-                        break;
-                    }
-                }
+        //         // Clean up old host routes to avoid routing table bloat
+        //         for (uint32_t r = 0; r < staticRouting->GetNRoutes(); r++) { // Iterate over all routes in the static routing table
+        //             Ipv4RoutingTableEntry entry = staticRouting->GetRoute(r);
+        //             if (entry.IsHost() && entry.GetDest() == gdtIp) { // Check if the route is a host route to the GDT IP
+        //                 staticRouting->RemoveRoute(r);
+        //                 break;
+        //             }
+        //         }
+        //         // Find the 2.4GHz Local Interface Index
+        //         int32_t intraIndex = -1;
+        //         for (uint32_t d = 0; d < node->GetNDevices(); d++) { // Iterate over all devices on the node
+        //             Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(node->GetDevice(d));
+        //             if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) { // Check if it's the Intra-Cluster interface
+        //                 intraIndex = ipv4Stack->GetInterfaceForDevice(wDev); 
+        //                 break;
+        //             }
+        //         }
 
-                if (!isNowCH && intraIndex >= 0) {
-                    // 1. Find which cluster this node belongs to
-                    int clusterId = -1;
-                    for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
-                        for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
-                            if (this->fanet->clusters[i].Get(j)->GetId() == nodeId) {
-                                clusterId = i;
-                                break;
-                            }
-                        }
-                        if (clusterId != -1) break;
-                    }
+        //         if (!isNowCH && intraIndex >= 0) {
+        //             // 1. Find which cluster this node belongs to
+        //             int clusterId = -1;
+        //             for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+        //                 for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
+        //                     if (this->fanet->clusters[i].Get(j)->GetId() == nodeId) {
+        //                         clusterId = i;
+        //                         break;
+        //                     }
+        //                 }
+        //                 if (clusterId != -1) break;
+        //             }
 
-                    // Get the IP address of the Cluster Head for this cluster
-                    Ipv4Address gatewayIp;
-                    if (clusterId != -1 && this->fanet->CHNodes[clusterId]) { // Check if the cluster ID is valid and the CH node exists
-                        Ptr<Node> chNode = this->fanet->CHNodes[clusterId];
-                        Ptr<Ipv4> chIpv4 = chNode->GetObject<Ipv4>();
-                        for (uint32_t d = 0; d < chNode->GetNDevices(); d++) { // Iterate over all devices on the CH node
-                            Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(chNode->GetDevice(d));
-                            if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) { // Check if it's the Intra-Cluster interface
-                                int32_t chIdx = chIpv4->GetInterfaceForDevice(wDev);
-                                if (chIdx >= 0) { // Check if the interface index is valid
-                                    gatewayIp = chIpv4->GetAddress(chIdx, 0).GetLocal(); 
-                                    break;
-                                }
-                            }
-                        }
+        //             // Get the IP address of the Cluster Head for this cluster
+        //             Ipv4Address gatewayIp;
+        //             if (clusterId != -1 && this->fanet->CHNodes[clusterId]) { // Check if the cluster ID is valid and the CH node exists
+        //                 Ptr<Node> chNode = this->fanet->CHNodes[clusterId];
+        //                 Ptr<Ipv4> chIpv4 = chNode->GetObject<Ipv4>();
+        //                 for (uint32_t d = 0; d < chNode->GetNDevices(); d++) { // Iterate over all devices on the CH node
+        //                     Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(chNode->GetDevice(d));
+        //                     if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) { // Check if it's the Intra-Cluster interface
+        //                         int32_t chIdx = chIpv4->GetInterfaceForDevice(wDev);
+        //                         if (chIdx >= 0) { // Check if the interface index is valid
+        //                             gatewayIp = chIpv4->GetAddress(chIdx, 0).GetLocal(); 
+        //                             break;
+        //                         }
+        //                     }
+        //                 }
                         
-                        // Force the IP stack to route GDT traffic through the CH Gateway
-                        staticRouting->AddHostRouteTo(gdtIp, gatewayIp, intraIndex, 1);
-                    }
-                }
-            }
-        }
+        //                 // Force the IP stack to route GDT traffic through the CH Gateway
+        //                 staticRouting->AddHostRouteTo(gdtIp, gatewayIp, intraIndex, 1);
+        //             }
+        //         }
+        //     }
+        // }
 
         if (m_nodeApps.find(nodeId) == m_nodeApps.end())
             return;
@@ -1144,7 +1189,7 @@ namespace ns3
             }
             m_chIntraConfigs[i].trafficProfiles = chIntraProfiles;
 
-            // Inter-cluster for CH - relay Video/Status, base Cmd
+            // Inter-cluster for CH - relay Video/Status, bas#D
             std::vector<TrafficProfile> aggregatedProfiles;
             for (const auto &baseProfile : profilesToApply)
             {
@@ -1324,20 +1369,28 @@ namespace ns3
 
         // Build Header String
         std::stringstream headerSs;
-        if (isDormant)
-        {
-            headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId
-                     << "  |  IP: " << ipAddr
-                     << "  |  MAC: " << macAddr
-                     << "  |  SSID: " << ssid << " | Sim Time: " << simTime;
-        }
-        else
-        {
-            headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId
-                     << "  |  IP: " << ipAddr
-                     << "  |  MAC: " << macAddr
-                     << "  |  SSID: " << ssid << "  | Sim Time: " << simTime;
-        }
+        // if (isDormant)
+        // {
+        //     headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId
+        //              << "  |  IP: " << ipAddr
+        //              << "  |  MAC: " << macAddr
+        //              << "  |  SSID: " << ssid << " | Sim Time: " << simTime;
+        // }
+        // else
+        // {
+        //     headerSs << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId
+        //              << "  |  IP: " << ipAddr
+        //              << "  |  MAC: " << macAddr
+        //              << "  |  SSID: " << ssid << "  | Sim Time: " << simTime;
+        // }
+        headerSs 
+            << "[TDMA HARDWARE STATE CHANGE]  Node: " << nodeId
+            << "  |  InterEth: " << std::string(ipv4->IsUp(1) ? "UP" : "DOWN")
+            << "  |  IntraEth: " << std::string(ipv4->IsUp(2) ? "UP" : "DOWN")
+            << "  |  IP: " << ipAddr
+            << "  |  MAC: " << macAddr
+            << "  |  SSID: " << ssid 
+            << "  | Sim Time: " << simTime;
         std::string headerContent = headerSs.str();
 
         // Build Grid Map Row
