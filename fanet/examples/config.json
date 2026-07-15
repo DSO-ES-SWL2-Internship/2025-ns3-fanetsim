@@ -4,6 +4,7 @@
     "cycleDuration": 200,
     "filename": "hello.xml",
     "simulationDuration": 40.0,
+    "initialClusterHeads": [2, 7],
     "fanetDevices": {
       "clusterWifiStandard": "WIFI_STANDARD_80211n",
       "clusterWifiChannelPropagationDelay": "ns3::ConstantSpeedPropagationDelayModel",
@@ -25,6 +26,7 @@
         {
           "startTime": 5.0,
           "endTime": 9.0,
+          "newClusterHeads": [2, 7],
           "profiles":
           [
               {"type": "Status2", "priority": 1, "bandwidthKb": 3},
@@ -36,7 +38,7 @@
 
     "gdtCommandConfig": {
         "targetClusterIndex": 1,
-        "targetNodeIndex": 2,
+        "targetNodeIndex": 3,
         "targetPort": 9999,
         "commandString": "HIGH_RES"
     },

@@ -229,6 +229,10 @@ namespace ns3
                     int32_t ifIndex = ipv4Stack->GetInterfaceForDevice(dev);
                     if (ifIndex >= 0)
                     {
+                        // Force IP layer to slice application packets to 84 bytes to avoid fragmentation at the MAC layer
+                        // 84 bytes fragments (64 payload + 20 IP header) are the maximum size that can be transmitted in a single TDMA mini-slot
+                        dev->SetMtu(84);
+
                         std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
 
                         // If it's the Inter-Cluster interface, make it less preferred
@@ -388,9 +392,41 @@ namespace ns3
                 }
                 this->UpdateNodeApplications(node, isCH);
             }
-            std::cout << "\n[TOPOLOGY] Deterministic Cluster Heads successfully enforced (Node 1 & Node 8)." << std::endl;
-        });
 
+            // For GDT to know how to reach subnets
+            Ptr<Ipv4> gdtIpv4 = this->fanet->GDTNode.Get(0)->GetObject<Ipv4>();
+            Ptr<Ipv4StaticRouting> gdtStatic = Ipv4RoutingHelper::GetRouting<Ipv4StaticRouting>(gdtIpv4->GetRoutingProtocol());
+            if (gdtStatic) {
+                for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+                    std::stringstream subnetSs;
+                    subnetSs << "10.1." << (i + 1) << ".0";
+                    Ipv4Address clusterSubnet(subnetSs.str().c_str());
+                    Ipv4Mask clusterMask("255.255.255.0");
+
+                    if (this->fanet->CHNodes.size() > i && this->fanet->CHNodes[i]) {
+                        Ptr<Node> chNode = this->fanet->CHNodes[i];
+                        Ptr<Ipv4> chIpv4 = chNode->GetObject<Ipv4>();
+                        Ipv4Address chInterIp;
+                        
+                        // Find the CH's 5GHz IP to act as the Gateway
+                        for (uint32_t d = 0; d < chNode->GetNDevices(); d++) {
+                            Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(chNode->GetDevice(d));
+                            if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("InterCluster") != std::string::npos) {
+                                int32_t chIdx = chIpv4->GetInterfaceForDevice(wDev);
+                                if (chIdx >= 0) {
+                                    chInterIp = chIpv4->GetAddress(chIdx, 0).GetLocal();
+                                    break;
+                                }
+                            }
+                        }
+                        if (chInterIp != Ipv4Address::GetZero()) {
+                            gdtStatic->AddNetworkRouteTo(clusterSubnet, clusterMask, chInterIp, 1);
+                        }
+                    }
+                }
+            }
+            std::cout << "\n[TOPOLOGY] Fixed Cluster Heads successfully enforced." << std::endl;
+        });
         // Schedule the periodic topology sync to run every 2ms to print the TDMA grid map of each node and verify that the mini-slot allocations are correct and updating as expected based on the traffic profiles.
         Simulator::Schedule(Seconds(0.002), &FANETSimulator::PeriodicTopologySync, this);
 
@@ -471,7 +507,8 @@ namespace ns3
 
 #define TRAFFIC_VIDHIRESAPP
 #define TRAFFIC_GDTAPP
-//#define TRAFFIC_VIDAPP
+#define TRAFFIC_VIDAPP
+#define TRAFFIC_STAAPP
 
 
 #ifdef TRAFFIC_VIDAPP                
@@ -920,7 +957,7 @@ namespace ns3
         // Identify which cluster this node belongs to
         int targetClusterId = -1;
         uint32_t clusterSize = 0;
-        for (size_t i = 0; i < this->fanet->clusters.size(); i++)
+        for (size_t i = 0; i < this->fanet->clusters.size(); i++) // Iterate through all clusters
         {
             for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++)
             {
@@ -935,7 +972,7 @@ namespace ns3
                 break;
         }
 
-        if (targetClusterId < 0 || (size_t)targetClusterId >= m_intraClusterConfigs.size())
+        if (targetClusterId < 0 || (size_t)targetClusterId >= m_intraClusterConfigs.size()) // Check if the targetClusterId is valid and within bounds
         {
             NS_LOG_ERROR("FATAL: targetClusterId " << targetClusterId << " is out of bounds!");
             return;
@@ -946,7 +983,7 @@ namespace ns3
 
         // Filter Video for CH
         std::vector<TrafficProfile> chIntraProfiles;
-        for (const auto &p : this->m_updateProfiles)
+        for (const auto &p : this->m_updateProfiles) // Iterate through the new traffic profiles
         {
             if (p.type.find("Video") == std::string::npos)
             {
@@ -957,7 +994,7 @@ namespace ns3
 
         // Generate the aggregated traffic profiles for the inter-cluster communication
         std::vector<TrafficProfile> aggregatedProfiles;
-        for (const auto &baseProfile : this->m_updateProfiles)
+        for (const auto &baseProfile : this->m_updateProfiles) // Iterate through the new traffic profiles
         {
             TrafficProfile clusterDemand = baseProfile;
             uint32_t memberCount = (clusterSize > 0) ? clusterSize - 1 : 0;
@@ -967,14 +1004,13 @@ namespace ns3
         this->m_interClusterConfigs[targetClusterId].trafficProfiles = aggregatedProfiles;
 
         // Signal all nodes in this cluster to refresh their TDMA mini-slot allocations
-        for (uint32_t j = 0; j < this->fanet->clusters[targetClusterId].GetN(); j++)
+        for (uint32_t j = 0; j < this->fanet->clusters[targetClusterId].GetN(); j++) // Iterate through all nodes in the target cluster
         {
             Ptr<Node> clusterNode = this->fanet->clusters[targetClusterId].Get(j);
             uint32_t nodeId = clusterNode->GetId();
 
             bool isClusterHead = false;
-            for (size_t c = 0; c < this->fanet->CHNodes.size(); c++)
-            {
+            for (size_t c = 0; c < this->fanet->CHNodes.size(); c++){ // Iterate through the CHNodes vector to check if this node is a Cluster Head
                 if (this->fanet->CHNodes[c] != nullptr && this->fanet->CHNodes[c]->GetId() == nodeId)
                 {
                     isClusterHead = true;
@@ -982,7 +1018,7 @@ namespace ns3
                 }
             }
 
-            for (uint32_t d = 0; d < clusterNode->GetNDevices(); d++)
+            for (uint32_t d = 0; d < clusterNode->GetNDevices(); d++) // Iterate over all devices on the node
             {
                 Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(clusterNode->GetDevice(d));
                 if (wifiDev)
@@ -1022,6 +1058,25 @@ namespace ns3
                         PrintTdmaGridMap(clusterNode, wifiDev, tdmaMac);
                     }
                 }
+            }
+        }
+        if (m_nodeApps.find(rxNodeId) != m_nodeApps.end()) {
+            NodeAppState &appState = m_nodeApps[rxNodeId];
+            
+            if (!appState.isCurrentlyCH) {
+                // Turn OFF Low Res
+                if (appState.videoApp.GetN() > 0) {
+                    appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps")); 
+                }
+                // Turn ON High Res
+                if (appState.highResVideoApp.GetN() > 0) {
+                    appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps")); 
+                }
+                std::cout << "\n[GDT COMMAND SUCCESS] Node " << rxNodeId 
+                          << " executed HIGH_RES command! Switching video stream to 500Kbps (TID 5)." << std::endl;
+            } else {
+                std::cout << "\n[GDT COMMAND IGNORED] Node " << rxNodeId 
+                          << " is a Cluster Head and cannot generate video." << std::endl;
             }
         }
     }
@@ -1133,53 +1188,11 @@ namespace ns3
                     NodeAppState &appState = m_nodeApps[nodeId];
 
                     if (isClusterHead) {
-                        if (appState.videoApp.GetN() > 0) // Mute the low-res video app for CHs
-                        {
-                            // CHs are muted (they only act as relays)
-                            //appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                        }
+                        // CHs are muted (they only act as relays)
+                        if (appState.videoApp.GetN() > 0) 
+                            appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
                         if (appState.highResVideoApp.GetN() > 0)
-                        {
-                            //appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                        }
-                    } else {
-                        // Check if the HIGH_RES profile is actively commanded by the GDT
-                        bool activateHighRes = false;
-                        for (const auto& p : profilesToApply) {
-                            if (p.type == "Video_HIGH_RES") activateHighRes = true;
-                        }
-                        
-                        // Toggle the appropriate video resolution
-                        if (nodeId == 2) {
-                            if (activateHighRes) {
-                                if (appState.videoApp.GetN() > 0)
-                                {
-                                    appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                                }
-                                if (appState.highResVideoApp.GetN() > 0)
-                                {
-                                    appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps"));
-                                }
-                            } else {
-                                if (appState.videoApp.GetN() > 0)
-                                {
-                                    appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("500Kbps"));
-                                }
-                                if (appState.highResVideoApp.GetN() > 0)
-                                {
-                                    appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                                }
-                            }
-                        } else {
-                            if (appState.videoApp.GetN() > 0)
-                            {
-                                appState.videoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                            }
-                            if (appState.highResVideoApp.GetN() > 0)
-                            {
-                                appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
-                            }
-                        }
+                            appState.highResVideoApp.Get(0)->SetAttribute("DataRate", StringValue("1bps"));
                     }
                 }
 
