@@ -133,7 +133,9 @@ namespace ns3
 
         // Configure the MAC layer for AdHoc mode
         WifiMacHelper wifiMacAdHocGDT;
-        wifiMacAdHocGDT.SetType(clusterMacType, "Ssid", SsidValue(Ssid("GDT-WiFi")));
+        wifiMacAdHocGDT.SetType(clusterMacType, 
+            "QosSupported", BooleanValue(false), 
+            "Ssid", SsidValue(Ssid("GDT-WiFi")));
 
         // Install the WiFi device on the GDT node
         NetDeviceContainer gdtWiFiDevice = localWifiGDT.Install(wifiPhyGDT, wifiMacAdHocGDT, GDTNode.Get(0));
@@ -183,6 +185,7 @@ namespace ns3
             WifiMacHelper wifiMacCM;
             wifiMacCM.SetType(clusterMacType, 
                   "Ssid", SsidValue(Ssid(ssid)),
+                  "QosSupported", BooleanValue(false),
                   "TotalMiniSlots", UintegerValue(12),
                   "KbPerMiniSlot", UintegerValue(1));
 
@@ -231,6 +234,7 @@ namespace ns3
         WifiMacHelper wifiMacInter;
         wifiMacInter.SetType(linkMacType, 
                      "Ssid", SsidValue(Ssid("InterCluster_f0")),
+                     "QosSupported", BooleanValue(false), 
                      "TotalMiniSlots", UintegerValue(24),
                      "KbPerMiniSlot", UintegerValue(1));
 

@@ -24,6 +24,8 @@
 #include "ns3/ipv4-header.h"
 #include <map>
 
+#define USE_NS3_QOS
+
 namespace ns3
 {
     NS_LOG_COMPONENT_DEFINE("TdmaWifiMac");
@@ -105,7 +107,7 @@ namespace ns3
         TdmaScheduleNextSlot();
     }
 
-    // This method calculates the duration of each slot based on the total cycle duration and the number of slots.
+    // 
     void TdmaWifiMac::Enqueue(Ptr<WifiMpdu> mpdu, Mac48Address to, Mac48Address from)
     {
         // Get existing MAC header provided by ns3
@@ -168,51 +170,14 @@ namespace ns3
             // GetWifiRemoteStationManager()->RecordDisassociated(to);
         }
 
-        uint8_t tos = 0;
-        // Decipher the IPv4 Header directly to get the ToS byte
-        Ptr<Packet> packetCopy = mpdu->GetPacket()->Copy();
-        LlcSnapHeader llc;
+        uint8_t dummyTid = 7;
 
-        // Remove the LLC/SNAP header (8 bytes) to expose the IP layer
-        if (packetCopy->RemoveHeader(llc)) {
-            // 0x0800 is the standard hex code for IPv4 traffic
-            if (llc.GetType() == 0x0800) {
-                Ipv4Header ipv4Hdr;
-                packetCopy->PeekHeader(ipv4Hdr);
-                tos = ipv4Hdr.GetTos();
-            }
-        }
-
-        // Assign Priority based on the ToS value (custom mapping)
-        uint8_t tid = 0;
-        // PRIORITY 5 
-        if (tos == 0x50) { tid = 1; }                     // Low-Res Video 
-        else if (tos == 0x30 || tos == 0xA0) { tid = 2; } // High-Res Video
-        
-        // PRIORITY 3
-        else if (tos == 0x31 || tos == 0xC0) { tid = 3; } // Cmd 1
-        else if (tos == 0x21) { tid = 4; } // Cmd 2
-        
-        // PRIORITY 2
-        else if (tos == 0x20 || tos == 0x80) { tid = 5; } // Status 1
-        
-        // PRIORITY 1 
-        else if (tos == 0x11) { tid = 6; }                // Cmd 3 
-        else if (tos == 0x10) { tid = 7; }                // Status 2
-
-        // Map the custom TID back to the standard hardware AC for the MAC Header
-        // AC_BK = 0, AC_BE = 1, AC_VI = 2, AC_VO = 3
-        [[maybe_unused]] uint8_t ac_tid = 0;
-        if (tid == 1 || tid == 2) ac_tid = 0;
-        else if (tid == 3 || tid == 4) ac_tid = 1; 
-        else if (tid == 5 || tid == 6) ac_tid = 2; 
-        else if (tid == 7) ac_tid = 3;
-
+#ifdef USE_NS3_QOS
         // Setting QoS in the header if its supported else just use WIFI_MAC_DATA
         if (GetQosSupported())
         {
             hdr.SetType(WIFI_MAC_QOSDATA);
-            hdr.SetQosTid(tid);
+            hdr.SetQosTid(dummyTid);
             hdr.SetQosAckPolicy(WifiMacHeader::NORMAL_ACK);
             hdr.SetQosNoEosp();
             hdr.SetQosNoAmsdu();
@@ -222,40 +187,50 @@ namespace ns3
         } else {
             hdr.SetType(WIFI_MAC_DATA);
         }
+#else
+        hdr.SetType(WIFI_MAC_DATA);
+#endif
 
-        Ptr<WifiMpdu> modifiedMpdu = Create<WifiMpdu>(mpdu->GetPacket(), hdr);
-        // Handle bypass for small/control packets (AODV routing broadcasts, ARP requests)
-        if (to.IsBroadcast() || tid == 0) {
-            tid = 6;
-            if (GetQosSupported()) {
-                hdr.SetType(WIFI_MAC_QOSDATA);
-                hdr.SetQosTid(tid);
+        // Ptr<WifiMpdu> modifiedMpdu = Create<WifiMpdu>(mpdu->GetPacket(), hdr);
+        // // Handle bypass for small/control packets (AODV routing broadcasts, ARP requests)
+        // if (to.IsBroadcast() || tid == 0) {
+        //     tid = 0;
+        //     if (GetQosSupported()) {
+        //         hdr.SetType(WIFI_MAC_QOSDATA);
+        //         hdr.SetQosTid(tid);
+        //     }
+        // }
+
+        // Extract the ToS value from the IPv4 header
+        uint8_t tos = 0;
+        Ptr<Packet> packetCopy = mpdu->GetPacket()->Copy();
+        LlcSnapHeader llc;
+        if (packetCopy->RemoveHeader(llc)) {
+            if (llc.GetType() == 0x0800) { // Check if it is an IPv4 packet
+                Ipv4Header ipv4Hdr;
+                packetCopy->PeekHeader(ipv4Hdr);
+                tos = ipv4Hdr.GetTos();
             }
         }
 
         // Traffic flow trace
-        if (tid >= 1 && tid <= 7) {
-            std::string role = m_isClusterHead ? "CH" : "CM";
-            std::string iface = m_isInterCluster ? "Backbone (5GHz)" : "Local (2.4GHz)";
-            
-            std::cout << "[FLOW TRACE - TX] Node: " << GetDevice()->GetNode()->GetId() 
-                      << " (" << role << " | " << iface << ") " 
-                      << "TID: " << (int)tid << " | Dest: " << to 
-                      << " | Size: " << mpdu->GetPacket()->GetSize() << std::endl;
-        }
+        std::string role = m_isClusterHead ? "CH" : "CM";
+        std::string iface = m_isInterCluster ? "Backbone (5GHz)" : "Local (2.4GHz)";
+        
+        std::cout << "[FLOW TRACE - TX] Node: " << GetDevice()->GetNode()->GetId() 
+                    << " (" << role << " | " << iface << ") " 
+                    << "ToS: 0x" << std::hex << (int)tos << std::dec << " | Dest: " << to 
+                    << " | Size: " << mpdu->GetPacket()->GetSize() << std::endl;
 
         // Calculate current total TDMA load
-        uint16_t myTotalQueue = m_pri1_status2Queue.size() + m_pri1_cmd3Queue.size() + 
-                                m_pri2_status1Queue.size() + m_pri2_cmd2Queue.size() + 
-                                m_pri3_highResQueue.size() + m_pri3_cmd1Queue.size() + 
-                                m_pri5_lowResQueue.size();
+        uint16_t myTotalQueue = m_pri5_lowResQueue.size();
 
         bool isRelayPacket = false;
         Mac48Address finalDestination = to;
 
         // Cooperative Relay Logic (Only for Video Traffic: TIDs 5 and 7)
         uint16_t panicThreshold = 10; // Hardcode a safe threshold guarantee
-        if (!m_isClusterHead && !m_isInterCluster &&( tid == 5 || tid == 7) && myTotalQueue >= panicThreshold)
+        if (!m_isClusterHead && !m_isInterCluster && myTotalQueue >= panicThreshold)
         {
             Mac48Address bestHelper = Mac48Address::GetBroadcast();
 
@@ -308,17 +283,20 @@ namespace ns3
         item.mpdu = finalMpdu;
 
         // Push the item into the appropriate queue based on the TID
-        if (tid == 1) { m_pri1_status2Queue.push(item); }
-        else if (tid == 2) { m_pri1_cmd3Queue.push(item); }
-        else if (tid == 3) { m_pri2_status1Queue.push(item); }
-        else if (tid == 4) { m_pri2_cmd2Queue.push(item); }
-        else if (tid == 5) { m_pri3_highResQueue.push(item); }
-        else if (tid == 6) { m_pri3_cmd1Queue.push(item); }
-        else if (tid == 7) { m_pri5_lowResQueue.push(item); }
-
-        if (m_isMySlot) {
-            TdmaTransmit();
-        }
+        // if (tid == 1) { m_pri1_status2Queue.push(item); }
+        // else if (tid == 2) { m_pri1_cmd3Queue.push(item); }
+        // else if (tid == 3) { m_pri2_status1Queue.push(item); }
+        // else if (tid == 4) { m_pri2_cmd2Queue.push(item); }
+        // else if (tid == 5) { m_pri3_highResQueue.push(item); }
+        // else if (tid == 6) { m_pri3_cmd1Queue.push(item); }
+        // else if (tid == 7) { m_pri5_lowResQueue.push(item); }
+        // m_pri1_status2Queue.push(item); 
+        // m_pri1_cmd3Queue.push(item);
+        // m_pri2_status1Queue.push(item); 
+        // m_pri2_cmd2Queue.push(item);
+        // m_pri3_highResQueue.push(item); 
+        // m_pri3_cmd1Queue.push(item);
+        m_pri5_lowResQueue.push(item);
     }
 
     // Set to always return true meaning that this MAC layer allows packet forwarding to any MAC address
@@ -355,36 +333,23 @@ namespace ns3
         Time slotStartTime = Simulator::Now();
         
         //Evaluate how many packets of each traffic type we can send based on the allocation table for this slot
-        uint32_t status1Quota = 0, status2Quota = 0;
-        uint32_t cmd1Quota = 0, cmd2Quota = 0, cmd3Quota = 0;
-        uint32_t lowResQuota = 0, highResQuota = 0;
-
-        //Scans m_allocationTable and tallies up the weights for the current cycle
-        for(const auto& slot : m_allocationTable) {
-            if (!slot.isOccupied) {
-                continue; // Skip empty slots
-            }
-            // Use find() so it matches "Video_HIGH_RES", "Video_LOW_RES", etc.
-            if (slot.trafficType == "Status1") status1Quota++;
-            else if (slot.trafficType == "Status2") status2Quota++;
-            else if (slot.trafficType == "Cmd1") cmd1Quota++;
-            else if (slot.trafficType == "Cmd2") cmd2Quota++;
-            else if (slot.trafficType == "Cmd3") cmd3Quota++;
-            else if (slot.trafficType == "Video_LOW_RES") lowResQuota++;
-            else if (slot.trafficType == "Video_HIGH_RES") highResQuota++;
-        }
+        // uint32_t status1Quota = 0, status2Quota = 0;
+        // uint32_t cmd1Quota = 0, cmd2Quota = 0, cmd3Quota = 0;
+        // uint32_t lowResQuota = 0, highResQuota = 0;
+        //
+        uint32_t totalQuota = m_allocationTable.size();
 
         //Lambda function to decrease a specific queue safely
         auto drainQueue = [&](std::queue<TdmaBufferItem>& queue, uint32_t& quota, uint8_t destTid) {
             while (!queue.empty() && quota > 0)
             {
-                if (Simulator::Now() - slotStartTime >= m_slotDuration)
+                if ((Simulator::Now() - slotStartTime) >= m_slotDuration)
                 {
                     NS_LOG_WARN("Slot overrun detected... Stopping transmission.");
                     return; 
                 }
                 TdmaBufferItem item = queue.front();
-                Ptr mpdu = item.mpdu;
+                Ptr<WifiMpdu> mpdu = item.mpdu;
 
                 if (GetQosSupported())
                 {
@@ -401,29 +366,23 @@ namespace ns3
             }
         };
 
-        // if (!m_videoQueue.empty() || !m_statusQueue.empty() || !m_cmdQueue.empty()) {
-        //     std::cout << "[WFQ ENFORCER] Node Slot Active | Sending Max: " 
-        //               << videoQuota << " Video, " 
-        //               << statusQuota << " Status, " 
-        //               << cmdQuota << " Cmd." << std::endl;
-        // }    
-
         // Pass the explicit 802.11e TIDs (0-3) to ensure GetQosTxop() returns a valid pointer
         // Priority 1/2 traffic -> Maps to Access Category BK/BE/VI
         // Priority 1
-        drainQueue(m_pri1_status2Queue, status2Quota, 3); // Map to AC_VO (Highest priority hardware queue)
-        drainQueue(m_pri1_cmd3Queue, cmd3Quota, 3);       // Map to AC_VO
+        // drainQueue(m_pri1_status2Queue, status2Quota, 3); // Map to AC_VO (Highest priority hardware queue)
+        // drainQueue(m_pri1_cmd3Queue, cmd3Quota, 3);       // Map to AC_VO
         
-        // Priority 2
-        drainQueue(m_pri2_status1Queue, status1Quota, 2); // Map to AC_VI (Video queue)
-        drainQueue(m_pri2_cmd2Queue, cmd2Quota, 2);       // Map to AC_VI
+        // // Priority 2
+        // drainQueue(m_pri2_status1Queue, status1Quota, 2); // Map to AC_VI (Video queue)
+        // drainQueue(m_pri2_cmd2Queue, cmd2Quota, 2);       // Map to AC_VI
         
-        // Priority 3
-        drainQueue(m_pri3_highResQueue, highResQuota, 0); // Map to AC_BE (Best effort)
-        drainQueue(m_pri3_cmd1Queue, cmd1Quota, 0);       // Map to AC_BE
+        // // Priority 3
+        // drainQueue(m_pri3_highResQueue, highResQuota, 0); // Map to AC_BE (Best effort)
+        // drainQueue(m_pri3_cmd1Queue, cmd1Quota, 0);       // Map to AC_BE
         
-        // Priority 5
-        drainQueue(m_pri5_lowResQueue, lowResQuota, 1);   // Map to AC_BK (Background)
+        // // Priority 5
+        // drainQueue(m_pri5_lowResQueue, lowResQuota, 1);   // Map to AC_BK (Background)
+        drainQueue(m_pri5_lowResQueue, totalQuota, 7);   
     }
 
     // This method updates the slot duration whenever the number of slots or cycle duration changes.
@@ -537,8 +496,6 @@ namespace ns3
             GetWifiRemoteStationManager()->AddAllSupportedModes(from);
         }
 
-
-
         // Control frames bypass the TDMA logic and are processed by the base class (WifiMac)
         if (hdr->IsCtl()) {
             WifiMac::Receive(mpdu, linkId);
@@ -550,70 +507,72 @@ namespace ns3
         if (hdr->IsData())
         {
             Ptr<Packet> packet = mpdu->GetPacket()->Copy();
-            uint8_t rxTid = hdr->IsQosData() ? hdr->GetQosTid() : 0;
+            // uint8_t rxTid = hdr->IsQosData() ? hdr->GetQosTid() : 0;
 
             // Strip the Cooperative MAC Header to get the neighbour's queue size and relay information
-            if (rxTid >= 1 && rxTid <= 7)
+            DtdmaQueueHeader qHeader;
+            if (packet->RemoveHeader(qHeader)) 
             {
-                DtdmaQueueHeader qHeader;
-                if (packet->RemoveHeader(qHeader))
-                    {
-                        m_neighbourQueueSizes[from] = qHeader.GetQueueSize();
+                m_neighbourQueueSizes[from] = qHeader.GetQueueSize();
 
-                        // DIRECT QUEUE INJECTION TO PREVENT PING-PONG LOOP
-                        if (qHeader.GetIsRelay() && to == GetAddress()) 
-                        {
-                            std::cout << "[COOP-MAC] Node " << GetDevice()->GetNode()->GetId() 
-                                    << " intercepting Offloaded packet from " << from 
-                                    << ". Re-queuing for CH: " << qHeader.GetFinalDest() << std::endl;
+                // DIRECT QUEUE INJECTION TO PREVENT PING-PONG LOOP
+                if (qHeader.GetIsRelay() && to == GetAddress()) 
+                {
+                    std::cout << "[COOP-MAC] Node " << GetDevice()->GetNode()->GetId() 
+                            << " intercepting Offloaded packet from " << from 
+                            << ". Re-queuing for CH: " << qHeader.GetFinalDest() << std::endl;
 
-                            uint8_t tos = 0;
-                            Ptr<Packet> packetCopy = packet->Copy();
-                            LlcSnapHeader llc;
-                            if (packetCopy->RemoveHeader(llc)) {
-                                if (llc.GetType() == 0x0800) {
-                                    Ipv4Header ipv4Hdr;
-                                    packetCopy->PeekHeader(ipv4Hdr);
-                                    tos = ipv4Hdr.GetTos();
-                                }
-                        }
+                    // [[maybe_unused]]uint8_t tos = 0;
+                    // Ptr<Packet> packetCopy = packet->Copy();
+                    // LlcSnapHeader llc;
+                    // if (packetCopy->RemoveHeader(llc)) {
+                    //     if (llc.GetType() == 0x0800) {
+                    //         Ipv4Header ipv4Hdr;
+                    //         packetCopy->PeekHeader(ipv4Hdr);
+                    //         tos = ipv4Hdr.GetTos();
 
-                        uint8_t tid = 0;
-                        if (tos == 0x10) { tid = 1; } 
-                        else if (tos == 0x11) { tid = 2; }
-                        else if (tos == 0x20) { tid = 3; } 
-                        else if (tos == 0x21) { tid = 4; }
-                        else if (tos == 0x30) { tid = 5; } 
-                        else if (tos == 0x31) { tid = 6; }
-                        else if (tos == 0x50) { tid = 7; }
+                    // [[maybe_unused]]uint8_t tid = 0;
+                    // if (tos == 0x10) { tid = 1; } 
+                    // else if (tos == 0x11) { tid = 2; }
+                    // else if (tos == 0x20) { tid = 3; } 
+                    // else if (tos == 0x21) { tid = 4; }
+                    // else if (tos == 0x30) { tid = 5; } 
+                    // else if (tos == 0x31) { tid = 6; }
+                    // else if (tos == 0x50) { tid = 7; }
 
-                        WifiMacHeader relayHdr = *hdr;
-                        relayHdr.SetAddr1(qHeader.GetFinalDest()); 
-                        relayHdr.SetAddr2(GetAddress());           
-                        Ptr<WifiMpdu> cleanMpdu = Create<WifiMpdu>(packet, relayHdr);
+                    qHeader.SetIsRelay(false); // Reset the relay flag to avoid loops
+                    packet->AddHeader(qHeader); // Re-add the modified header
 
-                        TdmaBufferItem item;
-                        item.mpdu = cleanMpdu;
-                        
-                        if (tid == 1) { m_pri1_status2Queue.push(item); }
-                        else if (tid == 2) { m_pri1_cmd3Queue.push(item); }
-                        else if (tid == 3) { m_pri2_status1Queue.push(item); }
-                        else if (tid == 4) { m_pri2_cmd2Queue.push(item); }
-                        else if (tid == 5) { m_pri3_highResQueue.push(item); }
-                        else if (tid == 6) { m_pri3_cmd1Queue.push(item); }
-                        else if (tid == 7) { m_pri5_lowResQueue.push(item); }
-                    }
+                    WifiMacHeader relayHdr = *hdr;
+                    relayHdr.SetAddr1(qHeader.GetFinalDest()); 
+                    relayHdr.SetAddr2(GetAddress());           
+                    Ptr<WifiMpdu> cleanMpdu = Create<WifiMpdu>(packet, relayHdr);
+
+                    TdmaBufferItem item;
+                    item.mpdu = cleanMpdu;
+                
+                    // if (tid == 1) { m_pri1_status2Queue.push(item); }
+                    // else if (tid == 2) { m_pri1_cmd3Queue.push(item); }
+                    // else if (tid == 3) { m_pri2_status1Queue.push(item); }
+                    // else if (tid == 4) { m_pri2_cmd2Queue.push(item); }
+                    // else if (tid == 5) { m_pri3_highResQueue.push(item); }
+                    // else if (tid == 6) { m_pri3_cmd1Queue.push(item); }
+                    // else if (tid == 7) { m_pri5_lowResQueue.push(item); }
+                    m_pri5_lowResQueue.push(item);
+                    return;
                 }
             }
+
             if (to != GetAddress() && !to.IsBroadcast()) {
-            return;
+                return;
             }
+
             // Forward the clean packet to the higher layers
             //Ptr<WifiMpdu> cleanMpdu = Create<WifiMpdu>(cleanPacket, *hdr);
             ForwardUp(packet, from, to);
             return;
         }
-        // if not a data packet, it will be processed by the base class
+            // if not a data packet, it will be processed by the base class
         WifiMac::Receive(mpdu, linkId);
     }
 

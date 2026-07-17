@@ -11,6 +11,19 @@
 #include "ns3/ipv4-static-routing-helper.h"
 #include "ns3/ipv4-routing-table-entry.h"
 
+
+// struct FanetNode
+// {
+//     Ptr<TdmaWifiMac> interMac;
+//     Ptr<TdmaWifiMac> intraMac;
+
+//     uint8_t nodeId;
+
+//     //...
+// };
+
+// std::vector<FanetNode> m_nodes;
+
 namespace ns3
 {
 
@@ -231,7 +244,7 @@ namespace ns3
                     {
                         // Force IP layer to slice application packets to 84 bytes to avoid fragmentation at the MAC layer
                         // 84 bytes fragments (64 payload + 20 IP header) are the maximum size that can be transmitted in a single TDMA mini-slot
-                        // dev->SetMtu(84);
+                        dev->SetMtu(84);
 
                         std::string ssid = wifiDev->GetMac()->GetSsid().PeekString();
 
@@ -379,6 +392,26 @@ namespace ns3
         // Declare targetNode
         Ptr<Node> targetNode = this->fanet->clusters[this->m_targetClusterIndex].Get(this->m_targetNodeIndex);
 
+        Ptr<Ipv4> targetIpv4 = targetNode->GetObject<Ipv4>();
+        Ipv4Address targetIp;
+        for (uint32_t d = 0; d < targetNode->GetNDevices(); d++) {
+            Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(targetNode->GetDevice(d));
+            if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) {
+                int32_t idx = targetIpv4->GetInterfaceForDevice(wDev);
+                if (idx >= 0) {
+                    targetIp = targetIpv4->GetAddress(idx, 0).GetLocal();
+                    break;
+                }
+            }
+        }
+        std::cout << "[APPLICATION] Target Node " << targetNode->GetId() << " dynamically resolved to IP: " << targetIp << std::endl;
+
+        // Install a PacketSink on the target node to receive data from the Gdt
+        PacketSinkHelper targetSinkHelper("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), this->m_targetPort));
+        ApplicationContainer targetSinkApp = targetSinkHelper.Install(targetNode);
+        targetSinkApp.Start(Seconds(0.0));
+        targetSinkApp.Stop(Seconds(this->simDuration));
+
         // Create the App and install it on the target node
         Ptr<ClusterNodeApp> targetApp = CreateObject<ClusterNodeApp>();
         targetNode->AddApplication(targetApp);
@@ -389,10 +422,6 @@ namespace ns3
         // Start the application
         targetApp->SetStartTime(Seconds(0.0));
         targetApp->SetStopTime(Seconds(this->simDuration));
-
-        // Use template to ensure the compiler resolves the pointer correctly
-        Ptr<Ipv4> ipv4 = targetNode->template GetObject<Ipv4>();
-        Ipv4Address targetIp = ipv4->GetAddress(1, 0).GetLocal();
 
         LogComponentDisable("ClusterNodeCHPromo", LOG_LEVEL_DEBUG);
 
@@ -438,37 +467,37 @@ namespace ns3
             }
 
             // For GDT to know how to reach subnets
-            Ptr<Ipv4> gdtIpv4 = this->fanet->GDTNode.Get(0)->GetObject<Ipv4>();
-            Ptr<Ipv4StaticRouting> gdtStatic = Ipv4RoutingHelper::GetRouting<Ipv4StaticRouting>(gdtIpv4->GetRoutingProtocol());
-            if (gdtStatic) {
-                for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
-                    std::stringstream subnetSs;
-                    subnetSs << "10.1." << (i + 1) << ".0";
-                    Ipv4Address clusterSubnet(subnetSs.str().c_str());
-                    Ipv4Mask clusterMask("255.255.255.0");
+            // Ptr<Ipv4> gdtIpv4 = this->fanet->GDTNode.Get(0)->GetObject<Ipv4>();
+            // Ptr<Ipv4StaticRouting> gdtStatic = Ipv4RoutingHelper::GetRouting<Ipv4StaticRouting>(gdtIpv4->GetRoutingProtocol());
+            // if (gdtStatic) {
+            //     for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
+            //         std::stringstream subnetSs;
+            //         subnetSs << "10.1." << (i + 1) << ".0";
+            //         Ipv4Address clusterSubnet(subnetSs.str().c_str());
+            //         Ipv4Mask clusterMask("255.255.255.0");
 
-                    if (this->fanet->CHNodes.size() > i && this->fanet->CHNodes[i]) {
-                        Ptr<Node> chNode = this->fanet->CHNodes[i];
-                        Ptr<Ipv4> chIpv4 = chNode->GetObject<Ipv4>();
-                        Ipv4Address chInterIp;
+            //         if (this->fanet->CHNodes.size() > i && this->fanet->CHNodes[i]) {
+            //             Ptr<Node> chNode = this->fanet->CHNodes[i];
+            //             Ptr<Ipv4> chIpv4 = chNode->GetObject<Ipv4>();
+            //             Ipv4Address chInterIp;
                         
-                        // Find the CH's 5GHz IP to act as the Gateway
-                        for (uint32_t d = 0; d < chNode->GetNDevices(); d++) {
-                            Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(chNode->GetDevice(d));
-                            if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("InterCluster") != std::string::npos) {
-                                int32_t chIdx = chIpv4->GetInterfaceForDevice(wDev);
-                                if (chIdx >= 0) {
-                                    chInterIp = chIpv4->GetAddress(chIdx, 0).GetLocal();
-                                    break;
-                                }
-                            }
-                        }
-                        if (chInterIp != Ipv4Address::GetZero()) {
-                            gdtStatic->AddNetworkRouteTo(clusterSubnet, clusterMask, chInterIp, 1);
-                        }
-                    }
-                }
-            }
+            //             // Find the CH's 5GHz IP to act as the Gateway
+            //             for (uint32_t d = 0; d < chNode->GetNDevices(); d++) {
+            //                 Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(chNode->GetDevice(d));
+            //                 if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("InterCluster") != std::string::npos) {
+            //                     int32_t chIdx = chIpv4->GetInterfaceForDevice(wDev);
+            //                     if (chIdx >= 0) {
+            //                         chInterIp = chIpv4->GetAddress(chIdx, 0).GetLocal();
+            //                         break;
+            //                     }
+            //                 }
+            //             }
+            //             if (chInterIp != Ipv4Address::GetZero()) {
+            //                 gdtStatic->AddNetworkRouteTo(clusterSubnet, clusterMask, chInterIp, 1);
+            //             }
+            //         }
+            //     }
+            // }
             std::cout << "\n[TOPOLOGY] Fixed Cluster Heads successfully enforced." << std::endl;
         });
         // Schedule the periodic topology sync to run every 2ms to print the TDMA grid map of each node and verify that the mini-slot allocations are correct and updating as expected based on the traffic profiles.
@@ -663,15 +692,21 @@ namespace ns3
         Ipv4Address gdtLocalIp = gcsNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
         AddressValue gdtSocketAddr(InetSocketAddress(gdtLocalIp, 0));
 
+// #define TRAFFIC_CMDAPP
+// #define TRAFFIC_CMD2APP
+
+#ifdef TRAFFIC_CMDAPP
         // CMD 1 [Pri 3 | ToS: 0x31] (Continuous GDT Heartbeat)
         OnOffHelper cmd1App("ns3::UdpSocketFactory", InetSocketAddress(targetIp, this->m_targetPort));
         cmd1App.SetConstantRate(DataRate("0.8Kbps"), 100); 
         cmd1App.SetAttribute("Local", gdtSocketAddr);
         cmd1App.SetAttribute("Tos", UintegerValue(0x31));
-#ifdef TRAFFIC_CMDAPP
+
         ApplicationContainer c1 = cmd1App.Install(gcsNode);
         c1.Start(Seconds(2.0));
         c1.Stop(Seconds(this->simDuration));
+
+
 #endif
         // CMD 2 [Pri 2 | ToS: 0x21] (Asynchronous Target Update)
         OnOffHelper cmd2App("ns3::UdpSocketFactory", InetSocketAddress(targetIp, this->m_targetPort));
@@ -707,12 +742,13 @@ namespace ns3
         Simulator::Stop(Seconds(simDuration));
         Simulator::Run();
 
-        // The verification of GDT receiving data can be done by checking the total bytes received in the sink application on the GDT node.
-        // If it's greater than 0, it means the GDT successfully received some data from the Nodes.
-        Ptr<PacketSink> sink = DynamicCast<PacketSink>(sinkApp.Get(0));
+        // PacketSink Verification
+        Ptr<PacketSink> sink = DynamicCast<PacketSink>(sinkApp.Get(0)); // On GDT
+        Ptr<PacketSink> tSink = DynamicCast<PacketSink>(targetSinkApp.Get(0)); // On Target Node
         std::cout << "\n"
                   << std::endl;
-        std::cout << "[VERIFICATION] GDT successfully received: " << sink->GetTotalRx() << " bytes." << std::endl;
+        std::cout << "[VERIFICATION] GDT successfully received: " << sink->GetTotalRx() << " bytes." << std::endl; 
+        std::cout << "[VERIFICATION] Target Node " << targetNode->GetId() << " successfully received: " << tSink->GetTotalRx() << " bytes of Command traffic." << std::endl; // Target Node PacketSink Verification (for cmd1)
         std::cout << "\n"
                   << std::endl;
 
@@ -759,67 +795,6 @@ namespace ns3
                 }
             }
         }
-
-        // // Update the routing table to ensure that GDT traffic is routed through the 2.4GHz interface when the node is a Cluster Member, 
-        // // and remove that route when it becomes a Cluster Head.
-        // if (ipv4Stack) { // Check if the node has an IPv4 stack
-        //     Ptr<Ipv4StaticRouting> staticRouting = Ipv4RoutingHelper::GetRouting<Ipv4StaticRouting>(ipv4Stack->GetRoutingProtocol());
-        //     if (staticRouting) { // Check if the static routing protocol is available
-        //         Ipv4Address gdtIp = Ipv4Address("10.1.0.1");
-                
-        //         // Clean up old host routes to avoid routing table bloat
-        //         for (uint32_t r = 0; r < staticRouting->GetNRoutes(); r++) { // Iterate over all routes in the static routing table
-        //             Ipv4RoutingTableEntry entry = staticRouting->GetRoute(r);
-        //             if (entry.IsHost() && entry.GetDest() == gdtIp) { // Check if the route is a host route to the GDT IP
-        //                 staticRouting->RemoveRoute(r);
-        //                 break;
-        //             }
-        //         }
-        //         // Find the 2.4GHz Local Interface Index
-        //         int32_t intraIndex = -1;
-        //         for (uint32_t d = 0; d < node->GetNDevices(); d++) { // Iterate over all devices on the node
-        //             Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(node->GetDevice(d));
-        //             if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) { // Check if it's the Intra-Cluster interface
-        //                 intraIndex = ipv4Stack->GetInterfaceForDevice(wDev); 
-        //                 break;
-        //             }
-        //         }
-
-        //         if (!isNowCH && intraIndex >= 0) {
-        //             // 1. Find which cluster this node belongs to
-        //             int clusterId = -1;
-        //             for (size_t i = 0; i < this->fanet->clusters.size(); i++) {
-        //                 for (uint32_t j = 0; j < this->fanet->clusters[i].GetN(); j++) {
-        //                     if (this->fanet->clusters[i].Get(j)->GetId() == nodeId) {
-        //                         clusterId = i;
-        //                         break;
-        //                     }
-        //                 }
-        //                 if (clusterId != -1) break;
-        //             }
-
-        //             // Get the IP address of the Cluster Head for this cluster
-        //             Ipv4Address gatewayIp;
-        //             if (clusterId != -1 && this->fanet->CHNodes[clusterId]) { // Check if the cluster ID is valid and the CH node exists
-        //                 Ptr<Node> chNode = this->fanet->CHNodes[clusterId];
-        //                 Ptr<Ipv4> chIpv4 = chNode->GetObject<Ipv4>();
-        //                 for (uint32_t d = 0; d < chNode->GetNDevices(); d++) { // Iterate over all devices on the CH node
-        //                     Ptr<WifiNetDevice> wDev = DynamicCast<WifiNetDevice>(chNode->GetDevice(d));
-        //                     if (wDev && std::string(wDev->GetMac()->GetSsid().PeekString()).find("Cluster_") != std::string::npos) { // Check if it's the Intra-Cluster interface
-        //                         int32_t chIdx = chIpv4->GetInterfaceForDevice(wDev);
-        //                         if (chIdx >= 0) { // Check if the interface index is valid
-        //                             gatewayIp = chIpv4->GetAddress(chIdx, 0).GetLocal(); 
-        //                             break;
-        //                         }
-        //                     }
-        //                 }
-                        
-        //                 // Force the IP stack to route GDT traffic through the CH Gateway
-        //                 staticRouting->AddHostRouteTo(gdtIp, gatewayIp, intraIndex, 1);
-        //             }
-        //         }
-        //     }
-        // }
 
         if (m_nodeApps.find(nodeId) == m_nodeApps.end())
             return;
