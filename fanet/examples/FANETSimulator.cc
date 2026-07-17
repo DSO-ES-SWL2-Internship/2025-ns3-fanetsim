@@ -404,7 +404,7 @@ namespace ns3
                 }
             }
         }
-        std::cout << "[APPLICATION] Target Node " << targetNode->GetId() << " dynamically resolved to IP: " << targetIp << std::endl;
+        std::cout << "[APPLICATION] Target Node " << targetNode->GetId() << " resolved to IP: " << targetIp << std::endl;
 
         // Install a PacketSink on the target node to receive data from the Gdt
         PacketSinkHelper targetSinkHelper("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), this->m_targetPort));
@@ -579,9 +579,9 @@ namespace ns3
 
 #define NODE_SENDER 1
 // #define TRAFFIC_VIDHIRESAPP
-// #define TRAFFIC_GDTAPP
-// #define TRAFFIC_VIDAPP
-#define TRAFFIC_STAAPP
+#define TRAFFIC_GDTAPP
+#define TRAFFIC_VIDAPP
+// #define TRAFFIC_STAAPP
 
 
 #ifdef TRAFFIC_VIDAPP                
@@ -692,11 +692,12 @@ namespace ns3
         Ipv4Address gdtLocalIp = gcsNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
         AddressValue gdtSocketAddr(InetSocketAddress(gdtLocalIp, 0));
 
-// #define TRAFFIC_CMDAPP
-// #define TRAFFIC_CMD2APP
+#define TRAFFIC_CMDAPP
+#define TRAFFIC_CMD2APP
+#define TRAFFIC_CMD3APP
 
 #ifdef TRAFFIC_CMDAPP
-        // CMD 1 [Pri 3 | ToS: 0x31] (Continuous GDT Heartbeat)
+        // CMD 1 [Pri 3 | ToS: 0x31] (Periodic)
         OnOffHelper cmd1App("ns3::UdpSocketFactory", InetSocketAddress(targetIp, this->m_targetPort));
         cmd1App.SetConstantRate(DataRate("0.8Kbps"), 100); 
         cmd1App.SetAttribute("Local", gdtSocketAddr);
@@ -705,19 +706,32 @@ namespace ns3
         ApplicationContainer c1 = cmd1App.Install(gcsNode);
         c1.Start(Seconds(2.0));
         c1.Stop(Seconds(this->simDuration));
-
-
 #endif
-        // CMD 2 [Pri 2 | ToS: 0x21] (Asynchronous Target Update)
+      
+#ifdef TRAFFIC_CMD2APP
+          // CMD 2 [Pri 2 | ToS: 0x21] (Periodic)
         OnOffHelper cmd2App("ns3::UdpSocketFactory", InetSocketAddress(targetIp, this->m_targetPort));
         cmd2App.SetConstantRate(DataRate("2.4Kbps"), 300); 
         cmd2App.SetAttribute("Local", gdtSocketAddr);
-        cmd2App.SetAttribute("Tos", UintegerValue(0x21));
-#ifdef TRAFFIC_CMD2APP
+        cmd2App.SetAttribute("Tos", UintegerValue(0x21));        
+
         ApplicationContainer c2 = cmd2App.Install(gcsNode);
         c2.Start(Seconds(15.0)); // Asynchronous firing at t=15s
         c2.Stop(Seconds(17.0));
 #endif
+
+#ifdef TRAFFIC_CMD3APP
+        // CMD 3 [Pri 1 | ToS: 0x11] (Asynchronous)
+        OnOffHelper cmd3App("ns3::UdpSocketFactory", InetSocketAddress(targetIp, this->m_targetPort));
+        cmd3App.SetConstantRate(DataRate("0.8Kbps"), 600); 
+        cmd3App.SetAttribute("Local", gdtSocketAddr);
+        cmd3App.SetAttribute("Tos", UintegerValue(0x31));
+
+        ApplicationContainer c3 = cmd1App.Install(gcsNode);
+        c3.Start(Seconds(15.0));
+        c3.Stop(Seconds(25.0));
+#endif
+
         Ptr<NetDevice> gdtInterClusterRadio;
         for (uint32_t d = 0; d < gcsNode->GetNDevices(); d++)
         {
